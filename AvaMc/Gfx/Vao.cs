@@ -5,11 +5,9 @@ namespace AvaMc.Gfx;
 
 public sealed class Vao : Resource
 {
-    public Vao(GL gl, bool doUnbind = false)
+    public Vao(GL gl)
     {
         Handle = gl.GenVertexArray();
-        if (!doUnbind)
-            gl.BindVertexArray(Handle);
     }
 
     public void Link<T>(GL gl, Vbo<T> vbo, uint slot, int count, GLEnum type, int offset)

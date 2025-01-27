@@ -4,7 +4,7 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;
 
-public sealed class Ibo : Resource
+public sealed unsafe class Ibo : Resource
 {
     uint ElementCount { get; }
 
@@ -37,7 +37,7 @@ public sealed class Ibo : Resource
         gl.DeleteBuffer(Handle);
     }
 
-    public unsafe void DrawElements(GL gl, PrimitiveType renderMode)
+    public void DrawElements(GL gl, PrimitiveType renderMode)
     {
         gl.DrawElements(renderMode, ElementCount, DrawElementsType.UnsignedInt, null);
     }
