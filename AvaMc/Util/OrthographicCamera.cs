@@ -8,11 +8,10 @@ public sealed class OrthographicCamera : Camera
     public Vector2 Min { get; set; }
     public Vector2 Max { get; set; }
     
-    public OrthographicCamera(Vector2 min, Vector2 max)
+    public void Initialize(Vector2 min, Vector2 max)
     {
         Min = min;
         Max = max;
-        Update();
     }
     
     public void Update()

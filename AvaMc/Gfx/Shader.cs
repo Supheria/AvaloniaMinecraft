@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using AvaMc.Assets;
 using AvaMc.Util;
 using Microsoft.Xna.Framework;
@@ -8,14 +9,26 @@ namespace AvaMc.Gfx;
 
 public sealed unsafe class Shader : Resource
 {
-    public Shader(GL gl, string shaderName)
+    private Shader(uint handle)
+        : base(handle) { }
+
+    public Shader()
+        : this(0) { }
+
+    public static Shader Create(GL gl, string shaderName, Dictionary<uint, string> attributes)
     {
         var vertexCode = AssetsRead.ReadVertex(shaderName);
         var fragmentCode = AssetsRead.ReadFragment(shaderName);
-        Handle = Load(gl, vertexCode, fragmentCode);
+        var handle = GetHandle(gl, vertexCode, fragmentCode, attributes);
+        return new(handle);
     }
 
-    private static uint Load(GL gl, string vertexCode, string fragmentCode)
+    private static uint GetHandle(
+        GL gl,
+        string vertexCode,
+        string fragmentCode,
+        Dictionary<uint, string> attributes
+    )
     {
         var vs = gl.CreateShader(ShaderType.VertexShader);
         gl.ShaderSource(vs, vertexCode);
@@ -34,6 +47,9 @@ public sealed unsafe class Shader : Resource
         var handle = gl.CreateProgram();
         gl.AttachShader(handle, vs);
         gl.AttachShader(handle, fs);
+
+        foreach (var (index, name) in attributes)
+            gl.BindAttribLocation(handle, index, name);
 
         gl.LinkProgram(handle);
         error = gl.GetProgramInfoLog(handle);
@@ -77,7 +93,7 @@ public sealed unsafe class Shader : Resource
         }
     }
 
-    public void UniformCamera(GL gl, CameraMatrices camera)
+    public void UniformViewProject(GL gl, ViewProject camera)
     {
         UniformMatrix4(gl, "p", camera.Project);
         UniformMatrix4(gl, "v", camera.View);

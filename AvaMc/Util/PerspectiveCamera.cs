@@ -24,15 +24,12 @@ public sealed class PerspectiveCamera : Camera
     }
     float _yaw;
     public float Fov { get; set; }
-    public float Aspect { get; set; }
     public float ZNear { get; set; } = 0.01f;
     public float ZFar { get; set; } = 1000.0f;
-
-    public PerspectiveCamera(float fov, float aspect)
+    
+    public void Initialize(float fov)
     {
         Fov = fov;
-        Aspect = aspect;
-        Update();
     }
 
     public void Update()
@@ -41,7 +38,7 @@ public sealed class PerspectiveCamera : Camera
         var yaw = Yaw;
         var pos = Position;
         var fov = Fov;
-        var aspect = Aspect;
+        var ratio = (float)State.WindowSize.AspectRatio;
         var zNear = ZNear;
         var zFar = ZFar;
         
@@ -52,6 +49,6 @@ public sealed class PerspectiveCamera : Camera
         Right = Vector3.Cross(Vector3.UnitY, Direction);
         Up = Vector3.Cross(Direction, Right);
         View = Matrix4.CreateLookAt(pos, Vector3.Add(pos, Direction), Up);
-        Project = Matrix4.CreatePerspectiveFieldOfView(fov, aspect, zNear, zFar);
+        Project = Matrix4.CreatePerspectiveFieldOfView(fov, ratio, zNear, zFar);
     }
 }

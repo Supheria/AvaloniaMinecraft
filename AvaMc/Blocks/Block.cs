@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework;
 namespace AvaMc.Blocks;
 
 // TODO: not complete yet
-public abstract class Block
+public abstract partial class Block
 {
     public const BlockId BlockIdLast = BlockId.PineLeaves;
     public BlockId Id { get; set; }
@@ -36,7 +36,7 @@ public abstract class Block
 
     public abstract Func<World, Vector3, Direction, Vector2> GetTextureLocation { get; set; }
     public abstract Func<World, Vector3, Direction, MeshInfo> GetMeshInfo { get; set; }
-    public abstract Func<Vector2[]> GetAnimationFrames { get; set; }
+    public abstract Func<Vector2[]> GetAnimationFrameOffsets { get; set; }
     public abstract Func<World, Vector3, TorchLight> GetTorchLight { get; set; }
     public abstract Func<World, Vector3, Aabb> GetAabb { get; set; }
 }

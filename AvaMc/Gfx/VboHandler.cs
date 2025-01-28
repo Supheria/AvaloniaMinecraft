@@ -4,14 +4,27 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;
 
-public sealed unsafe class Vbo<T> : Resource
-    where T : unmanaged
+public sealed unsafe class VboHandler : Resource
 {
-    public uint Stride { get; }
+    bool Dynamic { get; }
+    public uint Stride { get; private set; }
 
-    public Vbo(GL gl, ICollection<T> data, bool dynamic)
+    private VboHandler(uint handle, bool dynamic)
+        : base(handle)
     {
-        Handle = gl.GenBuffer();
+        Dynamic = dynamic;
+    }
+
+    public static VboHandler Create(GL gl, bool dynamic)
+    {
+        var handle = gl.GenBuffer();
+        var vbo = new VboHandler(handle, dynamic);
+        return vbo;
+    }
+
+    public void Buffer<T>(GL gl, ICollection<T> data)
+        where T : unmanaged
+    {
         Bind(gl);
         var array = data.ToArray();
         var stride = sizeof(T);
@@ -19,9 +32,8 @@ public sealed unsafe class Vbo<T> : Resource
             BufferTargetARB.ArrayBuffer,
             (uint)(stride * array.Length),
             data.ToArray(),
-            dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StaticDraw
+            Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StaticDraw
         );
-        Stride = (uint)stride;
     }
 
     public void Bind(GL gl)

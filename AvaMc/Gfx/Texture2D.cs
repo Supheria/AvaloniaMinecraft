@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using Avalonia;
+using AvaMc.Assets;
 using Microsoft.Xna.Framework;
 using Silk.NET.OpenGLES;
 using StbImageSharp;
@@ -13,78 +14,38 @@ public sealed unsafe class Texture2D : Resource
     public int Plot { get; }
     public Vector2 Size { get; }
 
-    public record struct ImageInfo(byte[] Data, int Width, int Height, int ColumnNumber);
-    
-    private Texture2D(GL gl, ImageInfo image, int plot)
+    public record struct ImageInfo(byte[] Pixels, int Width, int Height, int ColumnNumber);
+
+    private Texture2D(uint handle, int plot, float width, float height)
+        : base(handle)
     {
         Plot = plot;
-        Size = new(image.Width, image.Height);
-        Handle = Load(gl, image, plot);
+        Size = new(width, height);
     }
 
-    private static uint Load(GL gl, ImageInfo image, int unit)
+    public static Texture2D Create(GL gl, string textureName, int plot)
     {
-        // ImageResult.FromStream()
-        gl.ActiveTexture(TextureUnit.Texture0 + unit);
+        using var stream = AssetsRead.ReadTexture(textureName);
+        return Create(gl, stream, plot);
+    }
 
-        var handle = gl.GenTexture();
-        gl.BindTexture(TextureTarget.Texture2D, handle);
+    public static Texture2D Create(GL gl, Stream stream, int plot)
+    {
+        var image = LoadImage(stream);
+        return Create(gl, plot, image.Pixels, image.Width, image.Height, image.ColumnNumber);
+    }
 
-        gl.TexParameterI(
-            TextureTarget.Texture2D,
-            TextureParameterName.TextureWrapS,
-            (int)TextureWrapMode.Repeat
-        );
-        gl.TexParameterI(
-            TextureTarget.Texture2D,
-            TextureParameterName.TextureWrapT,
-            (int)TextureWrapMode.Repeat
-        );
-        gl.TexParameterI(
-            TextureTarget.Texture2D,
-            TextureParameterName.TextureMinFilter,
-            (int)TextureMinFilter.Nearest
-        );
-        gl.TexParameterI(
-            TextureTarget.Texture2D,
-            TextureParameterName.TextureMagFilter,
-            (int)TextureMinFilter.Nearest
-        );
-
-        InternalFormat internalFormat;
-        PixelFormat pixelFormat;
-        switch (image.ColumnNumber)
-        {
-            case 4:
-                internalFormat = InternalFormat.Rgba;
-                pixelFormat = PixelFormat.Rgba;
-                break;
-            case 3:
-                internalFormat = InternalFormat.Rgb;
-                pixelFormat = PixelFormat.Rgb;
-                break;
-            case 1:
-                internalFormat = InternalFormat.Red;
-                pixelFormat = PixelFormat.Red;
-                break;
-            default:
-                throw new ArgumentException("Automatic Texture type recognition failed");
-        }
-        gl.TexImage2D<byte>(
-            TextureTarget.Texture2D,
-            0,
-            internalFormat,
-            (uint)image.Width,
-            (uint)image.Height,
-            0,
-            pixelFormat,
-            PixelType.UnsignedByte,
-            image.Data
-        );
-
-        gl.BindTexture(TextureTarget.Texture2D, 0);
-
-        return handle;
+    public static Texture2D Create(
+        GL gl,
+        int plot,
+        byte[] pixels,
+        int width,
+        int height,
+        int columnNumber
+    )
+    {
+        var handle = GetHandle(gl, plot, pixels, width, height, columnNumber);
+        return new(handle, plot, width, height);
     }
 
     public static ImageInfo LoadImage(Stream stream)
@@ -114,16 +75,77 @@ public sealed unsafe class Texture2D : Resource
                 Marshal.FreeHGlobal(new IntPtr(ptr));
         }
     }
-    
-    public static Texture2D CreateFromStream(GL gl, Stream stream, int plot)
+
+    private static uint GetHandle(
+        GL gl,
+        int plot,
+        byte[] pixels,
+        int width,
+        int height,
+        int columnNumber
+    )
     {
-        var image = LoadImage(stream);
-        return new(gl, image, plot);
-    }
-    
-    public static Texture2D CreateFromImage(GL gl, ImageInfo image, int plot)
-    {
-        return new(gl, image, plot);
+        // ImageResult.FromStream()
+        gl.ActiveTexture(TextureUnit.Texture0 + plot);
+
+        var handle = gl.GenTexture();
+        gl.BindTexture(TextureTarget.Texture2D, handle);
+
+        gl.TexParameterI(
+            TextureTarget.Texture2D,
+            TextureParameterName.TextureWrapS,
+            (int)TextureWrapMode.Repeat
+        );
+        gl.TexParameterI(
+            TextureTarget.Texture2D,
+            TextureParameterName.TextureWrapT,
+            (int)TextureWrapMode.Repeat
+        );
+        gl.TexParameterI(
+            TextureTarget.Texture2D,
+            TextureParameterName.TextureMinFilter,
+            (int)TextureMinFilter.Nearest
+        );
+        gl.TexParameterI(
+            TextureTarget.Texture2D,
+            TextureParameterName.TextureMagFilter,
+            (int)TextureMinFilter.Nearest
+        );
+
+        InternalFormat internalFormat;
+        PixelFormat pixelFormat;
+        switch (columnNumber)
+        {
+            case 4:
+                internalFormat = InternalFormat.Rgba;
+                pixelFormat = PixelFormat.Rgba;
+                break;
+            case 3:
+                internalFormat = InternalFormat.Rgb;
+                pixelFormat = PixelFormat.Rgb;
+                break;
+            case 1:
+                internalFormat = InternalFormat.Red;
+                pixelFormat = PixelFormat.Red;
+                break;
+            default:
+                throw new ArgumentException("Automatic Texture type recognition failed");
+        }
+        gl.TexImage2D<byte>(
+            TextureTarget.Texture2D,
+            0,
+            internalFormat,
+            (uint)width,
+            (uint)height,
+            0,
+            pixelFormat,
+            PixelType.UnsignedByte,
+            pixels
+        );
+
+        gl.BindTexture(TextureTarget.Texture2D, 0);
+
+        return handle;
     }
 
     public void Bind(GL gl)

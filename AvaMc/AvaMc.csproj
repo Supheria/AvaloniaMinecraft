@@ -28,8 +28,4 @@
     <ItemGroup>
       <ProjectReference Include="..\lib\Microsoft.Xna.Framework\Microsoft.Xna.Framework.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Extensions\" />
-    </ItemGroup>
 </Project>

@@ -14,20 +14,20 @@ public sealed class AssetsRead
     
     public static Stream ReadTexture(string textureName)
     {
-        var uri = GenerateUri("Textures", textureName + ".tex");
+        var uri = GenerateUri("textures", textureName + ".png");
         var stream = AssetLoader.Open(uri);
         return stream;
     }
     
     public static string ReadVertex(string shaderName)
     {
-        var uri = GenerateUri("Shaders", shaderName + ".vert");
+        var uri = GenerateUri("shaders", shaderName + ".vert");
         return ReadToString(uri);
     }
     
     public static string ReadFragment(string shaderName)
     {
-        var uri = GenerateUri("Shaders", shaderName + ".frag");
+        var uri = GenerateUri("shaders", shaderName + ".frag");
         return ReadToString(uri);
     }
     

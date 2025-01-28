@@ -1,5 +1,6 @@
 using System.IO;
 using Avalonia;
+using AvaMc.Assets;
 using Microsoft.Xna.Framework;
 using Silk.NET.OpenGLES;
 
@@ -7,19 +8,24 @@ namespace AvaMc.Gfx;
 
 public sealed class Atlas
 {
-    Texture2D Texture { get; }
+    public Texture2D Texture { get; set; }
     Vector2 Size { get; }
     Vector2 SpriteSize { get; }
     Vector2 SpriteUnit { get; }
     Vector2 PixelUnit { get; }
 
-    public Atlas(Texture2D texture, Vector2 spriteSize)
+    private Atlas(Texture2D texture, Vector2 spriteSize)
     {
         Texture = texture;
         SpriteSize = spriteSize;
         SpriteUnit = Vector2.Divide(spriteSize, texture.Size);
         PixelUnit = Vector2.Divide(Vector2.One, texture.Size);
         Size = Vector2.Divide(texture.Size, spriteSize);
+    }
+
+    public static Atlas Create(Texture2D texture, Vector2 spriteSize)
+    {
+        return new(texture, spriteSize);
     }
 
     public void GetUvRange(Vector2 position, ref Vector2 uvMin, ref Vector2 uvMax)
@@ -31,7 +37,7 @@ public sealed class Atlas
         uvMin = Vector2.Divide(pMin, Texture.Size);
         uvMax = Vector2.Divide(Vector2.Add(pMin, SpriteSize), Texture.Size);
     }
-    
+
     public void Delete(GL gl)
     {
         Texture.Delete(gl);
