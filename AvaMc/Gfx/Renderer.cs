@@ -43,21 +43,21 @@ public sealed class Renderer
         Pass2D,
         Pass3D,
     }
-
-    public const int CameraStackMax = 256;
-    public CameraType CurrentCameraType { get; private set; } = CameraType.Perspective;
-    public ConcurrentStack<CameraType> CameraStack { get; } = [];
-    public PerspectiveCamera PerspectiveCamera { get; } = new();
-    public OrthographicCamera OrthographicCamera { get; } = new();
-    public Dictionary<ShaderType, Shader> Shaders { get; }
-    public ShaderType CurrentShaderType { get; set; } = ShaderType.None;
-    public Shader Shader { get; set; } = new();
-    public Dictionary<TextureType, Texture2D> Textures { get; }
-    public BlockAtlas BlockAtlas { get; private set; }
-    public Vector4 ClearColor { get; set; }
-    public VaoHandler Vao { get; }
-    public VboHandler Vbo { get; }
-    public IboHandler Ibo { get; }
+    
+    const int CameraStackMax = 256;
+    CameraType CurrentCameraType { get; set; } = CameraType.Perspective;
+    ConcurrentStack<CameraType> CameraStack { get; } = [];
+    PerspectiveCamera PerspectiveCamera { get; } = new();
+    OrthographicCamera OrthographicCamera { get; } = new();
+    Dictionary<ShaderType, Shader> Shaders { get; }
+    ShaderType CurrentShaderType { get; set; } = ShaderType.None;
+    Shader Shader { get; set; } = new();
+    Dictionary<TextureType, Texture2D> Textures { get; }
+    BlockAtlas BlockAtlas { get; set; }
+    Vector4 ClearColor { get; set; }
+    VaoHandler Vao { get; }
+    VboHandler Vbo { get; }
+    IboHandler Ibo { get; }
     public bool Wireframe { get; set; }
 
     public Renderer(GL gl)
