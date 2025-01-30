@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using AvaMc.Blocks;
+using AvaMc.Extensions;
 using Microsoft.Xna.Framework;
 
 namespace AvaMc.WorldBuilds;
@@ -9,9 +11,10 @@ namespace AvaMc.WorldBuilds;
 public sealed class World
 {
     const int ChunksSize = 16;
-    List<Chunk> Chunks { get; set; } = [];
+    const int HeightmapUnknown = int.MinValue;
+    Dictionary<Vector3, Chunk> Chunks { get; set; } = [];
     Vector3 ChunksOrigin { get; set; }
-    Heightmap[,] Heightmaps { get; set; } = new Heightmap[ChunksSize, ChunksSize];
+    Dictionary<Vector2, Heightmap> Heightmaps { get; set; } = [];
 
     public bool ChunkInBounds(Vector3 offset)
     {
@@ -24,32 +27,42 @@ public sealed class World
             && p.Z < ChunksSize;
     }
 
-    public int ChunkIndex(Vector3 offset)
-    {
-        var p = Vector3.Subtract(offset, ChunksOrigin);
-        var index = (p.X * ChunksSize * ChunksSize) + (p.Z * ChunksSize);
-        return (int)index;
-    }
-
     public bool GetChunk(Vector3 offset, [NotNullWhen(true)] out Chunk? chunk)
     {
         chunk = null;
         if (ChunkInBounds(offset))
             return false;
-        var index = ChunkIndex(offset);
-        chunk = Chunks[index];
+        chunk = Chunks[offset];
         return true;
     }
-
-    public int HeightmapIndex(Vector2 offset)
+    
+    public Vector2 PosToHeightmapPos(Vector2 pos)
     {
-        var p = Vector2.Subtract(offset, new(ChunksOrigin.X, ChunksOrigin.Z));
-        return (int)(p.X * ChunksSize + p.Y);
+        var xz = Chunk.ChunkSize.Xz();
+        return pos.Mod(xz).Add(xz).Mod(xz);
+    }
+
+    public bool HeightmapInBounds(Vector2 offset)
+    {
+        var p = Vector2.Subtract(offset, ChunksOrigin.Xz());
+        return p.X >= 0 && p.Y >= 0 && p.X < ChunksSize && p.Y < ChunksSize;
     }
 
     public static Heightmap GetHeightmap(Chunk chunk)
     {
-        return chunk.World.Heightmaps[(int)chunk.Offset.X, (int)chunk.Offset.Z];
+        return chunk.World.Heightmaps[chunk.Offset.Xz()];
+    }
+
+    public int HeightmapGet(Vector2 p)
+    {
+        var offset = Chunk.BlockPositionToChunkOffset(p);
+        if (HeightmapInBounds(offset))
+        {
+            var heightmap = Heightmaps[offset];
+            var pos = PosToHeightmapPos(p);
+            return heightmap.GetData(pos.X, pos.Y);
+        }
+        return HeightmapUnknown;
     }
 
     public static void HeightMapRecaculate(Chunk chunk)

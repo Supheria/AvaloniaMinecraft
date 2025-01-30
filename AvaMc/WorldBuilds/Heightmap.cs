@@ -11,7 +11,7 @@ public class Heightmap
     WorldgenData WorldgenData { get; set; }
     bool Generated { get; set; } = true;
 
-    public long GetData(float x, float z)
+    public int GetData(float x, float z)
     {
         return Data[(int)x, (int)z];
     }
