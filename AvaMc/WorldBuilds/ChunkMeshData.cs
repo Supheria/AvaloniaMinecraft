@@ -33,9 +33,9 @@ public sealed class ChunkMeshData
     // csharpier-ignore
     public static float[] CubeUvs { get; } =
         [
+            0, 1,
+            1, 1,
             1, 0,
             0, 0,
-            0, 1,
-            1, 1
         ];
 }

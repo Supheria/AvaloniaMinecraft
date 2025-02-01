@@ -7,5 +7,11 @@ public partial class MainView : UserControl
     public MainView()
     {
         InitializeComponent();
+        Game.FrameInfoUpdated += FrameInfoUpdated;
+    }
+
+    private void FrameInfoUpdated(object? sender, int e)
+    {
+        Text.Text = $"{e} fps";
     }
 }

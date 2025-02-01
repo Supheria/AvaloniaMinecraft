@@ -13,26 +13,21 @@ public sealed unsafe class ShaderHandler : Resource
     private ShaderHandler(uint handle)
         : base(handle) { }
 
-    public ShaderHandler()
-        : this(0) { }
-
     public static ShaderHandler Create(
         GL gl,
-        string shaderName,
-        Dictionary<uint, string> attributes
+        string shaderName
     )
     {
         var vertexCode = AssetsRead.ReadVertex(shaderName);
         var fragmentCode = AssetsRead.ReadFragment(shaderName);
-        var handle = GetHandle(gl, vertexCode, fragmentCode, attributes);
+        var handle = GetHandle(gl, vertexCode, fragmentCode);
         return new(handle);
     }
 
     private static uint GetHandle(
         GL gl,
         string vertexCode,
-        string fragmentCode,
-        Dictionary<uint, string> attributes
+        string fragmentCode
     )
     {
         var vs = gl.CreateShader(ShaderType.VertexShader);
@@ -53,8 +48,8 @@ public sealed unsafe class ShaderHandler : Resource
         gl.AttachShader(handle, vs);
         gl.AttachShader(handle, fs);
 
-        foreach (var (index, name) in attributes)
-            gl.BindAttribLocation(handle, index, name);
+        // foreach (var (index, name) in attributes)
+        //     gl.BindAttribLocation(handle, index, name);
 
         gl.LinkProgram(handle);
         error = gl.GetProgramInfoLog(handle);

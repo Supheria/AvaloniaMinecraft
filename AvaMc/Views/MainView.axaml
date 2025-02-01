@@ -17,6 +17,8 @@
         -->
         <vm:MainViewModel />
     </Design.DataContext>
-
-    <views:GameControl />
+    <Grid RowDefinitions="Auto *">
+        <TextBlock x:Name="Text" />
+        <views:GameControl Grid.Row="1" x:Name="Game" />
+    </Grid>
 </UserControl>

@@ -11,7 +11,7 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.Views;
 
-public class GameControl : GlEsControl
+public sealed class GameControl : GlEsControl
 {
     long LastFrameTime { get; set; }
     long TickRemainder { get; set; }
@@ -39,7 +39,6 @@ public class GameControl : GlEsControl
         base.OnPointerEntered(e);
         LastPointerPostion = e.GetPosition(this);
     }
-    
 
     protected override void OnPointerMoved(PointerEventArgs e)
     {
@@ -63,12 +62,7 @@ public class GameControl : GlEsControl
     protected override void OnGlInit(GL gl)
     {
         // csharpier-ignore
-        State.Shader = ShaderHandler.Create(gl, "basic", new()
-        {
-            [0] = "position",
-            [1] = "uv",
-            [2] = "color"
-        });
+        State.Shader = ShaderHandler.Create(gl, "basic");
         var texture = Texture2D.Create(gl, "blocks", 0);
         State.Atlas = Atlas.Create(texture, new(16, 16));
         State.World = new(gl);
@@ -125,6 +119,8 @@ public class GameControl : GlEsControl
 
     private void Update()
     {
+        State.Game.Pointer.Update();
+        State.Game.Keyboard.Update();
         State.World.Update();
     }
 }

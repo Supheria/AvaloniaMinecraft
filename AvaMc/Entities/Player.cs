@@ -10,7 +10,7 @@ using Silk.NET.OpenGLES;
 namespace AvaMc.Entities;
 
 // TODO
-public class Player
+public sealed class Player
 {
     const float MouseSensitivity = 3.2f;
     const float Speed = 0.24f;

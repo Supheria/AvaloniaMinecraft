@@ -10,7 +10,7 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
 
-public class Chunk
+public sealed class Chunk
 {
     public const int ChunkSizeX = 16;
     public const int ChunkSizeY = 256;
@@ -143,7 +143,7 @@ public class Chunk
 
         for (var x = 0; x < ChunkSizeX; x++)
         {
-            for (var y = 0; y < ChunkSizeY; y++)
+            for (var y = 0; y < 64; y++)
             {
                 for (var z = 0; z < ChunkSizeZ; z++)
                 {

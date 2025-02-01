@@ -57,8 +57,6 @@ public sealed unsafe class Texture2D : Resource
             int width;
             int height;
             int column;
-            // TODO: may remove flip
-            StbImage.stbi_set_flip_vertically_on_load(1);
             ptr = StbImage.stbi__load_and_postprocess_8bit(
                 new StbImage.stbi__context(stream),
                 &width,
