@@ -1,5 +1,10 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System.Numerics;
+
+var v = Vector3.Zero;
+v = Vector3.Normalize(v);
+
 var aa = new Aa();
 var a = aa.GetA(1, 2);
 a.Value = 10;

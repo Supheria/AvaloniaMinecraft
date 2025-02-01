@@ -1,33 +1,33 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using AvaMc.Assets;
 using AvaMc.Util;
-using Microsoft.Xna.Framework;
+using Silk.NET.Maths;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;
 
-public sealed unsafe class Shader : Resource
+public sealed unsafe class ShaderHandler : Resource
 {
-    private Shader(uint handle)
+    private ShaderHandler(uint handle)
         : base(handle) { }
 
-    public Shader()
-        : this(0) { }
-
-    public static Shader Create(GL gl, string shaderName, Dictionary<uint, string> attributes)
+    public static ShaderHandler Create(
+        GL gl,
+        string shaderName
+    )
     {
         var vertexCode = AssetsRead.ReadVertex(shaderName);
         var fragmentCode = AssetsRead.ReadFragment(shaderName);
-        var handle = GetHandle(gl, vertexCode, fragmentCode, attributes);
+        var handle = GetHandle(gl, vertexCode, fragmentCode);
         return new(handle);
     }
 
     private static uint GetHandle(
         GL gl,
         string vertexCode,
-        string fragmentCode,
-        Dictionary<uint, string> attributes
+        string fragmentCode
     )
     {
         var vs = gl.CreateShader(ShaderType.VertexShader);
@@ -48,8 +48,8 @@ public sealed unsafe class Shader : Resource
         gl.AttachShader(handle, vs);
         gl.AttachShader(handle, fs);
 
-        foreach (var (index, name) in attributes)
-            gl.BindAttribLocation(handle, index, name);
+        // foreach (var (index, name) in attributes)
+        //     gl.BindAttribLocation(handle, index, name);
 
         gl.LinkProgram(handle);
         error = gl.GetProgramInfoLog(handle);
@@ -77,7 +77,7 @@ public sealed unsafe class Shader : Resource
         gl.DeleteProgram(Handle);
     }
 
-    public void UniformMatrix4(GL gl, string uniformName, Matrix4 matrix)
+    public void UniformMatrix4(GL gl, string uniformName, Matrix4x4 matrix)
     {
         var location = gl.GetUniformLocation(Handle, uniformName);
         // csharpier-ignore
@@ -93,7 +93,7 @@ public sealed unsafe class Shader : Resource
         }
     }
 
-    public void UniformViewProject(GL gl, ViewProject camera)
+    public void UniformCamera(GL gl, Camera camera)
     {
         UniformMatrix4(gl, "p", camera.Project);
         UniformMatrix4(gl, "v", camera.View);
@@ -128,18 +128,18 @@ public sealed unsafe class Shader : Resource
     public void UniformVector2(GL gl, string uniformName, Vector2 value)
     {
         var location = gl.GetUniformLocation(Handle, uniformName);
-        gl.Uniform2(location, value.X, value.Y);
+        gl.Uniform2(location, value);
     }
 
     public void UniformVector3(GL gl, string uniformName, Vector3 value)
     {
         var location = gl.GetUniformLocation(Handle, uniformName);
-        gl.Uniform3(location, value.X, value.Y, value.Z);
+        gl.Uniform3(location, value);
     }
 
     public void UniformVector4(GL gl, string uniformName, Vector4 value)
     {
         var location = gl.GetUniformLocation(Handle, uniformName);
-        gl.Uniform4(location, value.X, value.Y, value.Z, value.W);
+        gl.Uniform4(location, value);
     }
 }

@@ -28,6 +28,7 @@ public sealed class VaoHandler : Resource
         if (type is not VertexAttribPointerType.Float)
             throw new ArgumentOutOfRangeException($"unsupported vertex attribute type");
         gl.VertexAttribPointer(slot, count, type, false, vbo.Stride, offset);
+        gl.EnableVertexAttribArray(slot);
     }
 
     public void Link(
@@ -44,6 +45,7 @@ public sealed class VaoHandler : Resource
         if (type is not VertexAttribIType.UnsignedInt)
             throw new ArgumentOutOfRangeException($"unsupported vertex attribute type");
         gl.VertexAttribIPointer(slot, count, type, vbo.Stride, offset);
+        gl.EnableVertexAttribArray(slot);
     }
 
     public void Bind(GL gl)

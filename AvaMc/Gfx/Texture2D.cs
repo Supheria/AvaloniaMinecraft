@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Avalonia;
 using AvaMc.Assets;
@@ -12,11 +13,11 @@ namespace AvaMc.Gfx;
 public sealed unsafe class Texture2D : Resource
 {
     public int Plot { get; }
-    public Vector2 Size { get; }
+    public Vector2I Size { get; }
 
     public record struct ImageInfo(byte[] Pixels, int Width, int Height, int ColumnNumber);
 
-    private Texture2D(uint handle, int plot, float width, float height)
+    private Texture2D(uint handle, int plot, int width, int height)
         : base(handle)
     {
         Plot = plot;
@@ -56,8 +57,6 @@ public sealed unsafe class Texture2D : Resource
             int width;
             int height;
             int column;
-            // TODO: may remove flip
-            StbImage.stbi_set_flip_vertically_on_load(1);
             ptr = StbImage.stbi__load_and_postprocess_8bit(
                 new StbImage.stbi__context(stream),
                 &width,

@@ -1,14 +1,9 @@
-using Microsoft.Xna.Framework;
+using System.Numerics;
 
 namespace AvaMc.Util;
 
 public abstract class Camera
 {
-    protected Matrix4 View { get; set; }
-    protected Matrix4 Project { get; set; }
-    
-    public ViewProject GetViewProject()
-    {
-        return new(Project, View);
-    }
+    public Matrix4x4 View { get; protected set; } = Matrix4x4.Identity;
+    public Matrix4x4 Project { get; protected set; } = Matrix4x4.Identity;
 }
