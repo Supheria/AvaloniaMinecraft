@@ -2,19 +2,35 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using AvaMc.Blocks;
+using AvaMc.Entities;
 using AvaMc.Extensions;
 using Microsoft.Xna.Framework;
+using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
 
 // TODO
-public sealed class World
+public sealed partial class World
 {
-    const int ChunksSize = 16;
-    const int HeightmapUnknown = int.MinValue;
+    const float ChunksSize = 16;
+    public Player Player { get; set; }
     Dictionary<Vector3, Chunk> Chunks { get; set; } = [];
     Vector3 ChunksOrigin { get; set; }
-    Dictionary<Vector2, Heightmap> Heightmaps { get; set; } = [];
+    Vector3 CenterOffset { get; set; }
+
+    public World(GL gl)
+    {
+        Player = new(this);
+        SetCenter(gl, Vector3.Zero);
+    }
+    
+    public void Delete(GL gl)
+    {
+        Player.Delete(gl);
+        foreach (var chunk in Chunks.Values)
+            chunk.Delete(gl);
+        Chunks.Clear();
+    }
 
     public bool ChunkInBounds(Vector3 offset)
     {
@@ -30,68 +46,57 @@ public sealed class World
     public bool GetChunk(Vector3 offset, [NotNullWhen(true)] out Chunk? chunk)
     {
         chunk = null;
-        if (ChunkInBounds(offset))
+        if (!ChunkInBounds(offset))
             return false;
-        chunk = Chunks[offset];
-        return true;
-    }
-    
-    public Vector2 PosToHeightmapPos(Vector2 pos)
-    {
-        var xz = Chunk.ChunkSize.Xz();
-        return pos.Mod(xz).Add(xz).Mod(xz);
+        return Chunks.TryGetValue(offset, out chunk);
     }
 
-    public bool HeightmapInBounds(Vector2 offset)
+    public void LoadChunk(GL gl, Vector3 offset)
     {
-        var p = Vector2.Subtract(offset, ChunksOrigin.Xz());
-        return p.X >= 0 && p.Y >= 0 && p.X < ChunksSize && p.Y < ChunksSize;
+        var chunk = new Chunk(gl, this, offset);
+        Generate(chunk);
+        Chunks[offset] = chunk;
     }
 
-    public static Heightmap GetHeightmap(Chunk chunk)
+    public void LoadEmptyChunks(GL gl)
     {
-        return chunk.World.Heightmaps[chunk.Offset.Xz()];
-    }
-
-    public int HeightmapGet(Vector2 p)
-    {
-        var offset = Chunk.BlockPositionToChunkOffset(p);
-        if (HeightmapInBounds(offset))
+        // LoadChunk(gl, new(0, 0, 0));
+        for (var x = 0; x < ChunksSize; x++)
         {
-            var heightmap = Heightmaps[offset];
-            var pos = PosToHeightmapPos(p);
-            return heightmap.GetData(pos.X, pos.Y);
-        }
-        return HeightmapUnknown;
-    }
-
-    public static void HeightMapRecaculate(Chunk chunk)
-    {
-        var heightmap = GetHeightmap(chunk);
-        Vector3 posC = new();
-        Vector3 posW = new();
-        for (var x = 0; x < Chunk.ChunkSizeX; x++)
-        {
-            for (var z = 0; z < Chunk.ChunkSizeZ; z++)
+            for (var z = 0; z < ChunksSize; z++)
             {
-                posC.X = x;
-                posC.Z = z;
-                posW.X = x + chunk.Position.X;
-                posW.Z = z + chunk.Position.Y;
-                var h = heightmap.GetData(x, z);
-
-                if (h > chunk.Position.Y + Chunk.ChunkSizeY - 1)
-                    continue;
-                for (var y = Chunk.ChunkSizeY - 1; y >= 0; y--)
-                {
-                    posC.Y = y;
-                    posW.Y = y + chunk.Position.Y;
-                    var blockId = chunk.GetBlockData(posC).BlockId;
-                    if (Block.Blocks[blockId].Transparent)
-                        continue;
-                    heightmap.SetData(posC.X, posC.Z, posW.Y);
-                }
+                // if (x != 0 || z != 0)
+                //     continue;
+                var offset = Vector3.Add(ChunksOrigin, new(x, 0, z));
+                if (!Chunks.ContainsKey(offset))
+                    LoadChunk(gl, offset);
             }
         }
+    }
+
+    public void SetCenter(GL gl, Vector3 center)
+    {
+        var newOffset = Chunk.BlockPositionToChunkOffset(center);
+        var newOrigin = Vector3.Subtract(newOffset, new(ChunksSize / 2, 0, ChunksSize / 2));
+        if (ChunksOrigin == newOrigin)
+            return;
+        CenterOffset = newOffset;
+        ChunksOrigin = newOrigin;
+        foreach (var (offset, chunk) in Chunks)
+        {
+            if (!ChunkInBounds(offset))
+            {
+                chunk.Delete(gl);
+                Chunks.Remove(offset);
+            }
+        }
+        LoadEmptyChunks(gl);
+    }
+    
+    public void Render(GL gl)
+    {
+        foreach (var chunk in Chunks.Values)
+            chunk.Render(gl);
+        Player.Render(gl);
     }
 }

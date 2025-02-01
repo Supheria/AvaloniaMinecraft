@@ -20,9 +20,19 @@ public static class VectorExtensions
     {
         return new((int)p1.X % (int)p2.X, (int)p1.Y % (int)p2.Y);
     }
-    
+
     public static Vector2 Add(this Vector2 p1, Vector2 p2)
     {
         return Vector2.Add(p1, p2);
+    }
+
+    public static Vector3 Mod(this Vector3 p1, Vector3 p2)
+    {
+        return new((int)p1.X % (int)p2.X, (int)p1.Y % (int)p2.Y, (int)p1.Z % (int)p2.Z);
+    }
+    
+    public static Vector3 Add(this Vector3 p1, Vector3 p2)
+    {
+        return Vector3.Add(p1, p2);
     }
 }

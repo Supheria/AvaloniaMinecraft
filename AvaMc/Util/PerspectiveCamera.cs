@@ -30,6 +30,7 @@ public sealed class PerspectiveCamera : Camera
     public void Initialize(float fov)
     {
         Fov = fov;
+        Update();
     }
 
     public void Update()

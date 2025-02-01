@@ -7,15 +7,15 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;
 
-public sealed unsafe class Shader : Resource
+public sealed unsafe class ShaderHandler : Resource
 {
-    private Shader(uint handle)
+    private ShaderHandler(uint handle)
         : base(handle) { }
 
-    public Shader()
+    public ShaderHandler()
         : this(0) { }
 
-    public static Shader Create(GL gl, string shaderName, Dictionary<uint, string> attributes)
+    public static ShaderHandler Create(GL gl, string shaderName, Dictionary<uint, string> attributes)
     {
         var vertexCode = AssetsRead.ReadVertex(shaderName);
         var fragmentCode = AssetsRead.ReadFragment(shaderName);
@@ -93,7 +93,7 @@ public sealed unsafe class Shader : Resource
         }
     }
 
-    public void UniformViewProject(GL gl, ViewProject camera)
+    public void UniformCamera(GL gl, Camera camera)
     {
         UniformMatrix4(gl, "p", camera.Project);
         UniformMatrix4(gl, "v", camera.View);

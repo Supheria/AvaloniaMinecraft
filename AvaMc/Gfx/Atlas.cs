@@ -11,15 +11,15 @@ public sealed class Atlas
     public Texture2D Texture { get; set; }
     Vector2 Size { get; }
     Vector2 SpriteSize { get; }
-    Vector2 SpriteUnit { get; }
-    Vector2 PixelUnit { get; }
+    public Vector2 SpriteUnit { get; }
+    // Vector2 PixelUnit { get; }
 
     private Atlas(Texture2D texture, Vector2 spriteSize)
     {
         Texture = texture;
         SpriteSize = spriteSize;
         SpriteUnit = Vector2.Divide(spriteSize, texture.Size);
-        PixelUnit = Vector2.Divide(Vector2.One, texture.Size);
+        // PixelUnit = Vector2.Divide(Vector2.One, texture.Size);
         Size = Vector2.Divide(texture.Size, spriteSize);
     }
 
@@ -41,5 +41,10 @@ public sealed class Atlas
     public void Delete(GL gl)
     {
         Texture.Delete(gl);
+    }
+    
+    public Vector2 Offset(Vector2 pos)
+    {
+        return Vector2.Multiply(new(pos.X, SpriteSize.Y - pos.Y - 1), SpriteUnit);
     }
 }

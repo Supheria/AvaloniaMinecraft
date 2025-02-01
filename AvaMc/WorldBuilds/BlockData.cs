@@ -15,8 +15,8 @@ public struct BlockData
     //TODO: - 28 bits metadata/extra
     //
 
-    public float SunLightIntensity { get; set; }
-    public Vector3 Color { get; set; }
-    public float LightIntensity { get; set; }
+    // public float SunLightIntensity { get; set; }
+    // public Vector3 Color { get; set; }
+    // public float LightIntensity { get; set; }
     public BlockId BlockId { get; set; }
 }

@@ -3,65 +3,75 @@ using Microsoft.Xna.Framework;
 
 namespace AvaMc.Util;
 
-public class Direction
+public sealed class Direction
 {
-    public const int MaxValue = 5;
-    int Value
+    public enum Type
     {
-        get => _value;
-        set
+        North = 0,
+        South = 1,
+        East = 2,
+        West = 3,
+        Up = 4,
+        Down = 5,
+    }
+
+    public Type Value { get; }
+    public Vector3 Vector3 { get; }
+
+    private Direction(Type value)
+    {
+        Value = value;
+        switch (value)
         {
-            if (value < 0 || value > MaxValue)
-                throw new ArgumentOutOfRangeException(
-                    nameof(value),
-                    value,
-                    $"max value is {MaxValue}"
-                );
-            _value = value;
+            case Type.North:
+                Vector3 = new(0, 0, -1);
+                break;
+            case Type.South:
+                Vector3 = new(0, 0, 1);
+                break;
+            case Type.East:
+                Vector3 = new(1, 0, 0);
+                break;
+            case Type.West:
+                Vector3 = new(-1, 0, 0);
+                break;
+            case Type.Up:
+                Vector3 = new(0, 1, 0);
+                break;
+            case Type.Down:
+                Vector3 = new(0, -1, 0);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(value), value, null);
         }
     }
 
-    int _value;
+    public static Direction North { get; } = new(Type.North);
+    public static Direction South { get; } = new(Type.South);
+    public static Direction East { get; } = new(Type.East);
+    public static Direction West { get; } = new(Type.West);
+    public static Direction Up { get; } = new(Type.Up);
+    public static Direction Down { get; } = new(Type.Down);
+    public static Direction[] AllDirections { get; } = [North, South, East, West, Up, Down];
 
-    private Direction(int value)
+    public static int operator *(Direction dir, int value)
     {
-        Value = value;
+        return (int)dir.Value * value;
     }
 
-    public static Direction North { get; } = new(0);
-    public static Direction South { get; } = new(1);
-    public static Direction East { get; } = new(2);
-    public static Direction West { get; } = new(3);
-    public static Direction Up { get; } = new(4);
-    public static Direction Down { get; } = new(5);
+    // public static bool operator >=(Direction dir1, Direction dir2)
+    // {
+    //     return dir1.Value > dir2.Value;
+    // }
+    //
+    // public static bool operator <=(Direction dir1, Direction dir2)
+    // {
+    //     return dir1.Value <= dir2.Value;
+    // }
 
-    public Vector3 GetVector3()
-    {
-        return Value switch
-        {
-            0 => new(0, 0, -1),
-            1 => new(0, 0, 1),
-            2 => new(1, 0, 0),
-            3 => new(-1, 0, 0),
-            4 => new(0, 1, 0),
-            5 => new(0, -1, 0),
-            _ => throw new ArgumentOutOfRangeException(),
-        };
-    }
-
-    public static bool operator >=(Direction dir1, Direction dir2)
-    {
-        return dir1.Value > dir2.Value;
-    }
-
-    public static bool operator <=(Direction dir1, Direction dir2)
-    {
-        return dir1.Value <= dir2.Value;
-    }
-
-    public static Direction operator ++(Direction dir)
-    {
-        dir.Value++;
-        return dir;
-    }
+    // public static Direction operator ++(Direction dir)
+    // {
+    //     dir.Value++;
+    //     return dir;
+    // }
 }

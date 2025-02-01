@@ -34,6 +34,7 @@ public sealed unsafe class VboHandler : Resource
             data.ToArray(),
             Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StaticDraw
         );
+        Stride = (uint)stride;
     }
 
     public void Bind(GL gl)
