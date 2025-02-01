@@ -4,6 +4,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.Serialization;
 
 namespace Microsoft.Xna.Framework
@@ -289,7 +290,7 @@ namespace Microsoft.Xna.Framework
                 return;
             }
 
-            Vector3.Dot(ref this.Direction, ref difference, out distanceAlongRay);
+            distanceAlongRay = Vector3.Dot(this.Direction, difference);
             // If the ray is pointing away from the sphere then we don't ever intersect
             if (distanceAlongRay < 0)
             {
@@ -334,8 +335,8 @@ namespace Microsoft.Xna.Framework
             get
             {
                 return string.Concat(
-                    "Pos( ", this.Position.DebugDisplayString, " )  \r\n",
-                    "Dir( ", this.Direction.DebugDisplayString, " )"
+                    "Pos( ", this.Position.ToString(), " )  \r\n",
+                    "Dir( ", this.Direction.ToString(), " )"
                 );
             }
         }

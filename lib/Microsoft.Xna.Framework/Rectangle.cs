@@ -5,6 +5,7 @@
 using System;
 using System.Runtime.Serialization;
 using System.Diagnostics;
+using System.Numerics;
 
 namespace Microsoft.Xna.Framework
 {
@@ -274,21 +275,21 @@ namespace Microsoft.Xna.Framework
         }
 
         /// <summary>
-        /// Gets whether or not the provided <see cref="Vector2"/> lies within the bounds of this <see cref="Rectangle"/>.
+        /// Gets whether or not the provided <see cref="Vector2I"/> lies within the bounds of this <see cref="Rectangle"/>.
         /// </summary>
         /// <param name="value">The coordinates to check for inclusion in this <see cref="Rectangle"/>.</param>
-        /// <returns><c>true</c> if the provided <see cref="Vector2"/> lies inside this <see cref="Rectangle"/>; <c>false</c> otherwise.</returns>
-        public bool Contains(Vector2 value)
+        /// <returns><c>true</c> if the provided <see cref="Vector2I"/> lies inside this <see cref="Rectangle"/>; <c>false</c> otherwise.</returns>
+        public bool Contains(Vector2I value)
         {
             return ((((this.X <= value.X) && (value.X < (this.X + this.Width))) && (this.Y <= value.Y)) && (value.Y < (this.Y + this.Height)));
         }
 
         /// <summary>
-        /// Gets whether or not the provided <see cref="Vector2"/> lies within the bounds of this <see cref="Rectangle"/>.
+        /// Gets whether or not the provided <see cref="Vector2I"/> lies within the bounds of this <see cref="Rectangle"/>.
         /// </summary>
         /// <param name="value">The coordinates to check for inclusion in this <see cref="Rectangle"/>.</param>
-        /// <param name="result"><c>true</c> if the provided <see cref="Vector2"/> lies inside this <see cref="Rectangle"/>; <c>false</c> otherwise. As an output parameter.</param>
-        public void Contains(ref Vector2 value, out bool result)
+        /// <param name="result"><c>true</c> if the provided <see cref="Vector2I"/> lies inside this <see cref="Rectangle"/>; <c>false</c> otherwise. As an output parameter.</param>
+        public void Contains(ref Vector2I value, out bool result)
         {
             result = ((((this.X <= value.X) && (value.X < (this.X + this.Width))) && (this.Y <= value.Y)) && (value.Y < (this.Y + this.Height)));
         }
@@ -474,7 +475,7 @@ namespace Microsoft.Xna.Framework
         /// Changes the <see cref="Location"/> of this <see cref="Rectangle"/>.
         /// </summary>
         /// <param name="amount">The x and y components to add to this <see cref="Rectangle"/>.</param>
-        public void Offset(Vector2 amount)
+        public void Offset(Vector2I amount)
         {
             X += (int)amount.X;
             Y += (int)amount.Y;

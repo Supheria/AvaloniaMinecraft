@@ -1,5 +1,5 @@
 using AvaMc.Util;
-using Silk.NET.Maths;
+using Microsoft.Xna.Framework;
 
 namespace AvaMc.Blocks;
 
@@ -8,7 +8,7 @@ public sealed class Grass : Block
     public Grass()
         : base(new() { Id = BlockId.Dirt, Transparent = false }) { }
 
-    public override Vector2D<int> GetTextureLocation(Direction direction)
+    public override Vector2I GetTextureLocation(Direction direction)
     {
         return direction.Value switch
         {

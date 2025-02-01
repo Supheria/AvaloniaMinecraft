@@ -1,5 +1,6 @@
 using System;
-using Silk.NET.Maths;
+using System.Numerics;
+using Avalonia;
 
 namespace AvaMc.Util;
 
@@ -7,10 +8,10 @@ public sealed class PerspectiveCamera : Camera
 {
     const float PiOver2 = float.Pi / 2;
     const float TwoPi = float.Pi * 2;
-    public Vector3D<float> Position { get; set; }
-    public Vector3D<float> Direction { get; set; }
-    public Vector3D<float> Up { get; set; }
-    public Vector3D<float> Right { get; set; }
+    public Vector3 Position { get; set; }
+    public Vector3 Direction { get; set; }
+    public Vector3 Up { get; set; }
+    public Vector3 Right { get; set; }
     public float Pitch
     {
         get => _pitch;
@@ -47,9 +48,9 @@ public sealed class PerspectiveCamera : Camera
         var y = MathF.Sin(pitch);
         var z = MathF.Cos(pitch) * MathF.Cos(yaw);
         Direction = new(x, y, z);
-        Right = Vector3D.Cross(Vector3D<float>.UnitY, Direction);
-        Up = Vector3D.Cross(Direction, Right);
-        View = Matrix4X4.CreateLookAt(pos, Vector3D.Add(pos, Direction), Up);
-        Project = Matrix4X4.CreatePerspectiveFieldOfView(fov, ratio, zNear, zFar);
+        Right = Vector3.Cross(Vector3.UnitY, Direction);
+        Up = Vector3.Cross(Direction, Right);
+        View = Matrix4x4.CreateLookAt(pos, Vector3.Add(pos, Direction), Up);
+        Project = Matrix4x4.CreatePerspectiveFieldOfView(fov, ratio, zNear, zFar);
     }
 }

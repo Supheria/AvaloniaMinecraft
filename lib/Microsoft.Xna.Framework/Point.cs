@@ -4,6 +4,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 
@@ -209,13 +210,13 @@ namespace Microsoft.Xna.Framework
         }
 
         /// <summary>
-        /// Gets a <see cref="Vector2"/> representation for this object.
+        /// Gets a <see cref="Vector2I"/> representation for this object.
         /// </summary>
-        /// <returns>A <see cref="Vector2"/> representation for this object.</returns>
+        /// <returns>A <see cref="Vector2I"/> representation for this object.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector2 ToVector2()
+        public Vector2I ToVector2()
         {
-            return new Vector2(X, Y);
+            return new Vector2I(X, Y);
         }
 
         /// <summary>

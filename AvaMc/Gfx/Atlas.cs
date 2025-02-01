@@ -1,5 +1,6 @@
+using System.Numerics;
 using AvaMc.Extensions;
-using Silk.NET.Maths;
+using Microsoft.Xna.Framework;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;
@@ -7,22 +8,22 @@ namespace AvaMc.Gfx;
 public sealed class Atlas
 {
     public Texture2D Texture { get; set; }
-    Vector2D<int> Size { get; }
-    Vector2D<int> SpriteSize { get; }
-    public Vector2D<float> SpriteUnit { get; }
+    Vector2I Size { get; }
+    Vector2I SpriteSize { get; }
+    public Vector2 SpriteUnit { get; }
 
     // Vector2 PixelUnit { get; }
 
-    private Atlas(Texture2D texture, Vector2D<int> spriteSize)
+    private Atlas(Texture2D texture, Vector2I spriteSize)
     {
         Texture = texture;
         SpriteSize = spriteSize;
-        SpriteUnit = Vector2D.Divide(spriteSize.ToVector2F(), texture.Size.ToVector2F());
+        SpriteUnit = Vector2.Divide(spriteSize.ToNumerics(), texture.Size.ToNumerics());
         // PixelUnit = Vector2.Divide(Vector2.One, texture.Size);
-        Size = Vector2D.Divide(texture.Size, spriteSize);
+        Size = Vector2I.Divide(texture.Size, spriteSize);
     }
 
-    public static Atlas Create(Texture2D texture, Vector2D<int> spriteSize)
+    public static Atlas Create(Texture2D texture, Vector2I spriteSize)
     {
         return new(texture, spriteSize);
     }
@@ -42,8 +43,8 @@ public sealed class Atlas
         Texture.Delete(gl);
     }
 
-    public Vector2D<float> Offset(Vector2D<int> pos)
+    public Vector2 Offset(Vector2I pos)
     {
-        return Vector2D.Multiply(new Vector2D<float>(pos.X, SpriteSize.Y - pos.Y - 1), SpriteUnit);
+        return Vector2.Multiply(new Vector2(pos.X, SpriteSize.Y - pos.Y - 1), SpriteUnit);
     }
 }

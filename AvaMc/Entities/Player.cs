@@ -1,6 +1,6 @@
 using AvaMc.Util;
 using AvaMc.WorldBuilds;
-using Silk.NET.Maths;
+using Microsoft.Xna.Framework;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.Entities;
@@ -12,7 +12,7 @@ public class Player
     World World { get; set; }
     public PerspectiveCamera Camera { get; set; }
     bool HasLookBlock { get; set; }
-    Vector3D<int> LookBlock { get; set; }
+    Vector3I LookBlock { get; set; }
     Direction LookFace { get; set; }
     
     public Player(World world)

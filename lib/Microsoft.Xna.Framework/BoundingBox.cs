@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.Serialization;
 
 namespace Microsoft.Xna.Framework
@@ -782,8 +783,8 @@ namespace Microsoft.Xna.Framework
             get
             {
                 return string.Concat(
-                    "Min( ", this.Min.DebugDisplayString, " )  \r\n",
-                    "Max( ",this.Max.DebugDisplayString, " )"
+                    "Min( ", this.Min.ToString(), " )  \r\n",
+                    "Max( ",this.Max.ToString(), " )"
                     );
             }
         }

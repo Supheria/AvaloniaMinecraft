@@ -1,11 +1,11 @@
-using Silk.NET.Maths;
+using System.Numerics;
 
 namespace AvaMc.WorldBuilds;
 
 public readonly struct ChunkVertex
 {
-    public Vector3D<float> Position { get; }
-    public Vector2D<float> Uv { get; }
+    public Vector3 Position { get; }
+    public Vector2 Uv { get; }
 
     // public Vector3 Color {get;}
 
@@ -16,7 +16,7 @@ public readonly struct ChunkVertex
     //     Color = color;
     // }
 
-    public ChunkVertex(Vector3D<float> position, Vector2D<float> uv)
+    public ChunkVertex(Vector3 position, Vector2 uv)
     {
         Position = position;
         Uv = uv;

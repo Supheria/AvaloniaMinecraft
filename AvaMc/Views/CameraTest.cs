@@ -1,7 +1,7 @@
 using System;
+using System.Numerics;
 using Avalonia.Input;
 using AvaMc.Util;
-using Silk.NET.Maths;
 
 namespace AvaMc.Views;
 
@@ -9,14 +9,14 @@ public class CameraTest : Camera
 {
     float Speed { get; set; } = 2.0f * 10;
     float Sensitivity { get; set; } = 20.0f;
-    Vector3D<float> Up { get; set; } = Vector3D<float>.UnitY;
-    Vector3D<float> Front { get; set; } = -Vector3D<float>.UnitZ;
-    Vector3D<float> Right { get; set; } = Vector3D<float>.UnitX;
-    public Vector3D<float> Position { get; private set; } = Vector3D<float>.Zero;
+    Vector3 Up { get; set; } = Vector3.UnitY;
+    Vector3 Front { get; set; } = -Vector3.UnitZ;
+    Vector3 Right { get; set; } = Vector3.UnitX;
+    public Vector3 Position { get; private set; } = Vector3.Zero;
     float PitchDegrees { get; set; }
     float YawDegrees { get; set; } = -90.0f;
 
-    public void SetPosition(Vector3D<float> position)
+    public void SetPosition(Vector3 position)
     {
         Position = position;
         UpdateViewMatrix();
@@ -30,9 +30,9 @@ public class CameraTest : Camera
         UpdateViewMatrix();
     }
 
-    public void SetSize(Vector2D<float> size, float fovDegrees, float nearClipPlane, float farClipPlane)
+    public void SetSize(Vector2 size, float fovDegrees, float nearClipPlane, float farClipPlane)
     {
-        Project = Matrix4X4.CreatePerspectiveFieldOfView(
+        Project = Matrix4x4.CreatePerspectiveFieldOfView(
             float.DegreesToRadians(fovDegrees),
             (float)(size.X / size.Y),
             nearClipPlane,
@@ -42,12 +42,12 @@ public class CameraTest : Camera
 
     private void UpdateViewMatrix()
     {
-        View = Matrix4X4.CreateLookAt(Position, Position + Front, Up);
+        View = Matrix4x4.CreateLookAt(Position, Position + Front, Up);
     }
 
     public void UpdateControl(
         KeyEventArgs? keyState,
-        Vector2D<float> pointerPostionDiff,
+        Vector2 pointerPostionDiff,
         float timeDelta
     )
     {
@@ -81,7 +81,7 @@ public class CameraTest : Camera
                     break;
             }
         }
-        if (pointerPostionDiff != Vector2D<float>.Zero)
+        if (pointerPostionDiff != Vector2.Zero)
         {
             YawDegrees += pointerPostionDiff.X * Sensitivity * timeDelta;
             PitchDegrees -= pointerPostionDiff.Y * Sensitivity * timeDelta;
@@ -103,8 +103,8 @@ public class CameraTest : Camera
         var z =
             MathF.Cos(float.DegreesToRadians(PitchDegrees))
             * MathF.Sin(float.DegreesToRadians(YawDegrees));
-        Front = Vector3D.Normalize<float>(new(x, y, z));
-        Right = Vector3D.Normalize(Vector3D.Cross(Front, Vector3D<float>.UnitY));
-        Up = Vector3D.Normalize(Vector3D.Cross(Right, Front));
+        Front = Vector3.Normalize(new(x, y, z));
+        Right = Vector3.Normalize(Vector3.Cross(Front, Vector3.UnitY));
+        Up = Vector3.Normalize(Vector3.Cross(Right, Front));
     }
 }

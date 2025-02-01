@@ -1,5 +1,6 @@
 using System;
-using Silk.NET.Maths;
+using System.Numerics;
+using Microsoft.Xna.Framework;
 
 namespace AvaMc.Util;
 
@@ -16,8 +17,8 @@ public sealed class Direction
     }
 
     public Type Value { get; }
-    public Vector3D<float> Vector3F { get; }
-    public Vector3D<int> Vector3I { get; }
+    public Vector3 Vector3F { get; }
+    public Vector3I Vector3I { get; }
 
     private Direction(Type value)
     {

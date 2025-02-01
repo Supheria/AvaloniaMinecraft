@@ -4,7 +4,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Avalonia;
 using AvaMc.Assets;
-using Silk.NET.Maths;
+using Microsoft.Xna.Framework;
 using Silk.NET.OpenGLES;
 using StbImageSharp;
 
@@ -13,7 +13,7 @@ namespace AvaMc.Gfx;
 public sealed unsafe class Texture2D : Resource
 {
     public int Plot { get; }
-    public Vector2D<int> Size { get; }
+    public Vector2I Size { get; }
 
     public record struct ImageInfo(byte[] Pixels, int Width, int Height, int ColumnNumber);
 

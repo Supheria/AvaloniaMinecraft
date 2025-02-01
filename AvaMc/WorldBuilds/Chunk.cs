@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using Avalonia;
 using AvaMc.Blocks;
 using AvaMc.Extensions;
 using AvaMc.Util;
-using Silk.NET.Maths;
+using Microsoft.Xna.Framework;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
@@ -13,11 +14,11 @@ public class Chunk
     public const int ChunkSizeX = 16;
     public const int ChunkSizeY = 256;
     public const int ChunkSizeZ = 16;
-    public static Vector3D<int> ChunkSize { get; } = new(ChunkSizeX, ChunkSizeY, ChunkSizeZ);
+    public static Vector3I ChunkSize { get; } = new(ChunkSizeX, ChunkSizeY, ChunkSizeZ);
     public World World { get; set; }
-    public Vector3D<int> Offset { get; set; }
-    public Vector3D<int> Position { get; set; }
-    Dictionary<Vector3D<int>, BlockData> Data { get; set; } = [];
+    public Vector3I Offset { get; set; }
+    public Vector3I Position { get; set; }
+    Dictionary<Vector3I, BlockData> Data { get; set; } = [];
     bool Dirty { get; set; }
 
     // int BlockCount { get; set; }
@@ -29,11 +30,11 @@ public class Chunk
     // bool Generating { get; set; }
     ChunkMesh Mesh { get; set; }
 
-    public Chunk(GL gl, World world, Vector3D<int> offset)
+    public Chunk(GL gl, World world, Vector3I offset)
     {
         World = world;
         Offset = offset;
-        Position = Vector3D.Multiply(offset, ChunkSize);
+        Position = Vector3I.Multiply(offset, ChunkSize);
         Mesh = new ChunkMesh(gl, this);
     }
 
@@ -42,7 +43,7 @@ public class Chunk
         Mesh.Delete(gl);
     }
 
-    public static bool InBounds(Vector3D<int> pos)
+    public static bool InBounds(Vector3I pos)
     {
         return pos.X >= 0
             && pos.Y >= 0
@@ -52,7 +53,7 @@ public class Chunk
             && pos.Z < ChunkSizeZ;
     }
 
-    public static bool OnBounds(Vector3D<int> pos)
+    public static bool OnBounds(Vector3I pos)
     {
         return pos.X is 0
             || pos.Y is 0
@@ -62,12 +63,12 @@ public class Chunk
             || pos.Z is ChunkSizeZ - 1;
     }
 
-    public List<Chunk> GetBorderingChunks(Vector3D<int> position)
+    public List<Chunk> GetBorderingChunks(Vector3I position)
     {
         var chunks = new List<Chunk>();
         if (position.X is 0)
         {
-            if (World.GetChunk(Vector3D.Add(Offset, new(-1, 0, 0)), out var chunk))
+            if (World.GetChunk(Vector3I.Add(Offset, new(-1, 0, 0)), out var chunk))
                 chunks.Add(chunk);
         }
         // if (position.Y is 0)
@@ -77,12 +78,12 @@ public class Chunk
         // }
         if (position.Z is 0)
         {
-            if (World.GetChunk(Vector3D.Add(Offset, new(0, 0, -1)), out var chunk))
+            if (World.GetChunk(Vector3I.Add(Offset, new(0, 0, -1)), out var chunk))
                 chunks.Add(chunk);
         }
         if (position.X == ChunkSizeX - 1)
         {
-            if (World.GetChunk(Vector3D.Add(Offset, new(1, 0, 0)), out var chunk))
+            if (World.GetChunk(Vector3I.Add(Offset, new(1, 0, 0)), out var chunk))
                 chunks.Add(chunk);
         }
         // if ((int)Position.Y == ChunkSizeY - 1)
@@ -92,7 +93,7 @@ public class Chunk
         // }
         if (Position.Z == ChunkSizeZ - 1)
         {
-            if (World.GetChunk(Vector3D.Add(Offset, new(0, 0, 1)), out var chunk))
+            if (World.GetChunk(Vector3I.Add(Offset, new(0, 0, 1)), out var chunk))
                 chunks.Add(chunk);
         }
         return chunks;
@@ -103,7 +104,7 @@ public class Chunk
     //     return Vector3.Divide(pos, ChunkSize);
     // }
 
-    public void SetData(Vector3D<int> position, BlockData data)
+    public void SetData(Vector3I position, BlockData data)
     {
         if (!InBounds(position))
             throw new ArgumentOutOfRangeException(
@@ -121,7 +122,7 @@ public class Chunk
         }
     }
 
-    public bool GetData(Vector3D<int> position, out BlockData data)
+    public bool GetData(Vector3I position, out BlockData data)
     {
         return Data.TryGetValue(position, out data);
     }
@@ -145,15 +146,15 @@ public class Chunk
             {
                 for (var z = 0; z < ChunkSizeZ; z++)
                 {
-                    var pos = new Vector3D<int>(x, y, z);
-                    var wPos = Vector3D.Add(pos, Position);
+                    var pos = new Vector3I(x, y, z);
+                    var wPos = Vector3I.Add(pos, Position);
                     if (!GetData(pos, out var data))
                         continue;
                     foreach (var direction in Direction.AllDirections)
                     {
                         var dv = direction.Vector3I;
-                        var neighbor = Vector3D.Add(pos, dv);
-                        var wNeighbor = Vector3D.Add(wPos, dv);
+                        var neighbor = Vector3I.Add(pos, dv);
+                        var wNeighbor = Vector3I.Add(wPos, dv);
                         var visible = true;
                         if (InBounds(neighbor))
                         {
@@ -200,12 +201,12 @@ public class Chunk
         Mesh.Render(gl);
     }
 
-    public static Vector3D<int> WorldPosToChunkPos(Vector3D<int> pos)
+    public static Vector3I WorldPosToChunkPos(Vector3I pos)
     {
         return pos.Mod(ChunkSize).Add(ChunkSize).Mod(ChunkSize);
     }
 
-    public static Vector3D<int> BlockPositionToChunkOffset(Vector3D<int> pos)
+    public static Vector3I BlockPositionToChunkOffset(Vector3I pos)
     {
         return new(
             (int)MathF.Floor(pos.X / (float)ChunkSizeX),

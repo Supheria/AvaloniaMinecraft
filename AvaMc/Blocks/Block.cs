@@ -1,7 +1,7 @@
 using System;
 using AvaMc.Util;
 using AvaMc.WorldBuilds;
-using Silk.NET.Maths;
+using Microsoft.Xna.Framework;
 
 namespace AvaMc.Blocks;
 
@@ -45,7 +45,7 @@ public abstract partial class Block
     //     Vector2 UvSize
     // );
     //
-    public abstract Vector2D<int> GetTextureLocation(Direction direction) ;
+    public abstract Vector2I GetTextureLocation(Direction direction) ;
     // public abstract Func<World, Vector3, Direction, MeshInfo> GetMeshInfo { get; set; }
     // public abstract Func<Vector2[]> GetAnimationFrameOffsets { get; set; }
     // public abstract Func<World, Vector3, TorchLight> GetTorchLight { get; set; }
