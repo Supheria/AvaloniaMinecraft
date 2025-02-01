@@ -1,0 +1,1 @@
+namespace AvaMc.Views;

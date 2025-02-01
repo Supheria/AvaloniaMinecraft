@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Avalonia;
 using AvaMc.Blocks;
 using AvaMc.Extensions;
@@ -166,7 +167,7 @@ public class Chunk
                         }
                         else
                         {
-                            var offset = BlockPositionToChunkOffset(wNeighbor);
+                            var offset = BlockPosToChunkOffset(wNeighbor);
                             // visible = World.ChunkInBounds(offset);
                             if (World.GetChunk(offset, out var chunk))
                             {
@@ -201,18 +202,27 @@ public class Chunk
         Mesh.Render(gl);
     }
 
+    public void Update() { }
+
+    public void Tick() { }
+
     public static Vector3I WorldPosToChunkPos(Vector3I pos)
     {
         return pos.Mod(ChunkSize).Add(ChunkSize).Mod(ChunkSize);
     }
 
-    public static Vector3I BlockPositionToChunkOffset(Vector3I pos)
+    public static Vector3I BlockPosToChunkOffset(Vector3I pos)
     {
         return new(
             (int)MathF.Floor(pos.X / (float)ChunkSizeX),
             0,
             (int)MathF.Floor(pos.Z / (float)ChunkSizeZ)
         );
+    }
+
+    public static Vector3I WorldPosToBlockPos(Vector3 pos)
+    {
+        return new((int)MathF.Floor(pos.X), (int)MathF.Floor(pos.Y), (int)MathF.Floor(pos.Z));
     }
 
     // /// <summary>

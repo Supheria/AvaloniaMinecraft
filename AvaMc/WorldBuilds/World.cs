@@ -74,7 +74,7 @@ public sealed partial class World
 
     public void SetCenter(GL gl, Vector3I center)
     {
-        var newOffset = Chunk.BlockPositionToChunkOffset(center);
+        var newOffset = Chunk.BlockPosToChunkOffset(center);
         var newOrigin = Vector3I.Subtract(newOffset, new(ChunksSize / 2, 0, ChunksSize / 2));
         if (ChunksOrigin == newOrigin)
             return;
@@ -96,5 +96,19 @@ public sealed partial class World
         foreach (var chunk in Chunks.Values)
             chunk.Render(gl);
         Player.Render(gl);
+    }
+    
+    public void Update()
+    {
+        foreach (var chunk in Chunks.Values)
+            chunk.Update();
+        Player.Update();
+    }
+    
+    public void Tick()
+    {
+        foreach (var chunk in Chunks.Values)
+            chunk.Tick();
+        Player.Tick();
     }
 }

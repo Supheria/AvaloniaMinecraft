@@ -5,20 +5,21 @@ using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Rendering;
 using Avalonia.Threading;
+using AvaMc.Util;
 using Silk.NET.OpenGLES;
 using Point = Avalonia.Point;
 
-namespace AvaMc.Gfx;
+namespace AvaMc.Views;
 
 public abstract class GlEsControl : OpenGlControlBase, ICustomHitTest
 {
-    public EventHandler<FrameInfo>? FrameInfoUpdated;
+
+    public EventHandler<int>? FrameInfoUpdated;
     GL? Gl { get; set; }
     PixelSize ViewPortSize { get; set; }
     bool DoChangeViewPort { get; set; }
     DispatcherTimer Timer { get; } = new();
-    DateTime LastFrameUpdateTime { get; set; }
-    DateTime LastFrameInfoUpdateTime { get; set; }
+    long LastTime { get; set; }
     int FrameCount { get; set; }
 
     // KeyEventArgs? KeyState { get; set; }
@@ -49,8 +50,6 @@ public abstract class GlEsControl : OpenGlControlBase, ICustomHitTest
             DoChangeViewPort = true;
             ViewPortSize = viewPortSize;
         }
-
-        State.WindowSize = size;
     }
 
     protected sealed override void OnOpenGlInit(GlInterface gl)
@@ -58,6 +57,8 @@ public abstract class GlEsControl : OpenGlControlBase, ICustomHitTest
         base.OnOpenGlInit(gl);
         Gl = GL.GetApi(gl.GetProcAddress);
         OnGlInit(Gl);
+        
+        LastTime = Time.Now();
     }
 
     protected abstract void OnGlInit(GL gl);
@@ -96,18 +97,11 @@ public abstract class GlEsControl : OpenGlControlBase, ICustomHitTest
     private void OnFrameUpdate()
     {
         FrameCount++;
-        var now = DateTime.Now;
-        TimeDelta = (now - LastFrameUpdateTime).TotalMilliseconds / 1000;
-        // PointerPostionDiff = Vector2.Zero;
-        LastFrameUpdateTime = now;
-
-        var timeDelta = (now - LastFrameInfoUpdateTime).TotalMilliseconds;
-        if (!(timeDelta > 500))
+        var now = Time.Now();
+        if (now - LastTime < Time.NanosecondsPerSecond)
             return;
-        var fps = FrameCount * 1000 / timeDelta;
-        var frameInfo = new FrameInfo(timeDelta, fps);
-        FrameInfoUpdated?.Invoke(this, frameInfo);
-        LastFrameInfoUpdateTime = now;
+        FrameInfoUpdated?.Invoke(this, FrameCount);
         FrameCount = 0;
+        LastTime = now;
     }
 }

@@ -38,6 +38,11 @@ public static class VectorExtensions
         return Vector3I.Add(p1, p2);
     }
 
+    public static bool IsNaN(this Vector3 p)
+    {
+        return float.IsNaN(p.X) || float.IsNaN(p.Y) || float.IsNaN(p.Z);
+    }
+
     // public static Vector3D<T> Add<T>(this Vector3D<T> p1, Vector3D<T> p2)
     //     where T : unmanaged, IFormattable, IEquatable<T>, IComparable<T>
     // {

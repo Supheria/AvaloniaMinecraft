@@ -166,8 +166,8 @@ public sealed class ChunkMesh
     {
         var shader = State.Shader;
         shader.Use(gl);
-        // shader.UniformCamera(gl, State.World.Player.Camera);
-        shader.UniformCamera(gl, State.TestCamera);
+        shader.UniformCamera(gl, State.World.Player.Camera);
+        // shader.UniformCamera(gl, State.TestCamera);
         var model = Matrix4x4.CreateTranslation(Chunk.Position.ToNumerics()); 
         shader.UniformMatrix4(gl, "m", model);
         shader.UniformTexture(gl, "tex", State.Atlas.Texture);
