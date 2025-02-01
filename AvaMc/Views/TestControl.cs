@@ -6,8 +6,9 @@ using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Rendering;
 using Avalonia.Threading;
+using AvaMc.Extensions;
 using AvaMc.Gfx;
-using Microsoft.Xna.Framework;
+using Silk.NET.Maths;
 using Silk.NET.OpenGLES;
 using Point = Avalonia.Point;
 
@@ -28,7 +29,7 @@ public abstract class TestControl : OpenGlControlBase, ICustomHitTest
     DateTime LastFrameInfoUpdateTime { get; set; }
     int FrameCount { get; set; }
     KeyEventArgs? KeyState { get; set; }
-    Vector2 PointerPostionDiff { get; set; }
+    Vector2D<float> PointerPostionDiff { get; set; }
     protected Point LastPointerPostion { get; set; }
 
     public TestControl()
@@ -80,7 +81,7 @@ public abstract class TestControl : OpenGlControlBase, ICustomHitTest
         FovDegrees = fovDegrees;
         NearClipPlane = nearClipPlane;
         FarClipPlane = farClipPlane;
-        Camera.SetSize(Bounds.Size, fovDegrees, nearClipPlane, farClipPlane);
+        Camera.SetSize(Bounds.Size.ToVector2F(), fovDegrees, nearClipPlane, farClipPlane);
     }
 
     protected sealed override void OnOpenGlInit(GlInterface gl)
@@ -129,7 +130,7 @@ public abstract class TestControl : OpenGlControlBase, ICustomHitTest
         var now = DateTime.Now;
         var timeDelta = (now - LastFrameUpdateTime).TotalMilliseconds / 1000;
         Camera.UpdateControl(KeyState, PointerPostionDiff, (float)timeDelta);
-        PointerPostionDiff = Vector2.Zero;
+        PointerPostionDiff = Vector2D<float>.Zero;
         LastFrameUpdateTime = now;
 
         timeDelta = (now - LastFrameInfoUpdateTime).TotalMilliseconds;

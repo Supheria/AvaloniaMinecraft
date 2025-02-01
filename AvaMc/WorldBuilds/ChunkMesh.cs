@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
-using Microsoft.Xna.Framework;
+using Silk.NET.Maths;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
@@ -96,10 +97,10 @@ public sealed class ChunkMesh
     }
 
     public void EmitFace(
-        Vector3 position,
+        Vector3D<int> position,
         Direction direction,
-        Vector2 uvOffset,
-        Vector2 uvUnit
+        Vector2D<float> uvOffset,
+        Vector2D<float> uvUnit
         // bool transparent,
         // bool shortenY
     )
@@ -166,7 +167,7 @@ public sealed class ChunkMesh
         shader.Use(gl);
         // shader.UniformCamera(gl, State.World.Player.Camera);
         shader.UniformCamera(gl, State.TestCamera);
-        var model = Matrix4.CreateTranslation(Chunk.Position); 
+        var model = Matrix4X4.CreateTranslation(Chunk.Position.ToVector3F()); 
         shader.UniformMatrix4(gl, "m", model);
         shader.UniformTexture(gl, "tex", State.Atlas.Texture);
         

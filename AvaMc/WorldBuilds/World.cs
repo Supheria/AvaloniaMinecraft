@@ -1,10 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using AvaMc.Blocks;
 using AvaMc.Entities;
-using AvaMc.Extensions;
-using Microsoft.Xna.Framework;
+using Silk.NET.Maths;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
@@ -12,16 +9,16 @@ namespace AvaMc.WorldBuilds;
 // TODO
 public sealed partial class World
 {
-    const float ChunksSize = 16;
+    const int ChunksSize = 16;
     public Player Player { get; set; }
-    Dictionary<Vector3, Chunk> Chunks { get; set; } = [];
-    Vector3 ChunksOrigin { get; set; }
-    Vector3 CenterOffset { get; set; }
+    Dictionary<Vector3D<int>, Chunk> Chunks { get; set; } = [];
+    Vector3D<int> ChunksOrigin { get; set; }
+    Vector3D<int> CenterOffset { get; set; }
 
     public World(GL gl)
     {
         Player = new(this);
-        SetCenter(gl, Vector3.Zero);
+        SetCenter(gl, Vector3D<int>.Zero);
     }
     
     public void Delete(GL gl)
@@ -32,9 +29,9 @@ public sealed partial class World
         Chunks.Clear();
     }
 
-    public bool ChunkInBounds(Vector3 offset)
+    public bool ChunkInBounds(Vector3D<int> offset)
     {
-        var p = Vector3.Subtract(offset, ChunksOrigin);
+        var p = Vector3D.Subtract(offset, ChunksOrigin);
         return p.X >= 0
             && p.Y >= 0
             && p.Z >= 0
@@ -43,7 +40,7 @@ public sealed partial class World
             && p.Z < ChunksSize;
     }
 
-    public bool GetChunk(Vector3 offset, [NotNullWhen(true)] out Chunk? chunk)
+    public bool GetChunk(Vector3D<int> offset, [NotNullWhen(true)] out Chunk? chunk)
     {
         chunk = null;
         if (!ChunkInBounds(offset))
@@ -51,7 +48,7 @@ public sealed partial class World
         return Chunks.TryGetValue(offset, out chunk);
     }
 
-    public void LoadChunk(GL gl, Vector3 offset)
+    public void LoadChunk(GL gl, Vector3D<int> offset)
     {
         var chunk = new Chunk(gl, this, offset);
         Generate(chunk);
@@ -67,17 +64,17 @@ public sealed partial class World
             {
                 // if (x != 0 || z != 0)
                 //     continue;
-                var offset = Vector3.Add(ChunksOrigin, new(x, 0, z));
+                var offset = Vector3D.Add(ChunksOrigin, new(x, 0, z));
                 if (!Chunks.ContainsKey(offset))
                     LoadChunk(gl, offset);
             }
         }
     }
 
-    public void SetCenter(GL gl, Vector3 center)
+    public void SetCenter(GL gl, Vector3D<int> center)
     {
         var newOffset = Chunk.BlockPositionToChunkOffset(center);
-        var newOrigin = Vector3.Subtract(newOffset, new(ChunksSize / 2, 0, ChunksSize / 2));
+        var newOrigin = Vector3D.Subtract(newOffset, new(ChunksSize / 2, 0, ChunksSize / 2));
         if (ChunksOrigin == newOrigin)
             return;
         CenterOffset = newOffset;

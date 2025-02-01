@@ -1,5 +1,5 @@
 using AvaMc.Util;
-using Microsoft.Xna.Framework;
+using Silk.NET.Maths;
 
 namespace AvaMc.Blocks;
 
@@ -8,7 +8,7 @@ public sealed class Sand : Block
     public Sand()
         : base(new() { Id = BlockId.Sand, Transparent = false }) { }
 
-    public override Vector2 GetTextureLocation(Direction direction)
+    public override Vector2D<int> GetTextureLocation(Direction direction)
     {
         return new(0, 1);
     }

@@ -1,5 +1,5 @@
 using System;
-using Microsoft.Xna.Framework;
+using Silk.NET.Maths;
 
 namespace AvaMc.Util;
 
@@ -16,7 +16,8 @@ public sealed class Direction
     }
 
     public Type Value { get; }
-    public Vector3 Vector3 { get; }
+    public Vector3D<float> Vector3F { get; }
+    public Vector3D<int> Vector3I { get; }
 
     private Direction(Type value)
     {
@@ -24,22 +25,28 @@ public sealed class Direction
         switch (value)
         {
             case Type.North:
-                Vector3 = new(0, 0, -1);
+                Vector3F = new(0, 0, -1);
+                Vector3I = new(0, 0, -1);
                 break;
             case Type.South:
-                Vector3 = new(0, 0, 1);
+                Vector3F = new(0, 0, 1);
+                Vector3I = new(0, 0, 1);
                 break;
             case Type.East:
-                Vector3 = new(1, 0, 0);
+                Vector3F = new(1, 0, 0);
+                Vector3I = new(1, 0, 0);
                 break;
             case Type.West:
-                Vector3 = new(-1, 0, 0);
+                Vector3F = new(-1, 0, 0);
+                Vector3I = new(-1, 0, 0);
                 break;
             case Type.Up:
-                Vector3 = new(0, 1, 0);
+                Vector3F = new(0, 1, 0);
+                Vector3I = new(0, 1, 0);
                 break;
             case Type.Down:
-                Vector3 = new(0, -1, 0);
+                Vector3F = new(0, -1, 0);
+                Vector3I = new(0, -1, 0);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(value), value, null);

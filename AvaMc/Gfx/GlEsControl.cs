@@ -1,12 +1,10 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using Avalonia.Rendering;
 using Avalonia.Threading;
-using Microsoft.Xna.Framework;
 using Silk.NET.OpenGLES;
 using Point = Avalonia.Point;
 

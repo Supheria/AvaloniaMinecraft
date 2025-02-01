@@ -1,9 +1,9 @@
-using Microsoft.Xna.Framework;
+using Silk.NET.Maths;
 
 namespace AvaMc.Util;
 
 public abstract class Camera
 {
-    public Matrix4 View { get; protected set; } = Matrix4.Identity;
-    public Matrix4 Project { get; protected set; } = Matrix4.Identity;
+    public Matrix4X4<float> View { get; protected set; } = Matrix4X4<float>.Identity;
+    public Matrix4X4<float> Project { get; protected set; } = Matrix4X4<float>.Identity;
 }

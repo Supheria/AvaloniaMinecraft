@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using AvaMc.Assets;
 using AvaMc.Util;
-using Microsoft.Xna.Framework;
+using Silk.NET.Maths;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;
@@ -15,7 +15,11 @@ public sealed unsafe class ShaderHandler : Resource
     public ShaderHandler()
         : this(0) { }
 
-    public static ShaderHandler Create(GL gl, string shaderName, Dictionary<uint, string> attributes)
+    public static ShaderHandler Create(
+        GL gl,
+        string shaderName,
+        Dictionary<uint, string> attributes
+    )
     {
         var vertexCode = AssetsRead.ReadVertex(shaderName);
         var fragmentCode = AssetsRead.ReadFragment(shaderName);
@@ -77,7 +81,7 @@ public sealed unsafe class ShaderHandler : Resource
         gl.DeleteProgram(Handle);
     }
 
-    public void UniformMatrix4(GL gl, string uniformName, Matrix4 matrix)
+    public void UniformMatrix4(GL gl, string uniformName, Matrix4X4<float> matrix)
     {
         var location = gl.GetUniformLocation(Handle, uniformName);
         // csharpier-ignore
@@ -125,19 +129,19 @@ public sealed unsafe class ShaderHandler : Resource
         gl.Uniform1(location, value);
     }
 
-    public void UniformVector2(GL gl, string uniformName, Vector2 value)
+    public void UniformVector2(GL gl, string uniformName, Vector2D<float> value)
     {
         var location = gl.GetUniformLocation(Handle, uniformName);
         gl.Uniform2(location, value.X, value.Y);
     }
 
-    public void UniformVector3(GL gl, string uniformName, Vector3 value)
+    public void UniformVector3(GL gl, string uniformName, Vector3D<float> value)
     {
         var location = gl.GetUniformLocation(Handle, uniformName);
         gl.Uniform3(location, value.X, value.Y, value.Z);
     }
 
-    public void UniformVector4(GL gl, string uniformName, Vector4 value)
+    public void UniformVector4(GL gl, string uniformName, Vector4D<float> value)
     {
         var location = gl.GetUniformLocation(Handle, uniformName);
         gl.Uniform4(location, value.X, value.Y, value.Z, value.W);
