@@ -68,7 +68,7 @@ public sealed class GameControl : GlEsControl
         State.World = new(gl);
         // State.TestCamera = Camera;
         // State.Wireframe = false;
-        // State.World.Player.Camera.Position = new(0, 1, 0);
+        State.World.Player.Camera.Position = new(0, 66, 0);
 
         gl.Enable(EnableCap.DepthTest);
         gl.DepthFunc(DepthFunction.Less);

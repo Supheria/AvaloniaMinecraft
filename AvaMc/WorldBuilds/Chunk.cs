@@ -143,7 +143,7 @@ public sealed class Chunk
 
         for (var x = 0; x < ChunkSizeX; x++)
         {
-            for (var y = 0; y < 64; y++)
+            for (var y = 0; y < ChunkSizeY; y++)
             {
                 for (var z = 0; z < ChunkSizeZ; z++)
                 {
