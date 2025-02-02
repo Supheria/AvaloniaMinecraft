@@ -1,6 +1,5 @@
 using System;
 using System.Numerics;
-using Microsoft.Xna.Framework;
 
 namespace AvaMc.Util;
 

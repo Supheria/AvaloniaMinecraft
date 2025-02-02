@@ -25,8 +25,12 @@ partial class World
                 var wx = chunk.Position.X + x;
                 var wz = chunk.Position.Z + z;
                 var baseScale = 1.3f;
-                var h1 = (int)((combineds[0].Compute(seed, wx * baseScale, wz * baseScale) / 6.0f) - 4.0f);
-                var h2 = (int)((combineds[1].Compute(seed, wx * baseScale, wz * baseScale) / 5.0f) + 6.0f);
+                var h1 = (int)(
+                    (combineds[0].Compute(seed, wx * baseScale, wz * baseScale) / 6.0f) - 4.0f
+                );
+                var h2 = (int)(
+                    (combineds[1].Compute(seed, wx * baseScale, wz * baseScale) / 5.0f) + 6.0f
+                );
 
                 var t = biomeNoise.Compute(seed, wx, wz);
                 var hr = t > 0 ? h1 : Math.Max(h1, h2);
@@ -65,6 +69,19 @@ partial class World
                     }
                     var data = new BlockData() { BlockId = type };
                     chunk.SetData(new(x, y, z), data);
+                }
+
+                for (var y = h; y < WaterLevel; y++)
+                {
+                    var data = new BlockData() { BlockId = BlockId.Water };
+                    chunk.SetData(new(x, y, z), data);
+                }
+
+                // glass for test
+                if (h > WaterLevel)
+                {
+                    var data = new BlockData() { BlockId = BlockId.Glass };
+                    chunk.SetData(new(x, h + 10, z), data);
                 }
             }
         }

@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Runtime.Intrinsics.X86;
-
 namespace AvaMc.WorldBuilds;
 
 // Combined noise where compute(x, z) = n.compute(x + m.compute(x, z), z)

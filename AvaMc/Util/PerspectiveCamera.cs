@@ -1,13 +1,10 @@
 using System;
 using System.Numerics;
-using Avalonia;
 
 namespace AvaMc.Util;
 
 public sealed class PerspectiveCamera : Camera
 {
-    const float PiOver2 = float.Pi / 2;
-    const float TwoPi = float.Pi * 2;
     public Vector3 Position { get; set; }
     public Vector3 Direction { get; set; }
     public Vector3 Up { get; set; }
@@ -15,13 +12,15 @@ public sealed class PerspectiveCamera : Camera
     public float Pitch
     {
         get => _pitch;
-        set => _pitch = float.Clamp(value, -PiOver2, PiOver2);
+        set => _pitch = float.Clamp(value, -MathHelper.PiOver2, MathHelper.PiOver2);
     }
     float _pitch;
     public float Yaw
     {
         get => _yaw;
-        set => _yaw = (value < 0f ? TwoPi : 0f) + MathF.IEEERemainder(value, TwoPi);
+        set =>
+            _yaw =
+                (value < 0f ? MathHelper.TwoPi : 0f) + MathF.IEEERemainder(value, MathHelper.TwoPi);
     }
     float _yaw;
     public float Fov { get; set; }

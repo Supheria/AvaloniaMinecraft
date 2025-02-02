@@ -1,7 +1,6 @@
-using System;
 using System.Numerics;
 using Avalonia;
-using Microsoft.Xna.Framework;
+using AvaMc.Util;
 
 namespace AvaMc.Extensions;
 

@@ -12,5 +12,7 @@ partial class Block
         [BlockId.Dirt] = new Dirt(),
         [BlockId.Sand] = new Sand(),
         [BlockId.Stone] = new Stone(),
+        [BlockId.Water] = new Water(),
+        [BlockId.Glass] = new Glass(),
     };
 }

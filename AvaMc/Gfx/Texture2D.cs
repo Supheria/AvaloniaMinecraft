@@ -1,10 +1,8 @@
 using System;
 using System.IO;
-using System.Numerics;
 using System.Runtime.InteropServices;
-using Avalonia;
 using AvaMc.Assets;
-using Microsoft.Xna.Framework;
+using AvaMc.Util;
 using Silk.NET.OpenGLES;
 using StbImageSharp;
 
