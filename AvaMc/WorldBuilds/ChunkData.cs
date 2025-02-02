@@ -1,7 +1,14 @@
+using AvaMc.Util;
+
 namespace AvaMc.WorldBuilds;
 
-public sealed class ChunkMeshData
+public sealed class ChunkData
 {
+
+    public const int ChunkSizeX = 16;
+    public const int ChunkSizeY = 256;
+    public const int ChunkSizeZ = 16;
+    public static Vector3I ChunkSize { get; } = new(ChunkSizeX, ChunkSizeY, ChunkSizeZ);
     public static uint[] FaceIndices { get; } = [1, 0, 3, 1, 3, 2];
     public static int[] UniqueIndices { get; } = [1, 0, 5, 2];
 

@@ -209,15 +209,15 @@ namespace Microsoft.Xna.Framework
             return "{X:" + X + " Y:" + Y + "}";
         }
 
-        /// <summary>
-        /// Gets a <see cref="Vector2I"/> representation for this object.
-        /// </summary>
-        /// <returns>A <see cref="Vector2I"/> representation for this object.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Vector2I ToVector2()
-        {
-            return new Vector2I(X, Y);
-        }
+        // /// <summary>
+        // /// Gets a <see cref="Vector2I"/> representation for this object.
+        // /// </summary>
+        // /// <returns>A <see cref="Vector2I"/> representation for this object.</returns>
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // public Vector2I ToVector2()
+        // {
+        //     return new Vector2I(X, Y);
+        // }
 
         /// <summary>
         /// Deconstruction method for <see cref="Point"/>.

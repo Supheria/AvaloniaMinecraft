@@ -1,10 +1,9 @@
-// using Microsoft.Xna.Framework;
-//
-// namespace AvaMc.WorldBuilds;
-//
-// public struct Face
-// {
-//     public uint IndicesBase { get; set; }
-//     public Vector3 Position { get; set; }
-//     float Distance { get; set; }
-// }
+using System.Numerics;
+
+namespace AvaMc.WorldBuilds;
+
+public sealed class Face
+{
+    public int IndicesBase { get; set; }
+    public Vector3 Position { get; set; }
+}

@@ -1,10 +1,8 @@
-using System.Diagnostics;
 using System.Numerics;
 using Avalonia.Input;
 using AvaMc.Extensions;
 using AvaMc.Util;
 using AvaMc.WorldBuilds;
-using Microsoft.Xna.Framework;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.Entities;
@@ -14,11 +12,16 @@ public sealed class Player
 {
     const float MouseSensitivity = 3.2f;
     const float Speed = 0.24f;
+    // const float Speed = 0.05f;
     World World { get; set; }
     public PerspectiveCamera Camera { get; set; }
     bool HasLookBlock { get; set; }
     Vector3I LookBlock { get; set; }
     Direction LookFace { get; set; }
+    public Vector3I ChunkOffset { get; set; }
+    Vector3I BlockPosition { get; set; }
+    public bool ChunkOffsetChanged { get; set; }
+    public bool BlockPositionChanged { get; set; }
 
     public Player(World world)
     {
@@ -39,6 +42,16 @@ public sealed class Player
         Camera.Yaw -=
             State.Game.Pointer.Delta.X / (State.Game.FrameDelta / (MouseSensitivity * 10000));
         State.Game.Pointer.Delta = Vector2.Zero;
+
+        var blockPosition = Camera.Position.CameraPosToBlockPos();
+        BlockPositionChanged = BlockPosition != blockPosition;
+        if (BlockPositionChanged)
+            BlockPosition = blockPosition;
+
+        var chunkOffset = blockPosition.BlockPosToChunkOffset();
+        ChunkOffsetChanged = ChunkOffset != chunkOffset;
+        if (ChunkOffsetChanged)
+            ChunkOffset = chunkOffset;
     }
 
     public void Tick()

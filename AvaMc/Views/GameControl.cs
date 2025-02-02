@@ -1,12 +1,10 @@
 using System;
-using System.Numerics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Threading;
+using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
-using AvaMc.WorldBuilds;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.Views;
@@ -68,16 +66,16 @@ public sealed class GameControl : GlEsControl
         State.World = new(gl);
         // State.TestCamera = Camera;
         // State.Wireframe = false;
-        // State.World.Player.Camera.Position = new(0, 1, 0);
+        State.World.Player.Camera.Position = new(0, 66, 0);
 
         gl.Enable(EnableCap.DepthTest);
         gl.DepthFunc(DepthFunction.Less);
 
-        // gl.Enable(EnableCap.CullFace);
-        // gl.CullFace(TriangleFace.Back);
+        gl.Enable(EnableCap.CullFace);
+        gl.CullFace(TriangleFace.Back);
 
-        // gl.Enable(EnableCap.Blend);
-        // gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcColor);
+        gl.Enable(EnableCap.Blend);
+        gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
         LastFrameTime = Time.Now();
     }
@@ -102,7 +100,7 @@ public sealed class GameControl : GlEsControl
             tick -= nsPerTick;
         }
         TickRemainder = Math.Max(tick, 0);
-        Update();
+        Update(gl);
 
         gl.ClearColor(0.5f, 0.8f, 0.9f, 1.0f);
         gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
@@ -114,13 +112,13 @@ public sealed class GameControl : GlEsControl
         State.Game.Pointer.Tick();
         State.Game.Keyboard.Tick();
         State.World.Tick();
-        State.World.SetCenter(gl, Chunk.WorldPosToBlockPos(State.World.Player.Camera.Position));
+        State.World.SetCenter(gl, State.World.Player.Camera.Position.CameraPosToBlockPos());
     }
 
-    private void Update()
+    private void Update(GL gl)
     {
         State.Game.Pointer.Update();
         State.Game.Keyboard.Update();
-        State.World.Update();
+        State.World.Update(gl);
     }
 }

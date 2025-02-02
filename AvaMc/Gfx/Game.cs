@@ -1,4 +1,3 @@
-using System.Numerics;
 using Avalonia;
 
 namespace AvaMc.Gfx;

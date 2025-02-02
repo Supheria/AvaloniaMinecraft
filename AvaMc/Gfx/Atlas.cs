@@ -1,6 +1,5 @@
 using System.Numerics;
-using AvaMc.Extensions;
-using Microsoft.Xna.Framework;
+using AvaMc.Util;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;

@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Numerics;
 using AvaMc.Assets;
 using AvaMc.Util;
-using Silk.NET.Maths;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;

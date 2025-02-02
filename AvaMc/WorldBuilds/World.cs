@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using Avalonia;
+using AvaMc.Comparers;
 using AvaMc.Entities;
-using Microsoft.Xna.Framework;
+using AvaMc.Extensions;
+using AvaMc.Util;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
@@ -11,17 +12,20 @@ namespace AvaMc.WorldBuilds;
 public sealed partial class World
 {
     const int ChunksSize = 16;
+    // const int ChunksSize = 8;
     public Player Player { get; set; }
     Dictionary<Vector3I, Chunk> Chunks { get; set; } = [];
     Vector3I ChunksOrigin { get; set; }
     Vector3I CenterOffset { get; set; }
+    public Threshold Load { get; } = new(2);
+    public Threshold Mesh { get; } = new(2);
 
     public World(GL gl)
     {
         Player = new(this);
         SetCenter(gl, Vector3I.Zero);
     }
-    
+
     public void Delete(GL gl)
     {
         Player.Delete(gl);
@@ -65,17 +69,25 @@ public sealed partial class World
             {
                 // if (x != 0 || z != 0)
                 //     continue;
+                if (!Load.UnderThreshold())
+                    break;
                 var offset = Vector3I.Add(ChunksOrigin, new(x, 0, z));
                 if (!Chunks.ContainsKey(offset))
+                {
                     LoadChunk(gl, offset);
+                    Load.AddOne();
+                }
             }
         }
     }
 
     public void SetCenter(GL gl, Vector3I center)
     {
-        var newOffset = Chunk.BlockPosToChunkOffset(center);
-        var newOrigin = Vector3I.Subtract(newOffset, new(ChunksSize / 2, 0, ChunksSize / 2));
+        var newOffset = center.BlockPosToChunkOffset();
+        var newOrigin = Vector3I.Subtract(
+            newOffset,
+            new((ChunksSize / 2) - 1, 0, (ChunksSize / 2) - 1)
+        );
         if (ChunksOrigin == newOrigin)
             return;
         CenterOffset = newOffset;
@@ -88,27 +100,46 @@ public sealed partial class World
                 Chunks.Remove(offset);
             }
         }
-        LoadEmptyChunks(gl);
+        // LoadEmptyChunks(gl);
     }
-    
+
     public void Render(GL gl)
     {
-        foreach (var chunk in Chunks.Values)
+        var offsets = SortChunksByOffset(DepthOrder.Farther);
+        foreach (var offset in offsets)
+        {
+            if (!GetChunk(offset, out var chunk))
+                continue;
             chunk.Render(gl);
+            chunk.RenderTransparent(gl);
+        }
         Player.Render(gl);
     }
-    
-    public void Update()
+
+    public void Update(GL gl)
     {
+        Load.Reset();
+        Mesh.Reset();
+        LoadEmptyChunks(gl);
         foreach (var chunk in Chunks.Values)
             chunk.Update();
         Player.Update();
     }
-    
+
     public void Tick()
     {
         foreach (var chunk in Chunks.Values)
             chunk.Tick();
         Player.Tick();
+    }
+    
+    private Vector3I[] SortChunksByOffset(DepthOrder order)
+    {
+        var offsets = new List<Vector3I>();
+        foreach (var chunk in Chunks.Values)
+            offsets.Add(chunk.Offset);
+        var comparer = new ChunkDepthComparer(CenterOffset, order);
+        offsets.Sort(comparer);
+        return offsets.ToArray();
     }
 }

@@ -274,25 +274,25 @@ namespace Microsoft.Xna.Framework
             result = ((((this.X <= value.X) && (value.X < (this.X + this.Width))) && (this.Y <= value.Y)) && (value.Y < (this.Y + this.Height)));
         }
 
-        /// <summary>
-        /// Gets whether or not the provided <see cref="Vector2I"/> lies within the bounds of this <see cref="Rectangle"/>.
-        /// </summary>
-        /// <param name="value">The coordinates to check for inclusion in this <see cref="Rectangle"/>.</param>
-        /// <returns><c>true</c> if the provided <see cref="Vector2I"/> lies inside this <see cref="Rectangle"/>; <c>false</c> otherwise.</returns>
-        public bool Contains(Vector2I value)
-        {
-            return ((((this.X <= value.X) && (value.X < (this.X + this.Width))) && (this.Y <= value.Y)) && (value.Y < (this.Y + this.Height)));
-        }
-
-        /// <summary>
-        /// Gets whether or not the provided <see cref="Vector2I"/> lies within the bounds of this <see cref="Rectangle"/>.
-        /// </summary>
-        /// <param name="value">The coordinates to check for inclusion in this <see cref="Rectangle"/>.</param>
-        /// <param name="result"><c>true</c> if the provided <see cref="Vector2I"/> lies inside this <see cref="Rectangle"/>; <c>false</c> otherwise. As an output parameter.</param>
-        public void Contains(ref Vector2I value, out bool result)
-        {
-            result = ((((this.X <= value.X) && (value.X < (this.X + this.Width))) && (this.Y <= value.Y)) && (value.Y < (this.Y + this.Height)));
-        }
+        // /// <summary>
+        // /// Gets whether or not the provided <see cref="Vector2I"/> lies within the bounds of this <see cref="Rectangle"/>.
+        // /// </summary>
+        // /// <param name="value">The coordinates to check for inclusion in this <see cref="Rectangle"/>.</param>
+        // /// <returns><c>true</c> if the provided <see cref="Vector2I"/> lies inside this <see cref="Rectangle"/>; <c>false</c> otherwise.</returns>
+        // public bool Contains(Vector2I value)
+        // {
+        //     return ((((this.X <= value.X) && (value.X < (this.X + this.Width))) && (this.Y <= value.Y)) && (value.Y < (this.Y + this.Height)));
+        // }
+        //
+        // /// <summary>
+        // /// Gets whether or not the provided <see cref="Vector2I"/> lies within the bounds of this <see cref="Rectangle"/>.
+        // /// </summary>
+        // /// <param name="value">The coordinates to check for inclusion in this <see cref="Rectangle"/>.</param>
+        // /// <param name="result"><c>true</c> if the provided <see cref="Vector2I"/> lies inside this <see cref="Rectangle"/>; <c>false</c> otherwise. As an output parameter.</param>
+        // public void Contains(ref Vector2I value, out bool result)
+        // {
+        //     result = ((((this.X <= value.X) && (value.X < (this.X + this.Width))) && (this.Y <= value.Y)) && (value.Y < (this.Y + this.Height)));
+        // }
 
         /// <summary>
         /// Gets whether or not the provided <see cref="Rectangle"/> lies within the bounds of this <see cref="Rectangle"/>.
@@ -471,15 +471,15 @@ namespace Microsoft.Xna.Framework
             Y += amount.Y;
         }
 
-        /// <summary>
-        /// Changes the <see cref="Location"/> of this <see cref="Rectangle"/>.
-        /// </summary>
-        /// <param name="amount">The x and y components to add to this <see cref="Rectangle"/>.</param>
-        public void Offset(Vector2I amount)
-        {
-            X += (int)amount.X;
-            Y += (int)amount.Y;
-        }
+        // /// <summary>
+        // /// Changes the <see cref="Location"/> of this <see cref="Rectangle"/>.
+        // /// </summary>
+        // /// <param name="amount">The x and y components to add to this <see cref="Rectangle"/>.</param>
+        // public void Offset(Vector2I amount)
+        // {
+        //     X += (int)amount.X;
+        //     Y += (int)amount.Y;
+        // }
 
         /// <summary>
         /// Returns a <see cref="String"/> representation of this <see cref="Rectangle"/> in the format:
