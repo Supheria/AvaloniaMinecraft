@@ -13,14 +13,22 @@ namespace AvaMc.Views;
 
 public abstract class GlEsControl : OpenGlControlBase, ICustomHitTest
 {
+    public record FrameInfo(int Fps, int Tps)
+    {
+        public override string ToString()
+        {
+            return $"Fps:{Fps}, Tps:{Tps}";
+        }
+    }
 
-    public EventHandler<int>? FrameInfoUpdated;
+    public EventHandler<FrameInfo>? FrameInfoUpdated;
     GL? Gl { get; set; }
     PixelSize ViewPortSize { get; set; }
     bool DoChangeViewPort { get; set; }
     DispatcherTimer Timer { get; } = new();
     long LastTime { get; set; }
     int FrameCount { get; set; }
+    protected int Ticks { get; set; }
 
     // KeyEventArgs? KeyState { get; set; }
     // Vector2 PointerPostionDiff { get; set; }
@@ -57,7 +65,7 @@ public abstract class GlEsControl : OpenGlControlBase, ICustomHitTest
         base.OnOpenGlInit(gl);
         Gl = GL.GetApi(gl.GetProcAddress);
         OnGlInit(Gl);
-        
+
         LastTime = Time.Now();
     }
 
@@ -100,8 +108,10 @@ public abstract class GlEsControl : OpenGlControlBase, ICustomHitTest
         var now = Time.Now();
         if (now - LastTime < Time.NanosecondsPerSecond)
             return;
-        FrameInfoUpdated?.Invoke(this, FrameCount);
+        var info = new FrameInfo(FrameCount, Ticks);
+        FrameInfoUpdated?.Invoke(this, info);
         FrameCount = 0;
         LastTime = now;
+        Ticks = 0;
     }
 }

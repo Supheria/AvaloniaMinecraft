@@ -10,8 +10,8 @@ public partial class MainView : UserControl
         Game.FrameInfoUpdated += FrameInfoUpdated;
     }
 
-    private void FrameInfoUpdated(object? sender, int e)
+    private void FrameInfoUpdated(object? sender, GlEsControl.FrameInfo e)
     {
-        Text.Text = $"{e} fps";
+        Text.Text = e.ToString();
     }
 }

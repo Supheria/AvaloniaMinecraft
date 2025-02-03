@@ -46,6 +46,7 @@ public sealed class GameControl : GlEsControl
         var dY = position.Y - LastPointerPostion.Y;
         State.Game.Pointer.Delta = new((float)dX, (float)dY);
         LastPointerPostion = position;
+        State.Game.Pointer.Position = new((float)position.X, (float)position.Y);
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -126,6 +127,7 @@ public sealed class GameControl : GlEsControl
 
     private void Tick(GL gl)
     {
+        Ticks++;
         State.Game.Pointer.Tick();
         State.Game.Keyboard.Tick();
         State.World.Tick();
@@ -137,7 +139,7 @@ public sealed class GameControl : GlEsControl
         State.Game.Pointer.Update();
         State.Game.Keyboard.Update();
         State.World.Update(gl);
-        
+
         if (State.Game.Keyboard[Key.T].Pressed)
             State.Wireframe = !State.Wireframe;
     }
