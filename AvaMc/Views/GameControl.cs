@@ -48,6 +48,23 @@ public sealed class GameControl : GlEsControl
         LastPointerPostion = position;
     }
 
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+        var point = e.GetCurrentPoint(this);
+        if (point.Properties.IsLeftButtonPressed)
+            State.Game.Pointer[PointerButton.Left].Down = true;
+        if (point.Properties.IsRightButtonPressed)
+            State.Game.Pointer[PointerButton.Right].Down = true;
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        State.Game.Pointer[PointerButton.Left].Down = false;
+        State.Game.Pointer[PointerButton.Right].Down = false;
+    }
+
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
         base.OnSizeChanged(e);
@@ -120,5 +137,8 @@ public sealed class GameControl : GlEsControl
         State.Game.Pointer.Update();
         State.Game.Keyboard.Update();
         State.World.Update(gl);
+        
+        if (State.Game.Keyboard[Key.T].Pressed)
+            State.Wireframe = !State.Wireframe;
     }
 }

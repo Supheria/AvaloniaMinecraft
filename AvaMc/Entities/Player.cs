@@ -1,6 +1,9 @@
+using System.Diagnostics;
 using System.Numerics;
 using Avalonia.Input;
+using AvaMc.Blocks;
 using AvaMc.Extensions;
+using AvaMc.Gfx;
 using AvaMc.Util;
 using AvaMc.WorldBuilds;
 using Silk.NET.OpenGLES;
@@ -12,6 +15,7 @@ public sealed class Player
 {
     const float MouseSensitivity = 3.2f;
     const float Speed = 0.24f;
+
     // const float Speed = 0.05f;
     World World { get; set; }
     public PerspectiveCamera Camera { get; set; }
@@ -48,7 +52,7 @@ public sealed class Player
         if (BlockPositionChanged)
             BlockPosition = blockPosition;
 
-        var chunkOffset = blockPosition.BlockPosToChunkOffset();
+        var chunkOffset = blockPosition.WorldBlockPosToChunkOffset();
         ChunkOffsetChanged = ChunkOffset != chunkOffset;
         if (ChunkOffsetChanged)
             ChunkOffset = chunkOffset;
@@ -82,5 +86,21 @@ public sealed class Player
         Camera.Position = Vector3.Add(Camera.Position, movement);
 
         // TODO: look at block
+        const float reach = 6f;
+        var ray = new Ray(Camera.Position, Camera.Direction);
+        HasLookBlock = ray.RayBlock(reach, out var lookBlock, out var lookFace);
+        if (HasLookBlock && lookFace != null)
+        {
+            Debug.WriteLine($"look at {LookBlock}, face {LookFace}");
+            LookBlock = lookBlock;
+            LookFace = lookFace;
+            if (State.Game.Pointer[PointerButton.Left].Pressed)
+                World.SetBlockData(LookBlock, new BlockData() { BlockId = BlockId.Air });
+            if (State.Game.Pointer[PointerButton.Right].Pressed)
+            {
+                var pos = Vector3I.Add(LookBlock, LookFace.Vector3I);
+                World.SetBlockData(pos, new BlockData() { BlockId = BlockId.Glass });
+            }
+        }
     }
 }

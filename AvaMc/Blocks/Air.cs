@@ -9,6 +9,6 @@ public sealed class Air : Block
 
     public override Vector2I GetTextureLocation(Direction direction)
     {
-        return Vector2I.Zero;
+        return new(15, 13);
     }
 }

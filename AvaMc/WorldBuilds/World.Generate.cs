@@ -76,13 +76,6 @@ partial class World
                     var data = new BlockData() { BlockId = BlockId.Water };
                     chunk.SetData(new(x, y, z), data);
                 }
-
-                // glass for test
-                if (h > WaterLevel)
-                {
-                    var data = new BlockData() { BlockId = BlockId.Glass };
-                    chunk.SetData(new(x, h + 10, z), data);
-                }
             }
         }
     }

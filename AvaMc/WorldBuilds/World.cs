@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using AvaMc.Blocks;
 using AvaMc.Comparers;
 using AvaMc.Entities;
 using AvaMc.Extensions;
@@ -11,8 +12,9 @@ namespace AvaMc.WorldBuilds;
 // TODO
 public sealed partial class World
 {
-    const int ChunksSize = 16;
-    // const int ChunksSize = 8;
+    // const int ChunksSize = 16;
+
+    const int ChunksSize = 8;
     public Player Player { get; set; }
     Dictionary<Vector3I, Chunk> Chunks { get; set; } = [];
     Vector3I ChunksOrigin { get; set; }
@@ -60,6 +62,27 @@ public sealed partial class World
         Chunks[offset] = chunk;
     }
 
+    public BlockData GetBlockData(Vector3I position)
+    {
+        var offset = position.WorldBlockPosToChunkOffset();
+        if (GetChunk(offset, out var chunk))
+        {
+            var pos = position.BlockPosWorldToChunk();
+            if (chunk.GetBlockData(pos, out var data))
+                return data;
+        }
+        return new() { BlockId = BlockId.Air };
+    }
+
+    public void SetBlockData(Vector3I position, BlockData data)
+    {
+        var offset = position.WorldBlockPosToChunkOffset();
+        if (!GetChunk(offset, out var chunk))
+            return;
+        var pos = position.BlockPosWorldToChunk();
+        chunk.SetData(pos, data);
+    }
+
     public void LoadEmptyChunks(GL gl)
     {
         // LoadChunk(gl, new(0, 0, 0));
@@ -83,7 +106,7 @@ public sealed partial class World
 
     public void SetCenter(GL gl, Vector3I center)
     {
-        var newOffset = center.BlockPosToChunkOffset();
+        var newOffset = center.WorldBlockPosToChunkOffset();
         var newOrigin = Vector3I.Subtract(
             newOffset,
             new((ChunksSize / 2) - 1, 0, (ChunksSize / 2) - 1)
@@ -132,7 +155,7 @@ public sealed partial class World
             chunk.Tick();
         Player.Tick();
     }
-    
+
     private Vector3I[] SortChunksByOffset(DepthOrder order)
     {
         var offsets = new List<Vector3I>();

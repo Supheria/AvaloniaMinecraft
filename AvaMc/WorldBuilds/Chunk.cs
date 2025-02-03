@@ -166,6 +166,9 @@ public sealed class Chunk
         if (!GetBlockData(pos, out var data))
             return;
         var block = Block.Blocks[data.BlockId];
+        // TODO: when air may has bug
+        if (block.Id is BlockId.Air)
+            return;
         var transparent = block.Transparent;
         foreach (var direction in Direction.AllDirections)
         {
@@ -181,15 +184,8 @@ public sealed class Chunk
             }
             else
             {
-                var offset = wNeighbor.BlockPosToChunkOffset();
-                if (World.GetChunk(offset, out var chunk))
-                {
-                    var p = wNeighbor.WorldPosToBlockPos();
-                    if (chunk.GetBlockData(p, out var nData))
-                    {
-                        neighborBlock = Block.Blocks[nData.BlockId];
-                    }
-                }
+                var nData = World.GetBlockData(wNeighbor);
+                neighborBlock = Block.Blocks[nData.BlockId];
             }
             var neighborTransparent = neighborBlock.Transparent;
 
