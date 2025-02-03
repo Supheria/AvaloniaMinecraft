@@ -2,6 +2,7 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using AvaMc.Blocks;
 using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
@@ -79,8 +80,7 @@ public sealed class GameControl : GlEsControl
     {
         // csharpier-ignore
         State.Shader = ShaderHandler.Create(gl, "basic");
-        var texture = Texture2D.Create(gl, "blocks", 0);
-        State.Atlas = Atlas.Create(texture, new(16, 16));
+        State.BlockAtlas = BlockAtlas.Create(gl, "blocks");
         State.World = new(gl);
         // State.TestCamera = Camera;
         // State.Wireframe = false;
@@ -101,6 +101,7 @@ public sealed class GameControl : GlEsControl
     protected override void OnGlDeinit(GL gl)
     {
         State.Shader.Delete(gl);
+        State.BlockAtlas.Delete(gl);
         State.World.Delete(gl);
     }
 
@@ -130,8 +131,23 @@ public sealed class GameControl : GlEsControl
         Ticks++;
         State.Game.Pointer.Tick();
         State.Game.Keyboard.Tick();
+        State.BlockAtlas.Tick();
         State.World.Tick();
         State.World.SetCenter(gl, State.World.Player.Camera.Position.CameraPosToBlockPos());
+
+        // TODO: for test
+        if (State.Game.Keyboard[Key.C].PressedTick)
+        {
+            for (var x = 0; x < 32; x++)
+            {
+                for (var y = 64; y < 80; y++)
+                {
+                    State.World.SetBlockData(new(x, y, 4), new() { BlockId = BlockId.Glass });
+                    State.World.SetBlockData(new(x, y, 8), new() { BlockId = BlockId.Lava });
+                }
+                State.World.SetBlockData(new(40, 80, 4), new() { BlockId = BlockId.Rose });
+            }
+        }
     }
 
     private void Update(GL gl)

@@ -1,3 +1,4 @@
+using System.Numerics;
 using AvaMc.Util;
 
 namespace AvaMc.Blocks;
@@ -5,20 +6,11 @@ namespace AvaMc.Blocks;
 // TODO: not complete yet
 public abstract partial class Block
 {
-    protected record Data
-    {
-        public BlockId Id { get; set; } = BlockId.Air;
-        public bool Transparent { get; set; } = true;
-    }
+    public abstract BlockId Id { get; }
+    public virtual bool Transparent { get; } = false;
+    public virtual bool Animated { get; } = false;
+    public virtual bool Sprite { get; } = false;
 
-    public BlockId Id { get; }
-    public bool Transparent { get; }
-
-    protected Block(Data data)
-    {
-        Id = data.Id;
-        Transparent = data.Transparent;
-    }
     // public bool Liquid { get; set; }
     // public bool CanEmitLight { get; set; }
     // public bool Animated { get; set; }
@@ -42,7 +34,11 @@ public abstract partial class Block
     //     Vector2 UvSize
     // );
     //
-    public abstract Vector2I GetTextureLocation(Direction direction) ;
+    public abstract Vector2I GetTextureLocation(Direction direction);
+    public virtual Vector2I[] GetAnimationFrameOffsets()
+    {
+        return [];
+    }
     // public abstract Func<World, Vector3, Direction, MeshInfo> GetMeshInfo { get; set; }
     // public abstract Func<Vector2[]> GetAnimationFrameOffsets { get; set; }
     // public abstract Func<World, Vector3, TorchLight> GetTorchLight { get; set; }

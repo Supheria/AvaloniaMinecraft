@@ -4,7 +4,6 @@ namespace AvaMc.WorldBuilds;
 
 public sealed class ChunkData
 {
-
     public const int ChunkSizeX = 16;
     public const int ChunkSizeY = 256;
     public const int ChunkSizeZ = 16;
@@ -24,6 +23,13 @@ public sealed class ChunkData
         ];
 
     // csharpier-ignore
+    public static uint[] SpriteIndices { get; } =
+        [
+            3, 0, 5, 3, 5, 6,
+            4, 2, 1, 4, 2, 7
+        ];
+
+    // csharpier-ignore
     public static float[] CubeVertices { get; } =
         [
             0, 0, 0,
@@ -40,9 +46,9 @@ public sealed class ChunkData
     // csharpier-ignore
     public static float[] CubeUvs { get; } =
         [
-            0, 1,
-            1, 1,
             1, 0,
             0, 0,
+            0, 1,
+            1, 1
         ];
 }

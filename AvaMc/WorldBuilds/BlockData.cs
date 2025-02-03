@@ -9,7 +9,7 @@ namespace AvaMc.WorldBuilds;
 // - 4 bits B light
 // - 4 bits light intensity
 // - 16 bits block id
-public struct BlockData
+public sealed class BlockData
 {
     //TODO: - 28 bits metadata/extra
     //

@@ -102,7 +102,7 @@ public sealed class Player
             if (State.Game.Pointer[PointerButton.Right].Pressed)
             {
                 var pos = Vector3I.Add(LookBlock, LookFace.Vector3I);
-                World.SetBlockData(pos, new BlockData() { BlockId = BlockId.Glass });
+                World.SetBlockData(pos, new BlockData() { BlockId = BlockId.Sand });
             }
         }
     }

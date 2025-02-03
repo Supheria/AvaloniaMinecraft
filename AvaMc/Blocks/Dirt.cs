@@ -4,8 +4,7 @@ namespace AvaMc.Blocks;
 
 public sealed class Dirt : Block
 {
-    public Dirt()
-        : base(new() { Id = BlockId.Dirt, Transparent = false }) { }
+    public override BlockId Id { get; } = BlockId.Dirt;
 
     public override Vector2I GetTextureLocation(Direction direction)
     {

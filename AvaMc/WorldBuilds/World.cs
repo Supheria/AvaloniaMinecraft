@@ -12,7 +12,7 @@ namespace AvaMc.WorldBuilds;
 // TODO
 public sealed partial class World
 {
-    // const int ChunksSize = 16;
+    // const int ChunksSize = 24;
 
     const int ChunksSize = 8;
     public Player Player { get; set; }
@@ -21,6 +21,7 @@ public sealed partial class World
     Vector3I CenterOffset { get; set; }
     public Threshold Load { get; } = new(2);
     public Threshold Mesh { get; } = new(2);
+    List<WorldUnloadedData> UnloadedData { get; } = [];
 
     public World(GL gl)
     {
@@ -77,10 +78,16 @@ public sealed partial class World
     public void SetBlockData(Vector3I position, BlockData data)
     {
         var offset = position.WorldBlockPosToChunkOffset();
-        if (!GetChunk(offset, out var chunk))
-            return;
-        var pos = position.BlockPosWorldToChunk();
-        chunk.SetData(pos, data);
+        if (GetChunk(offset, out var chunk))
+        {
+            var pos = position.BlockPosWorldToChunk();
+            chunk.SetData(pos, data);
+        }
+        else
+        {
+            var unloaded = new WorldUnloadedData(position, data);
+            UnloadedData.Add(unloaded);
+        }
     }
 
     public void LoadEmptyChunks(GL gl)
@@ -134,7 +141,11 @@ public sealed partial class World
             if (!GetChunk(offset, out var chunk))
                 continue;
             chunk.Render(gl);
+            
+            // TODO: not good way to render sprite
+            gl.Disable(EnableCap.CullFace);
             chunk.RenderTransparent(gl);
+            gl.Enable(EnableCap.CullFace);
         }
         Player.Render(gl);
     }

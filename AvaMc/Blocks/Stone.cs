@@ -4,8 +4,7 @@ namespace AvaMc.Blocks;
 
 public sealed class Stone : Block
 {
-    public Stone()
-        : base(new() { Id = BlockId.Stone, Transparent = false }) { }
+    public override BlockId Id { get; } = BlockId.Stone;
 
     public override Vector2I GetTextureLocation(Direction direction)
     {
