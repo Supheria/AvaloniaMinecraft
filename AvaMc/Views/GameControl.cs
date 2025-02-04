@@ -80,7 +80,8 @@ public sealed class GameControl : GlEsControl
     {
         // csharpier-ignore
         State.Shader = ShaderHandler.Create(gl, "basic");
-        State.BlockAtlas = BlockAtlas.Create(gl, "blocks");
+        // State.BlockAtlas = BlockAtlas.Create(gl, "blocks");
+        State.BlockAtlas = BlockAtlas.Create(gl, "blocks_raw");
         State.World = new(gl);
         // State.TestCamera = Camera;
         // State.Wireframe = false;

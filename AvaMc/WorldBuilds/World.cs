@@ -12,9 +12,9 @@ namespace AvaMc.WorldBuilds;
 // TODO
 public sealed class World
 {
-    // const int ChunksSize = 24;
+    const int ChunksSize = 24;
 
-    const int ChunksSize = 16;
+    // const int ChunksSize = 16;
     public Player Player { get; set; }
     Dictionary<Vector3I, Chunk> Chunks { get; set; } = [];
     Vector3I ChunksOrigin { get; set; }
@@ -22,7 +22,7 @@ public sealed class World
     public Threshold Load { get; } = new(2);
     public Threshold Mesh { get; } = new(2);
     public List<WorldUnloadedData> UnloadedData { get; } = [];
-    WorldGenerator Generator { get; } = new(1234);
+    WorldGenerator Generator { get; } = new(2);
 
     public World(GL gl)
     {
