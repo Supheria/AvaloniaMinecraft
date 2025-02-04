@@ -5,4 +5,5 @@ public enum Biome
     Ocean,
     Plains,
     Beach,
+    Mountain,
 }

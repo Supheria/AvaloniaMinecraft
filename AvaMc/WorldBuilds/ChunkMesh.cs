@@ -157,8 +157,8 @@ public sealed partial class ChunkMesh
         Direction direction,
         Vector2 uvOffset,
         Vector2 uvUnit,
-        bool transparent
-    // bool shortenY
+        bool transparent,
+        bool shortenY
     )
     {
         if (transparent)
@@ -171,7 +171,8 @@ public sealed partial class ChunkMesh
         {
             var index = ChunkData.CubeIndices[(direction * 6) + ChunkData.UniqueIndices[i]] * 3;
             var x = position.X + ChunkData.CubeVertices[index++];
-            var y = position.Y + ChunkData.CubeVertices[index++];
+            var yFactor = shortenY ? 0.9f : 1f;
+            var y = position.Y + ChunkData.CubeVertices[index++] * yFactor;
             var z = position.Z + ChunkData.CubeVertices[index];
             index = i * 2;
             var u = uvOffset.X + (uvUnit.X * ChunkData.CubeUvs[index++]);

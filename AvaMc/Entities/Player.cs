@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 using Avalonia.Input;
@@ -14,7 +15,7 @@ namespace AvaMc.Entities;
 public sealed class Player
 {
     const float MouseSensitivity = 3.2f;
-    const float Speed = 0.24f;
+    const float Speed = 0.22f;
 
     // const float Speed = 0.05f;
     World World { get; set; }
@@ -26,6 +27,21 @@ public sealed class Player
     Vector3I BlockPosition { get; set; }
     public bool ChunkOffsetChanged { get; set; }
     public bool BlockPositionChanged { get; set; }
+    BlockId SelectedBlockId { get; set; } = BlockId.Air;
+    Dictionary<Key, BlockId> BlockPack { get; } =
+        new()
+        {
+            [Key.D1] = BlockId.Dirt,
+            [Key.D2] = BlockId.Stone,
+            [Key.D3] = BlockId.Planks,
+            [Key.D4] = BlockId.Sand,
+            [Key.D5] = BlockId.Glass,
+            [Key.D6] = BlockId.Water,
+            [Key.D7] = BlockId.Log,
+            [Key.D8] = BlockId.Leaves,
+            [Key.D9] = BlockId.Rose,
+            [Key.D0] = BlockId.Coal,
+        };
 
     public Player(World world)
     {
@@ -59,6 +75,12 @@ public sealed class Player
         ChunkOffsetChanged = ChunkOffset != chunkOffset;
         if (ChunkOffsetChanged)
             ChunkOffset = chunkOffset;
+
+        foreach (var (key, id) in BlockPack)
+        {
+            if (State.Game.Keyboard[key].Down)
+                SelectedBlockId = id;
+        }
     }
 
     public void Tick()
@@ -94,7 +116,6 @@ public sealed class Player
         HasLookBlock = ray.RayBlock(reach, out var lookBlock, out var lookFace);
         if (HasLookBlock && lookFace != null)
         {
-            Debug.WriteLine($"look at {LookBlock}, face {LookFace}");
             LookBlock = lookBlock;
             LookFace = lookFace;
             if (State.Game.Pointer[PointerButton.Left].Pressed)
@@ -102,11 +123,11 @@ public sealed class Player
             if (State.Game.Pointer[PointerButton.Right].Pressed)
             {
                 var pos = Vector3I.Add(LookBlock, LookFace.Vector3I);
-                World.SetBlockData(pos, new BlockData() { BlockId = BlockId.Sand });
+                World.SetBlockData(pos, new BlockData() { BlockId = SelectedBlockId });
             }
         }
     }
-    
+
     private Ray GetRay()
     {
         var size = State.Game.WindowSize;

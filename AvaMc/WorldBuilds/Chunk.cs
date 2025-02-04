@@ -114,7 +114,7 @@ public sealed class Chunk
     public void SetData(Vector3I position, BlockData data)
     {
         if (!InBounds(position))
-             throw new ArgumentOutOfRangeException(
+            throw new ArgumentOutOfRangeException(
                 nameof(position),
                 position,
                 "block position out chunk"
@@ -142,7 +142,7 @@ public sealed class Chunk
         var pos = position + Position;
         return World.GetBlockData(pos);
     }
-    
+
     public void SetBlockDataInOtherChunk(Vector3I position, BlockData data)
     {
         var pos = position + Position;
@@ -226,13 +226,16 @@ public sealed class Chunk
             {
                 var uv = block.GetTextureLocation(direction);
                 var uvOffset = State.BlockAtlas.Atlas.Offset(uv);
+                var shortenY =
+                    block.Liquid && direction.Value is Direction.Type.Up && !neighborBlock.Liquid;
                 var mesh = transparent ? TransparentMesh : BaseMesh;
                 mesh.EmitFace(
                     pos.ToNumerics(),
                     direction,
                     uvOffset,
                     State.BlockAtlas.Atlas.SpriteUnit,
-                    transparent
+                    transparent,
+                    shortenY
                 );
             }
         }

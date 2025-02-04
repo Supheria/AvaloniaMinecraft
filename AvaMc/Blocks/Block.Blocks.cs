@@ -21,5 +21,8 @@ partial class Block
         [BlockId.Coal] = new Coal(),
         [BlockId.Copper] = new Copper(),
         [BlockId.Lava] = new Lava(),
+        [BlockId.Clay] = new Clay(),
+        [BlockId.Gravel] = new Gravel(),
+        [BlockId.Planks] = new Planks(),
     };
 }

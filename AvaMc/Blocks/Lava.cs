@@ -8,6 +8,7 @@ public sealed class Lava : Block
     public override BlockId Id { get; } = BlockId.Lava;
     public override bool Transparent { get; } = true;
     public override bool Animated { get; } = true;
+    public override bool Liquid { get; } = true;
 
     public override Vector2I GetTextureLocation(Direction direction)
     {

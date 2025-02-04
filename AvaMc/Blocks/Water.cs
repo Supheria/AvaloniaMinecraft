@@ -8,6 +8,7 @@ public sealed class Water : Block
     public override BlockId Id { get; } = BlockId.Water;
     public override bool Transparent { get; } = true;
     public override bool Animated { get; } = true;
+    public override bool Liquid { get; } = true;
 
     public override Vector2I GetTextureLocation(Direction direction)
     {

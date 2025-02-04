@@ -70,6 +70,10 @@ public sealed class WorldGenerator
 
     private void Tree(Random random, Chunk chunk, Get get, Set set, int x, int y, int z)
     {
+        var under = get(chunk, x, y - 1, z);
+        if (under.BlockId is not BlockId.Grass && under.BlockId is not BlockId.Dirt)
+            return;
+
         var h = random.Next(3, 5);
         for (var yy = y; yy <= y + h; yy++)
             set(chunk, x, yy, z, new() { BlockId = BlockId.Log });
@@ -119,8 +123,9 @@ public sealed class WorldGenerator
         {
             BlockId = RandomChance(random, 0.6) ? BlockId.Rose : BlockId.Buttercup,
         };
-        var l = random.Next(1, 4);
-        var h = random.Next(1, 4);
+        var s = random.Next(2, 6);
+        var l = random.Next(s - 1, s + 1);
+        var h = random.Next(s - 1, s + 1);
         for (var xx = x - l; xx <= x + l; xx++)
         {
             for (var zz = z - h; zz <= z + h; zz++)
@@ -148,13 +153,13 @@ public sealed class WorldGenerator
         var h = random.Next(1, y - 4);
         var s = id switch
         {
-            BlockId.Coal => 4,
-            BlockId.Copper => 1,
+            BlockId.Coal => random.Next(2, 4),
+            BlockId.Copper => random.Next(1, 3),
             _ => 0,
         };
-        var l = random.Next(1, s);
-        var w = random.Next(1, s);
-        var i = random.Next(1, s);
+        var l = random.Next(s - 1, s + 1);
+        var w = random.Next(s - 1, s + 1);
+        var i = random.Next(s - 1, s + 1);
 
         for (var xx = x - l; xx <= x + l; xx++)
         {
@@ -214,11 +219,14 @@ public sealed class WorldGenerator
             new OctaveNoise(8, 2),
             new OctaveNoise(8, 3),
             new OctaveNoise(8, 4),
+            new OctaveNoise(8, 5),
+            new OctaveNoise(8, 6),
         };
         var combineds = new[]
         {
             new CombinedNoise(offsets[0], offsets[1]),
             new CombinedNoise(offsets[2], offsets[3]),
+            new CombinedNoise(offsets[4], offsets[5]),
         };
         var biomeNoise = new OctaveNoise(6, 0);
         var oreNoise = new OctaveNoise(6, 1);
@@ -238,44 +246,74 @@ public sealed class WorldGenerator
                 );
 
                 var t = biomeNoise.Compute(Seed, wx, wz);
-                var r = oreNoise.Compute(Seed, wx * 4, wz * 4) / 32;
+                var r = oreNoise.Compute(Seed, wx / 4f, wz / 4f) / 32;
 
                 var hr = t > 0 ? hl : Math.Max(hl, hh);
                 var h = hr + WaterLevel;
 
-                var biome =
-                    h < WaterLevel ? Biome.Ocean
-                    : (t < 0.08f && h < WaterLevel + 2) ? Biome.Beach
-                    : Biome.Plains;
+                Biome biome;
+                if (h < WaterLevel)
+                    biome = Biome.Ocean;
+                else if (t < 0.08f && h < WaterLevel + 2)
+                    biome = Biome.Beach;
+                // TODO
+                else if (false)
+                    biome = Biome.Mountain;
+                else
+                    biome = Biome.Plains;
+
+                if (biome is Biome.Mountain)
+                    h += (int)(r + (-t / 12)) * 2 + 2;
 
                 var d = r * 1.4f + 5;
+
+                var topBlock = BlockId.Air;
+                switch (biome)
+                {
+                    case Biome.Ocean:
+                        if (r > 0.8f)
+                            topBlock = BlockId.Gravel;
+                        else if (r > 0.3f)
+                            topBlock = BlockId.Sand;
+                        else if (r > 0.15f && t < 0.08f)
+                            topBlock = BlockId.Clay;
+                        else
+                            topBlock = BlockId.Dirt;
+                        break;
+                    case Biome.Beach:
+                        topBlock = BlockId.Sand;
+                        break;
+                    case Biome.Plains:
+                        if (t > 4f && r > 0.78f)
+                            topBlock = BlockId.Gravel;
+                        else
+                            topBlock = BlockId.Grass;
+                        break;
+                    case Biome.Mountain:
+                        if (r > 0.8f)
+                            topBlock = BlockId.Gravel;
+                        else if (r > 0.7f)
+                            topBlock = BlockId.Dirt;
+                        else
+                            topBlock = BlockId.Stone;
+                        break;
+                }
+
                 for (var y = 0; y < h; y++)
                 {
-                    var type = BlockId.Air;
+                    var block = BlockId.Air;
                     if (y == h - 1)
-                    {
-                        switch (biome)
-                        {
-                            case Biome.Ocean:
-                                type = t > 0.03f ? BlockId.Dirt : BlockId.Sand;
-                                break;
-                            case Biome.Beach:
-                                type = BlockId.Sand;
-                                break;
-                            case Biome.Plains:
-                                type = BlockId.Grass;
-                                break;
-                        }
-                    }
+                        block = topBlock;
                     else if (y > h - d)
                     {
-                        type = biome is Biome.Beach ? BlockId.Sand : BlockId.Dirt;
+                        if (topBlock is BlockId.Grass)
+                            block = BlockId.Dirt;
+                        else
+                            block = topBlock;
                     }
                     else
-                    {
-                        type = BlockId.Stone;
-                    }
-                    var data = new BlockData() { BlockId = type };
+                        block = BlockId.Stone;
+                    var data = new BlockData() { BlockId = block };
                     chunk.SetData(new(x, y, z), data);
                 }
 
@@ -285,20 +323,20 @@ public sealed class WorldGenerator
                     chunk.SetData(new(x, y, z), data);
                 }
 
-                if (RandomChance(random, 0.004))
+                if (RandomChance(random, 0.02))
                     Orevein(random, chunk, GetBlockData, SetBlockData, x, h, z, BlockId.Coal);
-                if (RandomChance(random, 0.004))
+                if (RandomChance(random, 0.02))
                     Orevein(random, chunk, GetBlockData, SetBlockData, x, h, z, BlockId.Copper);
                 if (
                     biome is not Biome.Ocean
                     && h < WaterLevel + 3
                     && t < 0.1f
-                    && RandomChance(random, 0.005)
+                    && RandomChance(random, 0.001)
                 )
                     LavaPool(random, chunk, GetBlockData, SetBlockData, x, h, z);
                 if (biome is Biome.Plains && RandomChance(random, 0.005))
                     Tree(random, chunk, GetBlockData, SetBlockData, x, h, z);
-                if (biome is Biome.Plains && RandomChance(random, 0.0015))
+                if (biome is Biome.Plains && RandomChance(random, 0.0085))
                     Flowers(random, chunk, GetBlockData, SetBlockData, x, h, z);
             }
         }

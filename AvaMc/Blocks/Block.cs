@@ -10,8 +10,8 @@ public abstract partial class Block
     public virtual bool Transparent { get; } = false;
     public virtual bool Animated { get; } = false;
     public virtual bool Sprite { get; } = false;
+    public virtual bool Liquid { get; } = false;
 
-    // public bool Liquid { get; set; }
     // public bool CanEmitLight { get; set; }
     // public bool Animated { get; set; }
     // public BlockMesh.MeshType MeshType { get; set; }
@@ -35,6 +35,7 @@ public abstract partial class Block
     // );
     //
     public abstract Vector2I GetTextureLocation(Direction direction);
+
     public virtual Vector2I[] GetAnimationFrameOffsets()
     {
         return [];
