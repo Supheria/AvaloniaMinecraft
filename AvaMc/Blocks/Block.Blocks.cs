@@ -14,5 +14,15 @@ partial class Block
         [BlockId.Stone] = new Stone(),
         [BlockId.Water] = new Water(),
         [BlockId.Glass] = new Glass(),
+        [BlockId.Log] = new Log(),
+        [BlockId.Leaves] = new Leaves(),
+        [BlockId.Rose] = new Rose(),
+        [BlockId.Buttercup] = new Buttercup(),
+        [BlockId.Coal] = new Coal(),
+        [BlockId.Copper] = new Copper(),
+        [BlockId.Lava] = new Lava(),
+        [BlockId.Clay] = new Clay(),
+        [BlockId.Gravel] = new Gravel(),
+        [BlockId.Planks] = new Planks(),
     };
 }

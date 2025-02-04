@@ -403,18 +403,18 @@ public struct Vector3I : IEquatable<Vector3I>
         result.Z = z;
     }
 
-    // /// <summary>
-    // /// Returns the distance between two vectors.
-    // /// </summary>
-    // /// <param name="value1">The first vector.</param>
-    // /// <param name="value2">The second vector.</param>
-    // /// <returns>The distance between two vectors.</returns>
-    // public static float Distance(Vector3I value1, Vector3I value2)
-    // {
-    //     float result;
-    //     DistanceSquared(ref value1, ref value2, out result);
-    //     return MathF.Sqrt(result);
-    // }
+    /// <summary>
+    /// Returns the distance between two vectors.
+    /// </summary>
+    /// <param name="value1">The first vector.</param>
+    /// <param name="value2">The second vector.</param>
+    /// <returns>The distance between two vectors.</returns>
+    public static float Distance(Vector3I value1, Vector3I value2)
+    {
+        float result;
+        DistanceSquared(ref value1, ref value2, out result);
+        return MathF.Sqrt(result);
+    }
 
     // /// <summary>
     // /// Returns the distance between two vectors.
@@ -428,31 +428,31 @@ public struct Vector3I : IEquatable<Vector3I>
     //     result = MathF.Sqrt(result);
     // }
 
-    // /// <summary>
-    // /// Returns the squared distance between two vectors.
-    // /// </summary>
-    // /// <param name="value1">The first vector.</param>
-    // /// <param name="value2">The second vector.</param>
-    // /// <returns>The squared distance between two vectors.</returns>
-    // public static float DistanceSquared(Vector3I value1, Vector3I value2)
-    // {
-    //     return  (value1.X - value2.X) * (value1.X - value2.X) +
-    //             (value1.Y - value2.Y) * (value1.Y - value2.Y) +
-    //             (value1.Z - value2.Z) * (value1.Z - value2.Z);
-    // }
+    /// <summary>
+    /// Returns the squared distance between two vectors.
+    /// </summary>
+    /// <param name="value1">The first vector.</param>
+    /// <param name="value2">The second vector.</param>
+    /// <returns>The squared distance between two vectors.</returns>
+    public static int DistanceSquared(Vector3I value1, Vector3I value2)
+    {
+        return  (value1.X - value2.X) * (value1.X - value2.X) +
+                (value1.Y - value2.Y) * (value1.Y - value2.Y) +
+                (value1.Z - value2.Z) * (value1.Z - value2.Z);
+    }
 
-    // /// <summary>
-    // /// Returns the squared distance between two vectors.
-    // /// </summary>
-    // /// <param name="value1">The first vector.</param>
-    // /// <param name="value2">The second vector.</param>
-    // /// <param name="result">The squared distance between two vectors as an output parameter.</param>
-    // public static void DistanceSquared(ref Vector3I value1, ref Vector3I value2, out float result)
-    // {
-    //     result = (value1.X - value2.X) * (value1.X - value2.X) +
-    //              (value1.Y - value2.Y) * (value1.Y - value2.Y) +
-    //              (value1.Z - value2.Z) * (value1.Z - value2.Z);
-    // }
+    /// <summary>
+    /// Returns the squared distance between two vectors.
+    /// </summary>
+    /// <param name="value1">The first vector.</param>
+    /// <param name="value2">The second vector.</param>
+    /// <param name="result">The squared distance between two vectors as an output parameter.</param>
+    public static void DistanceSquared(ref Vector3I value1, ref Vector3I value2, out float result)
+    {
+        result = (value1.X - value2.X) * (value1.X - value2.X) +
+                 (value1.Y - value2.Y) * (value1.Y - value2.Y) +
+                 (value1.Z - value2.Z) * (value1.Z - value2.Z);
+    }
 
     /// <summary>
     /// Divides the components of a <see cref="Vector3I"/> by the components of another <see cref="Vector3I"/>.

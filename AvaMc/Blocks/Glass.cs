@@ -4,8 +4,8 @@ namespace AvaMc.Blocks;
 
 public sealed class Glass : Block
 {
-    public Glass()
-        : base(new() { Id = BlockId.Glass, Transparent = true }) { }
+    public override BlockId Id { get; } = BlockId.Glass;
+    public override bool Transparent { get; } = true;
 
     public override Vector2I GetTextureLocation(Direction direction)
     {

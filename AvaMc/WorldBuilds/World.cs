@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using AvaMc.Blocks;
 using AvaMc.Comparers;
 using AvaMc.Entities;
 using AvaMc.Extensions;
@@ -9,16 +10,19 @@ using Silk.NET.OpenGLES;
 namespace AvaMc.WorldBuilds;
 
 // TODO
-public sealed partial class World
+public sealed class World
 {
+    // const int ChunksSize = 24;
+
     const int ChunksSize = 16;
-    // const int ChunksSize = 8;
     public Player Player { get; set; }
     Dictionary<Vector3I, Chunk> Chunks { get; set; } = [];
     Vector3I ChunksOrigin { get; set; }
     Vector3I CenterOffset { get; set; }
     public Threshold Load { get; } = new(2);
     public Threshold Mesh { get; } = new(2);
+    public List<WorldUnloadedData> UnloadedData { get; } = [];
+    WorldGenerator Generator { get; } = new(1234);
 
     public World(GL gl)
     {
@@ -56,8 +60,34 @@ public sealed partial class World
     public void LoadChunk(GL gl, Vector3I offset)
     {
         var chunk = new Chunk(gl, this, offset);
-        Generate(chunk);
+        Generator.Generate(chunk);
         Chunks[offset] = chunk;
+    }
+
+    public BlockData GetBlockData(Vector3I position)
+    {
+        var offset = position.WorldBlockPosToChunkOffset();
+        if (GetChunk(offset, out var chunk))
+        {
+            var pos = position.BlockPosWorldToChunk();
+            return chunk.GetBlockData(pos);
+        }
+        return new() { BlockId = BlockId.Air };
+    }
+
+    public void SetBlockData(Vector3I position, BlockData data)
+    {
+        var offset = position.WorldBlockPosToChunkOffset();
+        if (GetChunk(offset, out var chunk))
+        {
+            var pos = position.BlockPosWorldToChunk();
+            chunk.SetData(pos, data);
+        }
+        else
+        {
+            var unloaded = new WorldUnloadedData(position, data);
+            UnloadedData.Add(unloaded);
+        }
     }
 
     public void LoadEmptyChunks(GL gl)
@@ -83,7 +113,7 @@ public sealed partial class World
 
     public void SetCenter(GL gl, Vector3I center)
     {
-        var newOffset = center.BlockPosToChunkOffset();
+        var newOffset = center.WorldBlockPosToChunkOffset();
         var newOrigin = Vector3I.Subtract(
             newOffset,
             new((ChunksSize / 2) - 1, 0, (ChunksSize / 2) - 1)
@@ -111,7 +141,11 @@ public sealed partial class World
             if (!GetChunk(offset, out var chunk))
                 continue;
             chunk.Render(gl);
+
+            // TODO: not good way to render sprite
+            gl.Disable(EnableCap.CullFace);
             chunk.RenderTransparent(gl);
+            gl.Enable(EnableCap.CullFace);
         }
         Player.Render(gl);
     }
@@ -132,7 +166,7 @@ public sealed partial class World
             chunk.Tick();
         Player.Tick();
     }
-    
+
     private Vector3I[] SortChunksByOffset(DepthOrder order)
     {
         var offsets = new List<Vector3I>();

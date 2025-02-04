@@ -3,10 +3,10 @@ namespace AvaMc.WorldBuilds;
 // Combined noise where compute(x, z) = n.compute(x + m.compute(x, z), z)
 public sealed class CombinedNoise
 {
-    Noise N1 { get; }
-    Noise N2 { get; }
+    OctaveNoise N1 { get; }
+    OctaveNoise N2 { get; }
 
-    public CombinedNoise(Noise n1, Noise n2)
+    public CombinedNoise(OctaveNoise n1, OctaveNoise n2)
     {
         N1 = n1;
         N2 = n2;

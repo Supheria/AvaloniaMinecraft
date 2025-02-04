@@ -17,9 +17,9 @@ public sealed class ChunkDepthComparer : IComparer<Vector3I>
 
     public int Compare(Vector3I v1, Vector3I v2)
     {
-        var l1 = Vector3I.Subtract(Center, v1).LengthSquared();
-        var l2 = Vector3I.Subtract(Center, v2).LengthSquared();
-        var sign = Math.Sign(l1 - l2);
+        var d1 = Vector3I.DistanceSquared(Center, v1);
+        var d2 = Vector3I.DistanceSquared(Center, v2);
+        var sign = Math.Sign(d1 - d2);
         return Order switch
         {
             DepthOrder.Nearer => sign,

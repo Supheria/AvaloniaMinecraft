@@ -2,12 +2,12 @@ using AvaMc.Util;
 
 namespace AvaMc.Blocks;
 
-public sealed class Sand : Block
+public sealed class Planks : Block
 {
-    public override BlockId Id { get; } = BlockId.Sand;
+    public override BlockId Id { get; } = BlockId.Planks;
 
     public override Vector2I GetTextureLocation(Direction direction)
     {
-        return new(0, 1);
+        return new(6, 1);
     }
 }

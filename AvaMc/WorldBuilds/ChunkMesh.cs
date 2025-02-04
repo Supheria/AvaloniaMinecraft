@@ -66,8 +66,14 @@ public sealed partial class ChunkMesh
 
     private void DepthSort(Vector3 center)
     {
-        var comparer = new FaceDepthComparer(center, DepthOrder.Farther);
+        // TODO: not good here
+        foreach (var face in Faces)
+        {
+            face.DistanceSquared = Vector3.DistanceSquared(center, face.Position);
+        }
+        var comparer = new FaceDepthComparer(DepthOrder.Farther);
         Faces.Sort(comparer);
+
         var indices = new List<uint>();
         for (var i = 0; i < Faces.Count; i++)
         {
@@ -75,7 +81,7 @@ public sealed partial class ChunkMesh
             for (var j = 0; j < 6; j++)
                 indices.Add(Indices[face.IndicesBase + j]);
             // TODO: don't know why here
-            // face.IndicesBase = i * 6;
+            face.IndicesBase = i * 6;
         }
         Indices = indices;
     }
@@ -104,7 +110,7 @@ public sealed partial class ChunkMesh
         // shader.UniformCamera(gl, State.TestCamera);
         var model = Matrix4x4.CreateTranslation(Chunk.Position.ToNumerics());
         shader.UniformMatrix4(gl, "m", model);
-        shader.UniformTexture(gl, "tex", State.Atlas.Texture);
+        shader.UniformTexture(gl, "tex", State.BlockAtlas.Atlas.Texture);
 
         Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
         Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
@@ -114,13 +120,45 @@ public sealed partial class ChunkMesh
         Ibo.DrawElements(gl, State.Wireframe);
     }
 
+    public void EmitSprite(Vector3 position, Vector2 uvOffset, Vector2 uvUnit)
+    {
+        for (var i = 0; i < 2; i++)
+        {
+            var face = new Face() { IndicesBase = Indices.Count + (i * 6), Position = position };
+            Faces.Add(face);
+        }
+
+        for (var i = 0; i < 8; i++)
+        {
+            var index = i * 3;
+            var x = ChunkData.CubeVertices[index++] + position.X;
+            var y = ChunkData.CubeVertices[index++] + position.Y;
+            var z = ChunkData.CubeVertices[index] + position.Z;
+            index = (i % 4) * 2;
+            var u = ChunkData.CubeUvs[index++] * uvUnit.X + uvOffset.X;
+            var v = ChunkData.CubeUvs[index] * uvUnit.Y + uvOffset.Y;
+
+            var color = 1f;
+            var vertex = new ChunkVertex(new(x, y, z), new(u, v), new(color, color, color));
+            Vertices.Add(vertex);
+        }
+
+        for (var i = 0; i < 12; i++)
+        {
+            var index = ChunkData.SpriteIndices[i] + VertexCount;
+            Indices.Add(index);
+        }
+
+        VertexCount += 8;
+    }
+
     public void EmitFace(
         Vector3 position,
         Direction direction,
         Vector2 uvOffset,
         Vector2 uvUnit,
-        bool transparent
-    // bool shortenY
+        bool transparent,
+        bool shortenY
     )
     {
         if (transparent)
@@ -131,10 +169,10 @@ public sealed partial class ChunkMesh
 
         for (var i = 0; i < 4; i++)
         {
-            var index =
-                ChunkData.CubeIndices[(direction * 6) + ChunkData.UniqueIndices[i]] * 3;
+            var index = ChunkData.CubeIndices[(direction * 6) + ChunkData.UniqueIndices[i]] * 3;
             var x = position.X + ChunkData.CubeVertices[index++];
-            var y = position.Y + ChunkData.CubeVertices[index++];
+            var yFactor = shortenY ? 0.9f : 1f;
+            var y = position.Y + ChunkData.CubeVertices[index++] * yFactor;
             var z = position.Z + ChunkData.CubeVertices[index];
             index = i * 2;
             var u = uvOffset.X + (uvUnit.X * ChunkData.CubeUvs[index++]);

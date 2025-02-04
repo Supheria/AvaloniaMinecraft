@@ -44,6 +44,6 @@ public sealed class Atlas
 
     public Vector2 Offset(Vector2I pos)
     {
-        return Vector2.Multiply(pos.ToNumerics(), SpriteUnit);
+        return Vector2.Multiply(new Vector2(pos.X, SpriteSize.Y - pos.Y - 1), SpriteUnit);
     }
 }

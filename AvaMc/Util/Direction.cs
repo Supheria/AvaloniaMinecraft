@@ -61,9 +61,24 @@ public sealed class Direction
     public static Direction Down { get; } = new(Type.Down);
     public static Direction[] AllDirections { get; } = [North, South, East, West, Up, Down];
 
+    public static Direction? ToDirection(Vector3I v)
+    {
+        foreach (var direction in AllDirections)
+        {
+            if (direction.Vector3I == v)
+                return direction;
+        }
+        return null;
+    }
+
     public static int operator *(Direction dir, int value)
     {
         return (int)dir.Value * value;
+    }
+
+    public override string ToString()
+    {
+        return $"{Vector3F}({Value})";
     }
 
     // public static bool operator >=(Direction dir1, Direction dir2)

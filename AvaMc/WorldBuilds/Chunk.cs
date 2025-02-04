@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Numerics;
 using AvaMc.Blocks;
 using AvaMc.Extensions;
 using AvaMc.Util;
@@ -128,9 +129,24 @@ public sealed class Chunk
         }
     }
 
-    public bool GetBlockData(Vector3I position, out BlockData data)
+    public BlockData GetBlockData(Vector3I position)
     {
-        return Data.TryGetValue(position, out data);
+        if (Data.TryGetValue(position, out var data))
+            return data;
+        Data[position] = new BlockData { BlockId = BlockId.Air };
+        return Data[position];
+    }
+
+    public BlockData GetBlockDataInOtherChunk(Vector3I position)
+    {
+        var pos = position + Position;
+        return World.GetBlockData(pos);
+    }
+
+    public void SetBlockDataInOtherChunk(Vector3I position, BlockData data)
+    {
+        var pos = position + Position;
+        World.SetBlockData(pos, data);
     }
 
     // public static Vector2 BlockPositionToChunkOffset(Vector2 pos)
@@ -162,34 +178,44 @@ public sealed class Chunk
 
     private void MeshBlock(Vector3I pos, MeshPass pass)
     {
-        var wPos = Vector3I.Add(pos, Position);
-        if (!GetBlockData(pos, out var data))
-            return;
+        var data = GetBlockData(pos);
         var block = Block.Blocks[data.BlockId];
+        // TODO: when air may has bug
+        if (block.Id is BlockId.Air)
+            return;
         var transparent = block.Transparent;
+
+        if (block.Sprite)
+        {
+            var uv = Block.Blocks[data.BlockId].GetTextureLocation(Direction.North);
+            var uvOffset = State.BlockAtlas.Atlas.Offset(uv);
+            TransparentMesh.EmitSprite(
+                pos.ToNumerics(),
+                uvOffset,
+                State.BlockAtlas.Atlas.SpriteUnit
+            );
+        }
+        else
+            MeshNotSprite(pos, pass, transparent, block);
+    }
+
+    private void MeshNotSprite(Vector3I pos, MeshPass pass, bool transparent, Block block)
+    {
         foreach (var direction in Direction.AllDirections)
         {
             var dv = direction.Vector3I;
             var neighbor = Vector3I.Add(pos, dv);
-            var wNeighbor = Vector3I.Add(wPos, dv);
 
-            var neighborBlock = Block.Blocks[BlockId.Air];
+            Block neighborBlock;
             if (InBounds(neighbor))
             {
-                if (GetBlockData(neighbor, out var nData))
-                    neighborBlock = Block.Blocks[nData.BlockId];
+                var nData = GetBlockData(neighbor);
+                neighborBlock = Block.Blocks[nData.BlockId];
             }
             else
             {
-                var offset = wNeighbor.BlockPosToChunkOffset();
-                if (World.GetChunk(offset, out var chunk))
-                {
-                    var p = wNeighbor.WorldPosToBlockPos();
-                    if (chunk.GetBlockData(p, out var nData))
-                    {
-                        neighborBlock = Block.Blocks[nData.BlockId];
-                    }
-                }
+                var nData = GetBlockDataInOtherChunk(neighbor);
+                neighborBlock = Block.Blocks[nData.BlockId];
             }
             var neighborTransparent = neighborBlock.Transparent;
 
@@ -198,15 +224,18 @@ public sealed class Chunk
                 || (transparent && neighborBlock.Id != block.Id)
             )
             {
+                var uv = block.GetTextureLocation(direction);
+                var uvOffset = State.BlockAtlas.Atlas.Offset(uv);
+                var shortenY =
+                    block.Liquid && direction.Value is Direction.Type.Up && !neighborBlock.Liquid;
                 var mesh = transparent ? TransparentMesh : BaseMesh;
-                var uv = Block.Blocks[data.BlockId].GetTextureLocation(direction);
-                var uvOffset = State.Atlas.Offset(uv);
                 mesh.EmitFace(
                     pos.ToNumerics(),
                     direction,
                     uvOffset,
-                    State.Atlas.SpriteUnit,
-                    transparent
+                    State.BlockAtlas.Atlas.SpriteUnit,
+                    transparent,
+                    shortenY
                 );
             }
         }
@@ -233,9 +262,10 @@ public sealed class Chunk
     public void Update()
     {
         var player = World.Player;
-        DepthSort =
-            (Offset == player.ChunkOffset && player.BlockPositionChanged)
-            || player.ChunkOffsetChanged;
+        var blockchanged = Offset == player.ChunkOffset && player.BlockPositionChanged;
+        var chunkChanged =
+            player.ChunkOffsetChanged && Vector3I.Distance(Offset, player.ChunkOffset) < 2;
+        DepthSort = blockchanged || chunkChanged;
     }
 
     public void Tick() { }
