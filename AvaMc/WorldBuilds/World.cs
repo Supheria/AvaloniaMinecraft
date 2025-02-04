@@ -10,7 +10,7 @@ using Silk.NET.OpenGLES;
 namespace AvaMc.WorldBuilds;
 
 // TODO
-public sealed partial class World
+public sealed class World
 {
     // const int ChunksSize = 24;
 
@@ -21,7 +21,8 @@ public sealed partial class World
     Vector3I CenterOffset { get; set; }
     public Threshold Load { get; } = new(2);
     public Threshold Mesh { get; } = new(2);
-    List<WorldUnloadedData> UnloadedData { get; } = [];
+    public List<WorldUnloadedData> UnloadedData { get; } = [];
+    WorldGenerator Generator { get; } = new(1234);
 
     public World(GL gl)
     {
@@ -59,7 +60,7 @@ public sealed partial class World
     public void LoadChunk(GL gl, Vector3I offset)
     {
         var chunk = new Chunk(gl, this, offset);
-        Generate(chunk);
+        Generator.Generate(chunk);
         Chunks[offset] = chunk;
     }
 
@@ -69,8 +70,7 @@ public sealed partial class World
         if (GetChunk(offset, out var chunk))
         {
             var pos = position.BlockPosWorldToChunk();
-            if (chunk.GetBlockData(pos, out var data))
-                return data;
+            return chunk.GetBlockData(pos);
         }
         return new() { BlockId = BlockId.Air };
     }
@@ -141,7 +141,7 @@ public sealed partial class World
             if (!GetChunk(offset, out var chunk))
                 continue;
             chunk.Render(gl);
-            
+
             // TODO: not good way to render sprite
             gl.Disable(EnableCap.CullFace);
             chunk.RenderTransparent(gl);

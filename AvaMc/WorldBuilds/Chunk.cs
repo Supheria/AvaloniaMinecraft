@@ -114,7 +114,7 @@ public sealed class Chunk
     public void SetData(Vector3I position, BlockData data)
     {
         if (!InBounds(position))
-            throw new ArgumentOutOfRangeException(
+             throw new ArgumentOutOfRangeException(
                 nameof(position),
                 position,
                 "block position out chunk"
@@ -129,9 +129,24 @@ public sealed class Chunk
         }
     }
 
-    public bool GetBlockData(Vector3I position, out BlockData data)
+    public BlockData GetBlockData(Vector3I position)
     {
-        return Data.TryGetValue(position, out data);
+        if (Data.TryGetValue(position, out var data))
+            return data;
+        Data[position] = new BlockData { BlockId = BlockId.Air };
+        return Data[position];
+    }
+
+    public BlockData GetBlockDataInOtherChunk(Vector3I position)
+    {
+        var pos = position + Position;
+        return World.GetBlockData(pos);
+    }
+    
+    public void SetBlockDataInOtherChunk(Vector3I position, BlockData data)
+    {
+        var pos = position + Position;
+        World.SetBlockData(pos, data);
     }
 
     // public static Vector2 BlockPositionToChunkOffset(Vector2 pos)
@@ -163,8 +178,7 @@ public sealed class Chunk
 
     private void MeshBlock(Vector3I pos, MeshPass pass)
     {
-        if (!GetBlockData(pos, out var data))
-            return;
+        var data = GetBlockData(pos);
         var block = Block.Blocks[data.BlockId];
         // TODO: when air may has bug
         if (block.Id is BlockId.Air)
@@ -192,17 +206,15 @@ public sealed class Chunk
             var dv = direction.Vector3I;
             var neighbor = Vector3I.Add(pos, dv);
 
-            var neighborBlock = Block.Blocks[BlockId.Air];
+            Block neighborBlock;
             if (InBounds(neighbor))
             {
-                if (GetBlockData(neighbor, out var nData))
-                    neighborBlock = Block.Blocks[nData.BlockId];
+                var nData = GetBlockData(neighbor);
+                neighborBlock = Block.Blocks[nData.BlockId];
             }
             else
             {
-                var wPos = Vector3I.Add(pos, Position);
-                var wNeighbor = Vector3I.Add(wPos, dv);
-                var nData = World.GetBlockData(wNeighbor);
+                var nData = GetBlockDataInOtherChunk(neighbor);
                 neighborBlock = Block.Blocks[nData.BlockId];
             }
             var neighborTransparent = neighborBlock.Transparent;
@@ -248,7 +260,8 @@ public sealed class Chunk
     {
         var player = World.Player;
         var blockchanged = Offset == player.ChunkOffset && player.BlockPositionChanged;
-        var chunkChanged = player.ChunkOffsetChanged && Vector3I.Distance(Offset, player.ChunkOffset) < 2;
+        var chunkChanged =
+            player.ChunkOffsetChanged && Vector3I.Distance(Offset, player.ChunkOffset) < 2;
         DepthSort = blockchanged || chunkChanged;
     }
 
