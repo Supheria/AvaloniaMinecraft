@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using AvaMc.Comparers;
@@ -7,7 +8,7 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
 
-public sealed partial class ChunkMesh
+public sealed class ChunkMesh
 {
     // public enum MeshPart : byte
     // {
@@ -20,6 +21,7 @@ public sealed partial class ChunkMesh
     public List<Face> Faces { get; set; } = [];
     public List<uint> Indices { get; set; } = [];
     uint VertexCount { get; set; }
+    bool Persist { get; set; } = true;
 
     // List<Face> Faces { get; } = [];
     // int IndexCount { get; set; }
@@ -67,10 +69,8 @@ public sealed partial class ChunkMesh
     private void DepthSort(Vector3 center)
     {
         // TODO: not good here
-        foreach (var face in Faces)
-        {
-            face.DistanceSquared = Vector3.DistanceSquared(center, face.Position);
-        }
+        for (var i = 0; i < Faces.Count; i++)
+            Faces[i].SetDistance(center);
         var comparer = new FaceDepthComparer(DepthOrder.Farther);
         Faces.Sort(comparer);
 
@@ -100,10 +100,21 @@ public sealed partial class ChunkMesh
         if (depthSort)
             DepthSort(Chunk.World.Player.Camera.Position);
         Ibo.Buffer(gl, Indices);
+        
+        Vertices = [];
+        
+        if (!Persist)
+        {
+            Indices = [];
+            Faces = [];
+        }
     }
 
     public void Render(GL gl)
     {
+        if (Indices.Count is 0)
+            return;
+
         var shader = State.Shader;
         shader.Use(gl);
         shader.UniformCamera(gl, State.World.Player.Camera);
@@ -215,5 +226,28 @@ public sealed partial class ChunkMesh
         }
 
         VertexCount += 4;
+    }
+    
+    public bool DepthSort(GL gl)
+    {
+        if (Persist && Indices.Count != 0 && Faces.Count != 0)
+        {
+            DepthSort(State.World.Player.Camera.Position);
+            Ibo.Buffer(gl, Indices);
+            return true;
+        }
+        return false;
+    }
+    
+    public void SetPersist(bool persist)
+    {
+        if (Persist == persist)
+            return;
+        Persist = persist;
+        if (!persist)
+        {
+            Indices = [];
+            Faces = [];
+        }
     }
 }

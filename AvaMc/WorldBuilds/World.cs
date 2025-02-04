@@ -14,13 +14,13 @@ public sealed class World
 {
     // const int ChunksSize = 28;
 
-    const int ChunksSize = 16;
+    const int ChunksSize = 2;
     public Player Player { get; set; }
     Dictionary<Vector3I, Chunk> Chunks { get; set; } = [];
     Vector3I ChunksOrigin { get; set; }
     Vector3I CenterOffset { get; set; }
-    public Threshold Load { get; } = new(2);
-    public Threshold Mesh { get; } = new(2);
+    public Threshold Load { get; } = new(4);
+    public Threshold Mesh { get; } = new(8);
     public List<WorldUnloadedData> UnloadedData { get; } = [];
     WorldGenerator Generator { get; } = new(2);
 
@@ -92,21 +92,27 @@ public sealed class World
 
     public void LoadEmptyChunks(GL gl)
     {
-        // LoadChunk(gl, new(0, 0, 0));
+        var offsets = new List<Vector3I>();
         for (var x = 0; x < ChunksSize; x++)
         {
-            for (var z = 0; z < ChunksSize; z++)
+            for (var y = 0; y < ChunksSize; y++)
             {
-                // if (x != 0 || z != 0)
-                //     continue;
-                if (!Load.UnderThreshold())
-                    break;
-                var offset = Vector3I.Add(ChunksOrigin, new(x, 0, z));
-                if (!Chunks.ContainsKey(offset))
+                for (var z = 0; z < ChunksSize; z++)
                 {
-                    LoadChunk(gl, offset);
-                    Load.AddOne();
+                    var offset = Vector3I.Add(ChunksOrigin, new(x, y, z));
+                    offsets.Add(offset);
                 }
+            }
+        }
+        var comparer = new ChunkDepthComparer(CenterOffset, DepthOrder.Nearer);
+        offsets.Sort(comparer);
+
+        foreach (var offset in offsets)
+        {
+            if (!Chunks.ContainsKey(offset))
+            {
+                LoadChunk(gl, offset);
+                Load.AddOne();
             }
         }
     }
@@ -116,7 +122,7 @@ public sealed class World
         var newOffset = center.WorldBlockPosToChunkOffset();
         var newOrigin = Vector3I.Subtract(
             newOffset,
-            new((ChunksSize / 2) - 1, 0, (ChunksSize / 2) - 1)
+            new(ChunksSize / 2 - 1, ChunksSize / 2 - 1, ChunksSize / 2 - 1)
         );
         if (ChunksOrigin == newOrigin)
             return;
@@ -138,14 +144,8 @@ public sealed class World
         var offsets = SortChunksByOffset(DepthOrder.Farther);
         foreach (var offset in offsets)
         {
-            if (!GetChunk(offset, out var chunk))
-                continue;
-            chunk.Render(gl);
-
-            // TODO: not good way to render sprite
-            gl.Disable(EnableCap.CullFace);
-            chunk.RenderTransparent(gl);
-            gl.Enable(EnableCap.CullFace);
+            if (GetChunk(offset, out var chunk))
+                chunk.Render(gl);
         }
         Player.Render(gl);
     }

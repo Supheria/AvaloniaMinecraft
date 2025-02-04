@@ -213,6 +213,40 @@ public sealed class WorldGenerator
         var seed = GetChunkRandomSeed(chunk);
         var random = new Random(seed);
 
+        //TODO
+        for (var x = 0; x < ChunkData.ChunkSizeX; x++)
+        {
+            for (var y = 0; y < ChunkData.ChunkSizeX; y++)
+            {
+                for (var z = 0; z < ChunkData.ChunkSizeX; z++)
+                {
+                    var p = new Vector3I(x, y, z);
+                    var w = Vector3I.Add(p, chunk.Position);
+
+                    BlockId block;
+                    if (w.Y > 64)
+                    {
+                        continue;
+                    }
+                    else if (w.Y > 63)
+                    {
+                        block = BlockId.Grass;
+                    }
+                    else if (w.Y > 60)
+                    {
+                        block = BlockId.Dirt;
+                    }
+                    else
+                    {
+                        block = BlockId.Stone;
+                    }
+
+                    chunk.SetData(p, new() { BlockId = block });
+                }
+            }
+        }
+        return;
+
         var offsets = new[]
         {
             new OctaveNoise(8, 1),

@@ -21,13 +21,11 @@ public sealed class Chunk
     public Vector3I Offset { get; set; }
     public Vector3I Position { get; set; }
     Dictionary<Vector3I, BlockData> Data { get; set; } = [];
-    bool Dirty { get; set; }
-    bool DepthSort { get; set; }
+    bool Dirty { get; set; } = true;
+    bool DepthSort { get; set; } = true;
+    bool Empty { get; set; } = true;
 
     // int BlockCount { get; set; }
-    //
-    // // if true, this chunk contains no blocks
-    // bool Empty { get; set; } = true;
     //
     // // if true, this chunk is generating
     // bool Generating { get; set; }
@@ -70,35 +68,35 @@ public sealed class Chunk
             || pos.Z is ChunkData.ChunkSizeZ - 1;
     }
 
-    public List<Chunk> GetBorderingChunks(Vector3I position)
+    public List<Chunk> GetBorderingChunks(Vector3I pos)
     {
         var chunks = new List<Chunk>();
-        if (position.X is 0)
+        if (pos.X is 0)
         {
             if (World.GetChunk(Vector3I.Add(Offset, new(-1, 0, 0)), out var chunk))
                 chunks.Add(chunk);
         }
-        // if (position.Y is 0)
-        // {
-        //     if (World.GetChunk(Vector3.Add(Offset, new(0, -1, 0)), out var chunk))
-        //         chunks.Add(chunk);
-        // }
-        if (position.Z is 0)
+        if (pos.Y is 0)
+        {
+            if (World.GetChunk(Vector3I.Add(Offset, new(0, -1, 0)), out var chunk))
+                chunks.Add(chunk);
+        }
+        if (pos.Z is 0)
         {
             if (World.GetChunk(Vector3I.Add(Offset, new(0, 0, -1)), out var chunk))
                 chunks.Add(chunk);
         }
-        if (position.X == ChunkData.ChunkSizeX - 1)
+        if (pos.X == ChunkData.ChunkSizeX - 1)
         {
             if (World.GetChunk(Vector3I.Add(Offset, new(1, 0, 0)), out var chunk))
                 chunks.Add(chunk);
         }
-        // if ((int)Position.Y == ChunkData.ChunkSizeY - 1)
-        // {
-        //     if (World.GetChunk(Vector3.Add(Offset, new(0, 1, 0)), out var chunk))
-        //         chunks.Add(chunk);
-        // }
-        if (Position.Z == ChunkData.ChunkSizeZ - 1)
+        if (pos.Y == ChunkData.ChunkSizeY - 1)
+        {
+            if (World.GetChunk(Vector3I.Add(Offset, new(0, 1, 0)), out var chunk))
+                chunks.Add(chunk);
+        }
+        if (pos.Z == ChunkData.ChunkSizeZ - 1)
         {
             if (World.GetChunk(Vector3I.Add(Offset, new(0, 0, 1)), out var chunk))
                 chunks.Add(chunk);
@@ -119,8 +117,17 @@ public sealed class Chunk
                 position,
                 "block position out chunk"
             );
-        Data[position] = data;
-        Dirty = true;
+        if (Data.TryGetValue(position, out var prevData) && data.BlockId != prevData.BlockId)
+        {
+            Data[position] = data;
+            Dirty = true;
+        }
+        else
+        {
+            Data[position] = data;
+            Dirty = true;
+        }
+        Empty = Data.Count is 0;
         if (OnBounds(position))
         {
             var neighbors = GetBorderingChunks(position);
@@ -154,7 +161,7 @@ public sealed class Chunk
     //     return Vector2.Divide(pos, ChunkData.ChunkSizeF.Xz());
     // }
 
-    public void Mesh(GL gl, MeshPass pass)
+    public void DoMesh(GL gl, MeshPass pass)
     {
         if (pass is MeshPass.Full)
             BaseMesh.Prepare();
@@ -174,6 +181,8 @@ public sealed class Chunk
         if (pass is MeshPass.Full)
             BaseMesh.Finalize(gl, false);
         TransparentMesh.Finalize(gl, true);
+
+        GC.Collect();
     }
 
     private void MeshPosition(Vector3I pos, MeshPass pass)
@@ -242,29 +251,37 @@ public sealed class Chunk
 
     public void Render(GL gl)
     {
-        if ((Dirty || DepthSort) && World.Mesh.UnderThreshold())
+        if (Empty)
+            return;
+        if (World.Mesh.UnderThreshold())
         {
-            // Debug.WriteLineIf(!Dirty && DepthSort, $"DepthSort{DateTime.Now}");
-            Mesh(gl, Dirty ? MeshPass.Full : MeshPass.Transparency);
-            Dirty = false;
-            DepthSort = false;
-            World.Mesh.AddOne();
+            if (Dirty)
+            {
+                DoMesh(gl, MeshPass.Full);
+                Dirty = false;
+                DepthSort = false;
+                World.Mesh.AddOne();
+            }
+            else if (DepthSort)
+            {
+                if (!TransparentMesh.DepthSort(gl))
+                    DoMesh(gl, MeshPass.Transparency);
+                DepthSort = false;
+                World.Mesh.AddOne();
+            }
         }
         BaseMesh.Render(gl);
-    }
-
-    public void RenderTransparent(GL gl)
-    {
         TransparentMesh.Render(gl);
     }
 
     public void Update()
     {
         var player = World.Player;
+        var withinDistance = Vector3I.Distance(Offset, player.ChunkOffset) < 4;
         var blockchanged = Offset == player.ChunkOffset && player.BlockPositionChanged;
-        var chunkChanged =
-            player.ChunkOffsetChanged && Vector3I.Distance(Offset, player.ChunkOffset) < 2;
+        var chunkChanged = player.ChunkOffsetChanged && withinDistance;
         DepthSort = blockchanged || chunkChanged;
+        TransparentMesh.SetPersist(withinDistance);
     }
 
     public void Tick() { }

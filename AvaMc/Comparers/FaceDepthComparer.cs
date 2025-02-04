@@ -14,10 +14,8 @@ public sealed class FaceDepthComparer : Comparer<Face>
         Order = order;
     }
 
-    public override int Compare(Face? f1, Face? f2)
+    public override int Compare(Face f1, Face f2)
     {
-        if (f1 is null || f2 is null)
-            throw new ArgumentNullException();
         var sign = Math.Sign(f1.DistanceSquared - f2.DistanceSquared);
         return Order switch
         {

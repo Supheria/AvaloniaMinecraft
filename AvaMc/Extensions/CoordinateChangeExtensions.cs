@@ -17,7 +17,7 @@ public static class CoordinateChangeExtensions
     {
         return new(
             (int)MathF.Floor(pos.X / (float)ChunkData.ChunkSizeX),
-            0,
+            (int)MathF.Floor(pos.Y / (float)ChunkData.ChunkSizeY),
             (int)MathF.Floor(pos.Z / (float)ChunkData.ChunkSizeZ)
         );
     }
