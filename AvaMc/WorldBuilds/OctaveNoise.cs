@@ -18,7 +18,7 @@ public sealed class OctaveNoise
         for (var i = 0; i < OctaveCount; i++)
         {
             v += Noise1234.Noise3(x / u, z / u, seed + i + (SeedOffset * 32)) * u;
-            u += 2f;
+            u *= 2f;
         }
         return v;
     }
