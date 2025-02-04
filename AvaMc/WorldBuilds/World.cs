@@ -12,9 +12,9 @@ namespace AvaMc.WorldBuilds;
 // TODO
 public sealed class World
 {
-    const int ChunksSize = 24;
+    // const int ChunksSize = 28;
 
-    // const int ChunksSize = 16;
+    const int ChunksSize = 16;
     public Player Player { get; set; }
     Dictionary<Vector3I, Chunk> Chunks { get; set; } = [];
     Vector3I ChunksOrigin { get; set; }

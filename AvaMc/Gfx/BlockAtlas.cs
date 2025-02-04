@@ -11,8 +11,8 @@ namespace AvaMc.Gfx;
 
 public sealed class BlockAtlas
 {
-    public const int FramesPerSecond = 5;
-    public const int FrameCount = 5;
+    public const int FramesPerSecond = 6;
+    public const int FrameCount = 16;
     static Vector2I AtlasSize { get; } = new(256, 256);
     static Vector2I AtlasSizeSprites { get; } = new(16, 16);
     static Vector2I AtlasSpriteSize { get; } = new(16, 16);
@@ -137,7 +137,8 @@ public sealed class BlockAtlas
     public void Tick()
     {
         var frame = (Ticks % 60) / (60 / FrameCount);
-        Atlas.Texture = Frames[frame];
+        //TODO
+        Atlas.Texture = Frames[frame % FrameCount];
         Ticks++;
     }
 }

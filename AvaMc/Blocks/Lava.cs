@@ -1,4 +1,5 @@
 using System.Numerics;
+using AvaMc.Gfx;
 using AvaMc.Util;
 
 namespace AvaMc.Blocks;
@@ -17,6 +18,11 @@ public sealed class Lava : Block
 
     public override Vector2I[] GetAnimationFrameOffsets()
     {
-        return [new(0, 14), new(1, 14), new(2, 14), new(3, 14), new(4, 14)];
+        var offsets = new Vector2I[BlockAtlas.FrameCount];
+        for (var i = 0; i < offsets.Length; i ++)
+        {
+            offsets[i] = new(i, 14);
+        }
+        return offsets;
     }
 }

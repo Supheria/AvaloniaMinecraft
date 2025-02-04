@@ -166,7 +166,7 @@ public sealed class Chunk
             {
                 for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
                 {
-                    MeshBlock(new(x, y, z), pass);
+                    MeshPosition(new(x, y, z), pass);
                 }
             }
         }
@@ -176,7 +176,7 @@ public sealed class Chunk
         TransparentMesh.Finalize(gl, true);
     }
 
-    private void MeshBlock(Vector3I pos, MeshPass pass)
+    private void MeshPosition(Vector3I pos, MeshPass pass)
     {
         var data = GetBlockData(pos);
         var block = Block.Blocks[data.BlockId];
@@ -217,10 +217,9 @@ public sealed class Chunk
                 var nData = GetBlockDataInOtherChunk(neighbor);
                 neighborBlock = Block.Blocks[nData.BlockId];
             }
-            var neighborTransparent = neighborBlock.Transparent;
 
             if (
-                neighborTransparent && (pass is MeshPass.Full && !transparent)
+                neighborBlock.Transparent && (pass is MeshPass.Full && !transparent)
                 || (transparent && neighborBlock.Id != block.Id)
             )
             {
