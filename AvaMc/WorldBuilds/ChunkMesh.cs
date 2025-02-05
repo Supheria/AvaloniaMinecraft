@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
+using AvaMc.Blocks;
 using AvaMc.Comparers;
 using AvaMc.Gfx;
 using AvaMc.Util;
@@ -10,18 +12,24 @@ namespace AvaMc.WorldBuilds;
 
 public sealed class ChunkMesh
 {
-    // public enum MeshPart : byte
-    // {
-    //     Base,
-    //     Transparent,
-    // }
+    public enum Part : byte
+    {
+        Solid,
+        Transparent,
+    }
 
     Chunk Chunk { get; set; }
     public List<ChunkVertex> Vertices { get; set; } = [];
-    public List<Face> Faces { get; set; } = [];
-    public List<uint> Indices { get; set; } = [];
+    public List<Face> TransparentFaces { get; set; } = [];
+    public List<Face> SolidFaces { get; set; } = [];
+
+    // public List<uint> Indices { get; set; } = [];
     uint VertexCount { get; set; }
-    bool Persist { get; set; } = true;
+    bool Finalize { get; set; } = true;
+    public bool Dirty { get; set; } = true;
+
+    public bool DepthSort { get; set; } = true;
+    public bool Persist { get; set; } = true;
 
     // List<Face> Faces { get; } = [];
     // int IndexCount { get; set; }
@@ -42,21 +50,24 @@ public sealed class ChunkMesh
     // public bool Persist { get; set; } = true;
     VaoHandler Vao { get; }
     VboHandler Vbo { get; }
-    IboHandler Ibo { get; }
+    IboHandler IboTransparent { get; }
+    IboHandler IboSolid { get; }
 
     public ChunkMesh(GL gl, Chunk chunk)
     {
         Chunk = chunk;
         Vao = VaoHandler.Create(gl);
         Vbo = VboHandler.Create(gl, false);
-        Ibo = IboHandler.Create(gl, false);
+        IboTransparent = IboHandler.Create(gl, false);
+        IboSolid = IboHandler.Create(gl, false);
     }
 
     public void Delete(GL gl)
     {
         Vao.Delete(gl);
         Vbo.Delete(gl);
-        Ibo.Delete(gl);
+        IboTransparent.Delete(gl);
+        IboSolid.Delete(gl);
     }
 
     // private static int DepthSortCompare(Vector3 center, Face face1, Face face2)
@@ -66,79 +77,44 @@ public sealed class ChunkMesh
     //     return -Math.Sign(l1 - l2);
     // }
 
-    private void DepthSort(Vector3 center)
-    {
-        // TODO: not good here
-        for (var i = 0; i < Faces.Count; i++)
-            Faces[i].SetDistance(center);
-        var comparer = new FaceDepthComparer(DepthOrder.Farther);
-        Faces.Sort(comparer);
-
-        var indices = new List<uint>();
-        for (var i = 0; i < Faces.Count; i++)
-        {
-            var face = Faces[i];
-            for (var j = 0; j < 6; j++)
-                indices.Add(Indices[face.IndicesBase + j]);
-            // TODO: don't know why here
-            face.IndicesBase = i * 6;
-        }
-        Indices = indices;
-    }
-
-    public void Prepare()
+    public void MeshPrepare()
     {
         Vertices = [];
-        Faces = [];
-        Indices = [];
+        TransparentFaces = [];
+        SolidFaces = [];
         VertexCount = 0;
     }
 
-    public void Finalize(GL gl, bool depthSort)
+    // MUST be called immediately after meshing (before rendering)
+    public void FinalizeData(GL gl)
     {
+        if (Vertices.Count is 0)
+            // throw new ArgumentNullException(nameof(Vertices));
+            return;
         Vbo.Buffer(gl, Vertices);
-        if (depthSort)
-            DepthSort(Chunk.World.Player.Camera.Position);
-        Ibo.Buffer(gl, Indices);
-        
         Vertices = [];
-        
-        if (!Persist)
-        {
-            Indices = [];
-            Faces = [];
-        }
     }
 
-    public void Render(GL gl)
+    // MUST be called immediately after meshing AND sorting (before rendering)
+    public void FinalizeIndices(GL gl)
     {
-        if (Indices.Count is 0)
+        if (TransparentFaces.Count is 0 && SolidFaces.Count is 0)
+            // throw new ArgumentException();
             return;
-
-        var shader = State.Shader;
-        shader.Use(gl);
-        shader.UniformCamera(gl, State.World.Player.Camera);
-        // shader.UniformCamera(gl, State.TestCamera);
-        var model = Matrix4x4.CreateTranslation(Chunk.Position.ToNumerics());
-        shader.UniformMatrix4(gl, "m", model);
-        shader.UniformTexture(gl, "tex", State.BlockAtlas.Atlas.Texture);
-
-        Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
-        Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
-        Vao.Link(gl, Vbo, 2, 3, VertexAttribPointerType.Float, sizeof(float) * 5);
-
-        Vao.Bind(gl);
-        Ibo.DrawElements(gl, State.Wireframe);
+        var indices = new List<uint>();
+        TransparentFaces.ForEach(f => indices.AddRange(f.Indices));
+        IboTransparent.Buffer(gl, indices);
+        indices = [];
+        SolidFaces.ForEach(f => indices.AddRange(f.Indices));
+        IboSolid.Buffer(gl, indices);
+        if (Persist)
+            return;
+        TransparentFaces = [];
+        SolidFaces = [];
     }
 
     public void EmitSprite(Vector3 position, Vector2 uvOffset, Vector2 uvUnit)
     {
-        for (var i = 0; i < 2; i++)
-        {
-            var face = new Face() { IndicesBase = Indices.Count + (i * 6), Position = position };
-            Faces.Add(face);
-        }
-
         for (var i = 0; i < 8; i++)
         {
             var index = i * 3;
@@ -149,15 +125,18 @@ public sealed class ChunkMesh
             var u = ChunkData.CubeUvs[index++] * uvUnit.X + uvOffset.X;
             var v = ChunkData.CubeUvs[index] * uvUnit.Y + uvOffset.Y;
 
-            var color = 1f;
+            const float color = 1f;
             var vertex = new ChunkVertex(new(x, y, z), new(u, v), new(color, color, color));
             Vertices.Add(vertex);
         }
 
-        for (var i = 0; i < 12; i++)
+        for (var i = 0; i < 2; i++)
         {
-            var index = ChunkData.SpriteIndices[i] + VertexCount;
-            Indices.Add(index);
+            var indices = new uint[6];
+            for (var j = 0; j < 6; j++)
+                indices[j] = ChunkData.SpriteIndices[i][j] + VertexCount;
+            var face = new Face(indices, position);
+            TransparentFaces.Add(face);
         }
 
         VertexCount += 8;
@@ -172,12 +151,6 @@ public sealed class ChunkMesh
         bool shortenY
     )
     {
-        if (transparent)
-        {
-            var face = new Face() { IndicesBase = Indices.Count, Position = position };
-            Faces.Add(face);
-        }
-
         for (var i = 0; i < 4; i++)
         {
             var index = ChunkData.CubeIndices[(direction * 6) + ChunkData.UniqueIndices[i]] * 3;
@@ -219,26 +192,151 @@ public sealed class ChunkMesh
             Vertices.Add(vertex);
         }
 
+        var indices = new uint[6];
         for (var i = 0; i < 6; i++)
-        {
-            var index = VertexCount + ChunkData.FaceIndices[i];
-            Indices.Add(index);
-        }
+            indices[i] = VertexCount + ChunkData.FaceIndices[i];
+        var center = ChunkData.FaceCenters[direction];
+        var face = new Face(indices, Vector3.Add(center, position));
+        if (transparent)
+            TransparentFaces.Add(face);
+        else
+            SolidFaces.Add(face);
 
         VertexCount += 4;
     }
-    
-    public bool DepthSort(GL gl)
+
+    private void SortTransparentFaces()
     {
-        if (Persist && Indices.Count != 0 && Faces.Count != 0)
-        {
-            DepthSort(State.World.Player.Camera.Position);
-            Ibo.Buffer(gl, Indices);
-            return true;
-        }
-        return false;
+        if (TransparentFaces.Count is 0)
+            return;
+        var center = Chunk.World.Player.Camera.Position;
+        for (var i = 0; i < TransparentFaces.Count; i++)
+            TransparentFaces[i].SetDistance(center);
+        var comparer = new FaceDepthComparer(DepthOrder.Farther);
+        TransparentFaces.Sort(comparer);
     }
-    
+
+    public void Mesh(GL gl)
+    {
+        MeshPrepare();
+
+        foreach (var position in Chunk.GetBlockPositions())
+            Mesh(position);
+
+        SortTransparentFaces();
+        FinalizeData(gl);
+        FinalizeIndices(gl);
+
+        GC.Collect();
+    }
+
+    private void Mesh(Vector3I pos)
+    {
+        var data = Chunk.GetBlockData(pos);
+        var block = Block.Blocks[data.BlockId];
+        // TODO: when air may has bug
+        if (block.Id is BlockId.Air)
+            return;
+        var transparent = block.Transparent;
+
+        if (block.Sprite)
+        {
+            var uv = block.GetTextureLocation(Direction.North);
+            // shit here
+            var uvOffset = State.Renderer.BlockAtlas.Atlas.Offset(uv);
+            var spriteUnit = State.Renderer.BlockAtlas.Atlas.SpriteUnit;
+            EmitSprite(pos.ToNumerics(), uvOffset, spriteUnit);
+        }
+        else
+            MeshNotSprite(pos, transparent, block);
+        DepthSort = false;
+        Chunk.World.Meshing.AddOne();
+    }
+
+    private void MeshNotSprite(Vector3I pos, bool transparent, Block block)
+    {
+        foreach (var direction in Direction.AllDirections)
+        {
+            var dv = direction.Vector3I;
+            var neighbor = Vector3I.Add(pos, dv);
+
+            Block neighborBlock;
+            if (Chunk.InBounds(neighbor))
+            {
+                var nData = Chunk.GetBlockData(neighbor);
+                neighborBlock = Block.Blocks[nData.BlockId];
+            }
+            else
+            {
+                var nData = Chunk.GetBlockDataInOtherChunk(neighbor);
+                neighborBlock = Block.Blocks[nData.BlockId];
+            }
+
+            if (
+                (neighborBlock.Transparent && !transparent)
+                || (transparent && neighborBlock.Id != block.Id)
+            )
+            {
+                var uv = block.GetTextureLocation(direction);
+                // TODO: shit here
+                var uvOffset = State.Renderer.BlockAtlas.Atlas.Offset(uv);
+                var spriteUnit = State.Renderer.BlockAtlas.Atlas.SpriteUnit;
+                var shortenY =
+                    block.Liquid && direction.Value is Direction.Type.Up && !neighborBlock.Liquid;
+                EmitFace(pos.ToNumerics(), direction, uvOffset, spriteUnit, transparent, shortenY);
+            }
+        }
+    }
+
+    public void PrepareRender(GL gl)
+    {
+        if (!Chunk.World.Meshing.UnderThreshold())
+            return;
+        if (Dirty)
+        {
+            Mesh(gl);
+            Dirty = false;
+            DepthSort = false;
+            Chunk.World.Meshing.AddOne();
+        }
+        else if (DepthSort)
+        {
+            if (Persist && TransparentFaces.Count is not 0)
+            {
+                SortTransparentFaces();
+                FinalizeIndices(gl);
+            }
+            else
+                Mesh(gl);
+            DepthSort = false;
+            Chunk.World.Meshing.AddOne();
+            
+        }
+    }
+
+    public void Render(GL gl, Part part)
+    {
+        if (
+            (part is Part.Transparent && TransparentFaces.Count is 0)
+            || part is Part.Solid && SolidFaces.Count is 0
+        )
+            return;
+        // TODO: shit here
+        var shader = State.Renderer.Shaders[Renderer.ShaderType.Chunk];
+        var model = Matrix4x4.CreateTranslation(Chunk.Position.ToNumerics());
+        shader.UniformMatrix4(gl, "m", model);
+
+        Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
+        Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
+        Vao.Link(gl, Vbo, 2, 3, VertexAttribPointerType.Float, sizeof(float) * 5);
+
+        // TODO: shit here wireframe
+        if (part is Part.Transparent)
+            IboTransparent.DrawElements(gl, State.Renderer.Wireframe);
+        else
+            IboSolid.DrawElements(gl, State.Renderer.Wireframe);
+    }
+
     public void SetPersist(bool persist)
     {
         if (Persist == persist)
@@ -246,8 +344,8 @@ public sealed class ChunkMesh
         Persist = persist;
         if (!persist)
         {
-            Indices = [];
-            Faces = [];
+            TransparentFaces = [];
+            SolidFaces = [];
         }
     }
 }

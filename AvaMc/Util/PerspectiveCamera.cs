@@ -23,13 +23,16 @@ public sealed class PerspectiveCamera : Camera
                 (value < 0f ? MathHelper.TwoPi : 0f) + MathF.IEEERemainder(value, MathHelper.TwoPi);
     }
     float _yaw;
-    public float Fov { get; set; }
+    float Fov { get; set; }
     public float ZNear { get; set; } = 0.01f;
     public float ZFar { get; set; } = 1000.0f;
 
-    public void Initialize(float fov)
+    public void Initialize(float fov, bool degree)
     {
-        Fov = fov;
+        if (degree)
+            Fov = float.DegreesToRadians(fov);
+        else
+            Fov = fov;
         Update();
     }
 

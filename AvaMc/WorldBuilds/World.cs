@@ -4,6 +4,7 @@ using AvaMc.Blocks;
 using AvaMc.Comparers;
 using AvaMc.Entities;
 using AvaMc.Extensions;
+using AvaMc.Gfx;
 using AvaMc.Util;
 using Silk.NET.OpenGLES;
 
@@ -14,13 +15,14 @@ public sealed class World
 {
     // const int ChunksSize = 28;
 
-    const int ChunksSize = 2;
+    const int ChunksSize = 8;
     public Player Player { get; set; }
     Dictionary<Vector3I, Chunk> Chunks { get; set; } = [];
     Vector3I ChunksOrigin { get; set; }
     Vector3I CenterOffset { get; set; }
-    public Threshold Load { get; } = new(4);
-    public Threshold Mesh { get; } = new(8);
+    public Threshold Loading { get; } = new(1);
+    public Threshold Meshing { get; } = new(8);
+    // TODO: use dictionary
     public List<WorldUnloadedData> UnloadedData { get; } = [];
     WorldGenerator Generator { get; } = new(2);
 
@@ -81,7 +83,7 @@ public sealed class World
         if (GetChunk(offset, out var chunk))
         {
             var pos = position.BlockPosWorldToChunk();
-            chunk.SetData(pos, data);
+            chunk.SetBlockData(pos, data);
         }
         else
         {
@@ -109,10 +111,10 @@ public sealed class World
 
         foreach (var offset in offsets)
         {
-            if (!Chunks.ContainsKey(offset))
+            if (!Chunks.ContainsKey(offset) && Meshing.UnderThreshold())
             {
                 LoadChunk(gl, offset);
-                Load.AddOne();
+                Meshing.AddOne();
             }
         }
     }
@@ -122,7 +124,8 @@ public sealed class World
         var newOffset = center.WorldBlockPosToChunkOffset();
         var newOrigin = Vector3I.Subtract(
             newOffset,
-            new(ChunksSize / 2 - 1, ChunksSize / 2 - 1, ChunksSize / 2 - 1)
+            // new(ChunksSize / 2 + 1, ChunksSize / 2 + 1, ChunksSize / 2 + 1)
+            new(ChunksSize / 2, ChunksSize / 2, ChunksSize / 2)
         );
         if (ChunksOrigin == newOrigin)
             return;
@@ -136,24 +139,47 @@ public sealed class World
                 Chunks.Remove(offset);
             }
         }
-        // LoadEmptyChunks(gl);
+        //TODO: may remove
+        LoadEmptyChunks(gl);
     }
 
     public void Render(GL gl)
     {
-        var offsets = SortChunksByOffset(DepthOrder.Farther);
-        foreach (var offset in offsets)
+        foreach (var offset in SortChunksByOffset(DepthOrder.Nearer))
         {
             if (GetChunk(offset, out var chunk))
-                chunk.Render(gl);
+                chunk.Prepare(gl);
         }
+        
+        var renderer = State.Renderer;
+        renderer.UseShader(gl, Renderer.ShaderType.Chunk);
+        renderer.PushCamera();
+        renderer.SetCamera(CameraType.Perspective);
+        renderer.SetViewProject(gl);
+        
+        //TODO: shit here
+        var shader =renderer.Shaders[Renderer.ShaderType.Chunk];
+        shader.UniformTexture(gl, "tex", renderer.BlockAtlas.Atlas.Texture);
+        shader.UniformVector4(gl, "fog_color", renderer.ClearColor);
+        shader.UniformFloat(gl, "fog_near", ChunksSize / 2f * 32 - 12);
+        shader.UniformFloat(gl, "fog_far", ChunksSize / 2f * 32 - 4);
+        
+        foreach (var chunk in Chunks.Values)
+            chunk.Render(gl, ChunkMesh.Part.Solid);
+        foreach (var offset in SortChunksByOffset(DepthOrder.Farther))
+        {
+            if (GetChunk(offset, out var chunk))
+                chunk.Render(gl, ChunkMesh.Part.Transparent);
+        }
+        
         Player.Render(gl);
+        renderer.PopCamera();
     }
 
     public void Update(GL gl)
     {
-        Load.Reset();
-        Mesh.Reset();
+        Loading.Reset();
+        Meshing.Reset();
         LoadEmptyChunks(gl);
         foreach (var chunk in Chunks.Values)
             chunk.Update();
@@ -170,8 +196,8 @@ public sealed class World
     private Vector3I[] SortChunksByOffset(DepthOrder order)
     {
         var offsets = new List<Vector3I>();
-        foreach (var chunk in Chunks.Values)
-            offsets.Add(chunk.Offset);
+        foreach (var offset in Chunks.Keys)
+            offsets.Add(offset);
         var comparer = new ChunkDepthComparer(CenterOffset, order);
         offsets.Sort(comparer);
         return offsets.ToArray();

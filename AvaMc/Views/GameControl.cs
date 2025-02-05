@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -16,6 +17,7 @@ public sealed class GameControl : GlEsControl
     long TickRemainder { get; set; }
     long FrameDelta { get; set; }
     Point LastPointerPostion { get; set; }
+    Game Game { get; } = new();
 
     public GameControl()
     {
@@ -78,32 +80,13 @@ public sealed class GameControl : GlEsControl
 
     protected override void OnGlInit(GL gl)
     {
-        // csharpier-ignore
-        State.Shader = ShaderHandler.Create(gl, "basic");
-        // State.BlockAtlas = BlockAtlas.Create(gl, "blocks");
-        State.BlockAtlas = BlockAtlas.Create(gl, "blocks_raw");
-        State.World = new(gl);
-        // State.TestCamera = Camera;
-        // State.Wireframe = false;
-        State.World.Player.Camera.Position = new(0, 80, 0);
-
-        gl.Enable(EnableCap.DepthTest);
-        gl.DepthFunc(DepthFunction.Less);
-
-        // gl.Enable(EnableCap.CullFace);
-        // gl.CullFace(TriangleFace.Back);
-
-        gl.Enable(EnableCap.Blend);
-        gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
+        Game.Initialize(gl);
         LastFrameTime = Time.Now();
     }
 
     protected override void OnGlDeinit(GL gl)
     {
-        State.Shader.Delete(gl);
-        State.BlockAtlas.Delete(gl);
-        State.World.Delete(gl);
+        Game.Delete(gl);
     }
 
     protected override void OnGlRender(GL gl)
@@ -121,10 +104,7 @@ public sealed class GameControl : GlEsControl
         }
         TickRemainder = Math.Max(tick, 0);
         Update(gl);
-
-        gl.ClearColor(0.5f, 0.8f, 0.9f, 1.0f);
-        gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-        State.World.Render(gl);
+        Game.Render(gl);
     }
 
     private void Tick(GL gl)
@@ -132,32 +112,14 @@ public sealed class GameControl : GlEsControl
         Ticks++;
         State.Game.Pointer.Tick();
         State.Game.Keyboard.Tick();
-        State.BlockAtlas.Tick();
-        State.World.Tick();
-        State.World.SetCenter(gl, State.World.Player.Camera.Position.CameraPosToBlockPos());
-
-        // TODO: for test
-        if (State.Game.Keyboard[Key.C].PressedTick)
-        {
-            for (var x = 0; x < 32; x++)
-            {
-                for (var y = 64; y < 80; y++)
-                {
-                    State.World.SetBlockData(new(x, y, 4), new() { BlockId = BlockId.Glass });
-                    State.World.SetBlockData(new(x, y, 8), new() { BlockId = BlockId.Lava });
-                }
-                State.World.SetBlockData(new(40, 80, 4), new() { BlockId = BlockId.Rose });
-            }
-        }
+        Game.Tick(gl);
     }
 
     private void Update(GL gl)
     {
         State.Game.Pointer.Update();
         State.Game.Keyboard.Update();
-        State.World.Update(gl);
-
-        if (State.Game.Keyboard[Key.T].Pressed)
-            State.Wireframe = !State.Wireframe;
+        Game.Update(gl);
+        State.Game.Pointer.Delta = Vector2.Zero;
     }
 }

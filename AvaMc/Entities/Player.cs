@@ -47,12 +47,16 @@ public sealed class Player
     {
         World = world;
         Camera = new();
-        Camera.Initialize(float.DegreesToRadians(75));
+        Camera.Initialize(75, true);
     }
 
     public void Delete(GL gl) { }
 
-    public void Render(GL gl) { }
+    public void Render(GL gl)
+    {
+        // TODO: not good here
+        Camera = State.Renderer.PerspectiveCamera;
+    }
 
     public void Update()
     {
@@ -63,7 +67,6 @@ public sealed class Player
                 State.Game.Pointer.Delta.Y / (State.Game.FrameDelta / (MouseSensitivity * 10000));
             Camera.Yaw -=
                 State.Game.Pointer.Delta.X / (State.Game.FrameDelta / (MouseSensitivity * 10000));
-            State.Game.Pointer.Delta = Vector2.Zero;
         }
 
         var blockPosition = Camera.Position.CameraPosToBlockPos();

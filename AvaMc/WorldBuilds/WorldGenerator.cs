@@ -63,7 +63,7 @@ public sealed class WorldGenerator
         {
             var p = new Vector3I(x, y, z);
             if (Chunk.InBounds(p))
-                chunk.SetData(p, data);
+                chunk.SetBlockData(p, data);
             else
                 chunk.SetBlockDataInOtherChunk(p, data);
         };
@@ -213,16 +213,19 @@ public sealed class WorldGenerator
         var seed = GetChunkRandomSeed(chunk);
         var random = new Random(seed);
 
+        // chunk.SetBlockData(new(2, 2, 2), new() { BlockId = BlockId.Stone });
+        // return;
+
         //TODO
         for (var x = 0; x < ChunkData.ChunkSizeX; x++)
         {
-            for (var y = 0; y < ChunkData.ChunkSizeX; y++)
+            for (var y = 0; y < ChunkData.ChunkSizeY; y++)
             {
-                for (var z = 0; z < ChunkData.ChunkSizeX; z++)
+                for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
                 {
                     var p = new Vector3I(x, y, z);
                     var w = Vector3I.Add(p, chunk.Position);
-
+        
                     BlockId block;
                     if (w.Y > 64)
                     {
@@ -240,8 +243,8 @@ public sealed class WorldGenerator
                     {
                         block = BlockId.Stone;
                     }
-
-                    chunk.SetData(p, new() { BlockId = block });
+        
+                    chunk.SetBlockData(p, new() { BlockId = block });
                 }
             }
         }
@@ -348,13 +351,13 @@ public sealed class WorldGenerator
                     else
                         block = BlockId.Stone;
                     var data = new BlockData() { BlockId = block };
-                    chunk.SetData(new(x, y, z), data);
+                    chunk.SetBlockData(new(x, y, z), data);
                 }
 
                 for (var y = h; y < WaterLevel; y++)
                 {
                     var data = new BlockData() { BlockId = BlockId.Water };
-                    chunk.SetData(new(x, y, z), data);
+                    chunk.SetBlockData(new(x, y, z), data);
                 }
 
                 if (RandomChance(random, 0.02))
@@ -380,7 +383,7 @@ public sealed class WorldGenerator
         {
             if (chunk.Offset != unloaded.Position.WorldBlockPosToChunkOffset())
                 continue;
-            chunk.SetData(unloaded.Position.BlockPosWorldToChunk(), unloaded.Data);
+            chunk.SetBlockData(unloaded.Position.BlockPosWorldToChunk(), unloaded.Data);
 
             loaded.Add(unloaded);
         }

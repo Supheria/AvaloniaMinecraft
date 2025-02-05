@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using AvaMc.Util;
 
 namespace AvaMc.Util;
 
@@ -79,6 +80,11 @@ public sealed class Direction
     public override string ToString()
     {
         return $"{Vector3F}({Value})";
+    }
+
+    public static implicit operator int(Direction d)
+    {
+        return (int)d.Value;
     }
 
     // public static bool operator >=(Direction dir1, Direction dir2)
