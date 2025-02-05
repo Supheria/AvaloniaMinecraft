@@ -24,6 +24,6 @@ public sealed class OrthographicCamera : Camera
         
         // View = Matrix4.Identity;
         View = Matrix4x4.CreateTranslation(-position.X, -position.Y, 0f);
-        Project = Matrix4x4.CreateOrthographicOffCenter(min.X, max.X, min.Y, max.Y, -1f, 1f);
+        Project = Matrix4x4.CreateOrthographicOffCenter(min.X, max.X, min.Y, max.Y, -10f, 10f);
     }
 }

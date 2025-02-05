@@ -58,7 +58,7 @@ public sealed class BlockAtlas
         {
             var newPixels = new byte[pixelsSize];
             Array.Copy(image.Pixels, newPixels, pixelsSize);
-            foreach (var block in Block.Blocks.Values)
+            foreach (var block in Block.AllBlocks())
             {
                 if (!block.Animated)
                     continue;

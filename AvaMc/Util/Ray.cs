@@ -103,6 +103,6 @@ public readonly struct Ray
     private static bool GetBlockNotAir(Vector3I position)
     {
         var data = State.World.GetBlockData(position);
-        return data.BlockId != BlockId.Air;
+        return data.Id != BlockId.Air;
     }
 }

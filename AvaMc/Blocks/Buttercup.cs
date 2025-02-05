@@ -4,7 +4,7 @@ namespace AvaMc.Blocks;
 
 public sealed class Buttercup : Block
 {
-    public override BlockId Id { get; } = BlockId.Buttercup;
+    // public override BlockId Id { get; } = BlockId.Buttercup;
     public override bool Transparent { get; } = true;
     public override bool Sprite { get; } = true;
 

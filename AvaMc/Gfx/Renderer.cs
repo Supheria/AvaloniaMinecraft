@@ -28,15 +28,15 @@ public sealed class Renderer
         // BasicColor,
     }
 
-    // public enum TextureType : byte
-    // {
-    //     CrossHair,
-    //     Clouds,
-    //     Star,
-    //     Sun,
-    //     Moon,
-    //     Hotbar,
-    // }
+    public enum TextureType : byte
+    {
+        CrossHair,
+        // Clouds,
+        // Star,
+        // Sun,
+        // Moon,
+        // Hotbar,
+    }
 
     public enum RenderPass : byte
     {
@@ -53,34 +53,25 @@ public sealed class Renderer
     ShaderType CurrentShaderType { get; set; } = ShaderType.None;
 
     // Shader Shader { get; set; } = new();
-    // Dictionary<TextureType, Texture2D> Textures { get; }
+    public Dictionary<TextureType, Texture2D> Textures { get; }
     public BlockAtlas BlockAtlas { get; }
     public Vector4 ClearColor { get; set; }
 
-    // VaoHandler Vao { get; }
-    // VboHandler Vbo { get; }
-    // IboHandler Ibo { get; }
+    VaoHandler Vao { get; }
+    VboHandler Vbo { get; }
+    IboHandler Ibo { get; }
     public bool Wireframe { get; set; }
 
     public Renderer(GL gl)
     {
         Shaders = InitializeShaders(gl);
-        // Textures = InitializeTextures(gl);
         BlockAtlas = BlockAtlas.Create(gl, "blocks", new(16, 16));
-        // Vao = VaoHandler.Create(gl);
-        // Vbo = VboHandler.Create(gl, true);
-        // Ibo = IboHandler.Create(gl, true);
+        Textures = InitializeTextures(gl);
+        Vao = VaoHandler.Create(gl);
+        Vbo = VboHandler.Create(gl, true);
+        Ibo = IboHandler.Create(gl, true);
         PerspectiveCamera.Initialize(75, true);
         OrthographicCamera.Initialize(Vector2.Zero, State.Game.WindowSize.ToVector2());
-
-        gl.Enable(EnableCap.DepthTest);
-        gl.DepthFunc(DepthFunction.Less);
-
-        gl.Enable(EnableCap.CullFace);
-        gl.CullFace(TriangleFace.Back);
-
-        gl.Enable(EnableCap.Blend);
-        gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
     }
 
     private static Dictionary<ShaderType, ShaderHandler> InitializeShaders(GL gl)
@@ -101,29 +92,29 @@ public sealed class Renderer
         };
     }
 
-    // private static Dictionary<TextureType, Texture2D> InitializeTextures(GL gl)
-    // {
-    //     return new()
-    //     {
-    //         [TextureType.CrossHair] = Texture2D.Create(gl, "crosshair", 0),
-    //         [TextureType.Clouds] = Texture2D.Create(gl, "clouds", 0),
-    //         [TextureType.Star] = Texture2D.Create(gl, "star", 0),
-    //         [TextureType.Sun] = Texture2D.Create(gl, "sun", 0),
-    //         [TextureType.Moon] = Texture2D.Create(gl, "moon", 0),
-    //         [TextureType.Hotbar] = Texture2D.Create(gl, "hotbar", 0),
-    //     };
-    // }
+    private static Dictionary<TextureType, Texture2D> InitializeTextures(GL gl)
+    {
+        return new()
+        {
+            [TextureType.CrossHair] = Texture2D.Create(gl, "crosshair", 0),
+            // [TextureType.Clouds] = Texture2D.Create(gl, "clouds", 0),
+            // [TextureType.Star] = Texture2D.Create(gl, "star", 0),
+            // [TextureType.Sun] = Texture2D.Create(gl, "sun", 0),
+            // [TextureType.Moon] = Texture2D.Create(gl, "moon", 0),
+            // [TextureType.Hotbar] = Texture2D.Create(gl, "hotbar", 0),
+        };
+    }
 
     public void Delete(GL gl)
     {
         foreach (var shader in Shaders.Values)
             shader.Delete(gl);
-        // foreach (var texture in Textures.Values)
-        //     texture.Delete(gl);
+        foreach (var texture in Textures.Values)
+            texture.Delete(gl);
         BlockAtlas.Delete(gl);
-        // Vao.Delete(gl);
-        // Vbo.Delete(gl);
-        // Ibo.Delete(gl);
+        Vao.Delete(gl);
+        Vbo.Delete(gl);
+        Ibo.Delete(gl);
     }
 
     public void Update()
@@ -136,12 +127,12 @@ public sealed class Renderer
         if (pass is RenderPass.Pass2D)
         {
             // OrthographicCamera.Initialize(Vector2.Zero, State.WindowSize.ToVector2());
-            // gl.Clear(ClearBufferMask.DepthBufferBit);
+            gl.Clear(ClearBufferMask.DepthBufferBit);
             // // gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
-            // gl.Disable(EnableCap.DepthTest);
-            // gl.Disable(EnableCap.CullFace);
-            // gl.Enable(EnableCap.Blend);
-            // gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            gl.Disable(EnableCap.DepthTest);
+            gl.Disable(EnableCap.CullFace);
+            gl.Enable(EnableCap.Blend);
+            gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         }
         else if (pass is RenderPass.Pass3D)
         {
@@ -151,12 +142,12 @@ public sealed class Renderer
             //     TriangleFace.FrontAndBack,
             //     Wireframe ? PolygonMode.Line : PolygonMode.Fill
             // );
-            // gl.Enable(EnableCap.DepthTest);
-            // gl.DepthFunc(DepthFunction.Less);
-            // gl.Enable(EnableCap.CullFace);
-            // gl.CullFace(TriangleFace.Back);
-            // gl.Enable(EnableCap.Blend);
-            // gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            gl.Enable(EnableCap.DepthTest);
+            gl.DepthFunc(DepthFunction.Less);
+            gl.Enable(EnableCap.CullFace);
+            gl.CullFace(TriangleFace.Back);
+            gl.Enable(EnableCap.Blend);
+            gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         }
     }
 
@@ -199,6 +190,49 @@ public sealed class Renderer
         CurrentShaderType = type;
         // Shader = Shaders[type];
         Shaders[type].Use(gl);
+    }
+
+    public void ImmediateQuad(
+        GL gl,
+        Texture2D texture,
+        Vector3 position,
+        Vector3 size,
+        Vector4 color,
+        Vector2 uvMin,
+        Vector2 uvMax
+    )
+    {
+        UseShader(gl, ShaderType.Basic2D);
+        SetViewProject(gl);
+        var shader = Shaders[ShaderType.Basic2D];
+        shader.UniformMatrix4(gl, "m", Matrix4x4.Identity);
+        shader.UniformTexture(gl, "tex", texture);
+        // csharpier-ignore
+        float[] data =[
+            position.X + 0, position.Y + 0, position.Z + 0,
+            position.X + 0, position.Y + size.Y, position.Z + 0,
+            position.X + size.X, position.Y + size.Y, position.Z + 0,
+            position.X + size.X, position.Y + 0, position.Z + 0,
+
+            uvMin.X, uvMin.Y,
+            uvMin.X, uvMax.Y,
+            uvMax.X, uvMax.Y,
+            uvMax.X, uvMin.Y,
+
+            color.X, color.Y, color.Z, color.W,
+            color.X, color.Y, color.Z, color.W,
+            color.X, color.Y, color.Z, color.W,
+            color.X, color.Y, color.Z, color.W
+        ];
+        uint[] indices = [3, 0, 1, 3, 1, 2];
+        Vbo.Buffer(gl, data);
+        Ibo.Buffer(gl, indices);
+        
+        Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
+        Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, (3 * 4) * sizeof(float));
+        Vao.Link(gl, Vbo, 2, 4, VertexAttribPointerType.Float, ((3 * 4) + (2 * 4)) * sizeof(float));
+        
+        Ibo.DrawElements(gl, Wireframe);
     }
 
     // public void RenderQuadColor(GL gl, Vector2 size, Vector4 color, Matrix4 model)

@@ -71,12 +71,12 @@ public sealed class WorldGenerator
     private void Tree(Random random, Chunk chunk, Get get, Set set, int x, int y, int z)
     {
         var under = get(chunk, x, y - 1, z);
-        if (under.BlockId is not BlockId.Grass && under.BlockId is not BlockId.Dirt)
+        if (under.Id is not BlockId.Grass && under.Id is not BlockId.Dirt)
             return;
 
         var h = random.Next(3, 5);
         for (var yy = y; yy <= y + h; yy++)
-            set(chunk, x, yy, z, new() { BlockId = BlockId.Log });
+            set(chunk, x, yy, z, BlockData.New(BlockId.Log));
 
         var lh = random.Next(2, 3);
         for (var xx = x - 2; xx <= x + 2; xx++)
@@ -93,7 +93,7 @@ public sealed class WorldGenerator
                         && !(corner && yy == y + h + 1 && RandomChance(random, 0.4f))
                     )
                     {
-                        set(chunk, xx, yy, zz, new() { BlockId = BlockId.Leaves });
+                        set(chunk, xx, yy, zz, BlockData.New(BlockId.Leaves));
                     }
                 }
             }
@@ -110,7 +110,7 @@ public sealed class WorldGenerator
                     var corner = bx && bz;
                     if (!(corner && yy == y + h + lh && RandomChance(random, 0.8)))
                     {
-                        set(chunk, xx, yy, zz, new() { BlockId = BlockId.Leaves });
+                        set(chunk, xx, yy, zz, BlockData.New(BlockId.Leaves));
                     }
                 }
             }
@@ -119,10 +119,7 @@ public sealed class WorldGenerator
 
     private void Flowers(Random random, Chunk chunk, Get get, Set set, int x, int y, int z)
     {
-        var flower = new BlockData()
-        {
-            BlockId = RandomChance(random, 0.6) ? BlockId.Rose : BlockId.Buttercup,
-        };
+        var flower = RandomChance(random, 0.6) ? BlockId.Rose : BlockId.Buttercup;
         var s = random.Next(2, 6);
         var l = random.Next(s - 1, s + 1);
         var h = random.Next(s - 1, s + 1);
@@ -131,9 +128,9 @@ public sealed class WorldGenerator
             for (var zz = z - h; zz <= z + h; zz++)
             {
                 var under = get(chunk, xx, y, zz);
-                if (under.BlockId is BlockId.Grass && RandomChance(random, 0.5))
+                if (under.Id is BlockId.Grass && RandomChance(random, 0.5))
                 {
-                    set(chunk, xx, y + 1, zz, flower);
+                    set(chunk, xx, y + 1, zz, BlockData.New(flower));
                 }
             }
         }
@@ -169,8 +166,8 @@ public sealed class WorldGenerator
                 {
                     var d = 1 - Radial3I(new(x, h, z), new(l, w, i), new(xx, yy, zz));
                     var data = get(chunk, xx, yy, zz);
-                    if (data.BlockId is BlockId.Stone && RandomChance(random, 0.2 + d * 0.7))
-                        set(chunk, xx, yy, zz, new() { BlockId = id });
+                    if (data.Id is BlockId.Stone && RandomChance(random, 0.2 + d * 0.7))
+                        set(chunk, xx, yy, zz, BlockData.New(id));
                 }
             }
         }
@@ -193,7 +190,7 @@ public sealed class WorldGenerator
                     for (var j = -1; j <= 1; j++)
                     {
                         var data = get(chunk, xx + i, h, zz + j);
-                        if (data.BlockId is BlockId.Lava || !Block.Blocks[data.BlockId].Transparent)
+                        if (data.Id is BlockId.Lava || !data.Block().Transparent)
                             continue;
                         allow = false;
                         break;
@@ -203,7 +200,7 @@ public sealed class WorldGenerator
                 if (!allow)
                     continue;
                 if (RandomChance(random, 0.2 + d * 0.95))
-                    set(chunk, xx, h, zz, new() { BlockId = BlockId.Lava });
+                    set(chunk, xx, h, zz, BlockData.New(BlockId.Lava));
             }
         }
     }
@@ -225,7 +222,7 @@ public sealed class WorldGenerator
                 {
                     var p = new Vector3I(x, y, z);
                     var w = Vector3I.Add(p, chunk.Position);
-        
+
                     BlockId block;
                     if (w.Y > 64)
                     {
@@ -243,8 +240,8 @@ public sealed class WorldGenerator
                     {
                         block = BlockId.Stone;
                     }
-        
-                    chunk.SetBlockData(p, new() { BlockId = block });
+
+                    chunk.SetBlockData(p, BlockData.New(block));
                 }
             }
         }
@@ -350,14 +347,12 @@ public sealed class WorldGenerator
                     }
                     else
                         block = BlockId.Stone;
-                    var data = new BlockData() { BlockId = block };
-                    chunk.SetBlockData(new(x, y, z), data);
+                    chunk.SetBlockData(new(x, y, z), BlockData.New(block));
                 }
 
                 for (var y = h; y < WaterLevel; y++)
                 {
-                    var data = new BlockData() { BlockId = BlockId.Water };
-                    chunk.SetBlockData(new(x, y, z), data);
+                    chunk.SetBlockData(new(x, y, z), BlockData.New(BlockId.Water));
                 }
 
                 if (RandomChance(random, 0.02))
@@ -378,14 +373,14 @@ public sealed class WorldGenerator
             }
         }
 
-        var loaded = new List<WorldUnloadedData>();
-        foreach (var unloaded in chunk.World.UnloadedData)
+        var loaded = new List<Vector3I>();
+        foreach (var (pos, data) in chunk.World.UnloadedData)
         {
-            if (chunk.Offset != unloaded.Position.WorldBlockPosToChunkOffset())
+            if (chunk.Offset != pos.WorldBlockPosToChunkOffset())
                 continue;
-            chunk.SetBlockData(unloaded.Position.BlockPosWorldToChunk(), unloaded.Data);
+            chunk.SetBlockData(pos.BlockPosWorldToChunk(), data);
 
-            loaded.Add(unloaded);
+            loaded.Add(pos);
         }
         loaded.ForEach(d => chunk.World.UnloadedData.Remove(d));
     }

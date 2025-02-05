@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using AvaMc.Blocks;
@@ -22,8 +23,9 @@ public sealed class World
     Vector3I CenterOffset { get; set; }
     public Threshold Loading { get; } = new(1);
     public Threshold Meshing { get; } = new(8);
+
     // TODO: use dictionary
-    public List<WorldUnloadedData> UnloadedData { get; } = [];
+    public Dictionary<Vector3I, BlockData> UnloadedData { get; } = [];
     WorldGenerator Generator { get; } = new(2);
 
     public World(GL gl)
@@ -74,7 +76,10 @@ public sealed class World
             var pos = position.BlockPosWorldToChunk();
             return chunk.GetBlockData(pos);
         }
-        return new() { BlockId = BlockId.Air };
+        // TODO: cache unloaded chunks' blocks
+        if (UnloadedData.TryGetValue(position, out var data))
+            return data;
+        return new();
     }
 
     public void SetBlockData(Vector3I position, BlockData data)
@@ -87,8 +92,8 @@ public sealed class World
         }
         else
         {
-            var unloaded = new WorldUnloadedData(position, data);
-            UnloadedData.Add(unloaded);
+            // TODO: cache unloaded chunks' blocks
+            UnloadedData[position] = data;
         }
     }
 
@@ -150,20 +155,20 @@ public sealed class World
             if (GetChunk(offset, out var chunk))
                 chunk.Prepare(gl);
         }
-        
+
         var renderer = State.Renderer;
         renderer.UseShader(gl, Renderer.ShaderType.Chunk);
         renderer.PushCamera();
         renderer.SetCamera(CameraType.Perspective);
         renderer.SetViewProject(gl);
-        
+
         //TODO: shit here
-        var shader =renderer.Shaders[Renderer.ShaderType.Chunk];
+        var shader = renderer.Shaders[Renderer.ShaderType.Chunk];
         shader.UniformTexture(gl, "tex", renderer.BlockAtlas.Atlas.Texture);
         shader.UniformVector4(gl, "fog_color", renderer.ClearColor);
         shader.UniformFloat(gl, "fog_near", ChunksSize / 2f * 32 - 12);
         shader.UniformFloat(gl, "fog_far", ChunksSize / 2f * 32 - 4);
-        
+
         foreach (var chunk in Chunks.Values)
             chunk.Render(gl, ChunkMesh.Part.Solid);
         foreach (var offset in SortChunksByOffset(DepthOrder.Farther))
@@ -171,7 +176,7 @@ public sealed class World
             if (GetChunk(offset, out var chunk))
                 chunk.Render(gl, ChunkMesh.Part.Transparent);
         }
-        
+
         Player.Render(gl);
         renderer.PopCamera();
     }

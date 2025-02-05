@@ -4,7 +4,7 @@ namespace AvaMc.Blocks;
 
 public sealed class Log : Block
 {
-    public override BlockId Id { get; } = BlockId.Log;
+    // public override BlockId Id { get; } = BlockId.Log;
 
     public override Vector2I GetTextureLocation(Direction direction)
     {

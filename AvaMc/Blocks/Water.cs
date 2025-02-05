@@ -6,7 +6,7 @@ namespace AvaMc.Blocks;
 
 public sealed class Water : Block
 {
-    public override BlockId Id { get; } = BlockId.Water;
+    // public override BlockId Id { get; } = BlockId.Water;
     public override bool Transparent { get; } = true;
     public override bool Animated { get; } = true;
     public override bool Liquid { get; } = true;

@@ -122,11 +122,15 @@ public sealed class Player
             LookBlock = lookBlock;
             LookFace = lookFace;
             if (State.Game.Pointer[PointerButton.Left].PressedTick)
-                World.SetBlockData(LookBlock, new BlockData() { BlockId = BlockId.Air });
+            {
+                var data = World.GetBlockData(LookBlock);
+                World.SetBlockData(LookBlock, data.SetId(BlockId.Air));
+            }
             if (State.Game.Pointer[PointerButton.Right].PressedTick)
             {
                 var pos = Vector3I.Add(LookBlock, LookFace.Vector3I);
-                World.SetBlockData(pos, new BlockData() { BlockId = SelectedBlockId });
+                var data = World.GetBlockData(LookBlock);
+                World.SetBlockData(pos, data.SetId(SelectedBlockId));
             }
         }
     }

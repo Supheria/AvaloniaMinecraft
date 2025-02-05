@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using AvaMc.Blocks;
 using AvaMc.Comparers;
+using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
 using Silk.NET.OpenGLES;
@@ -125,8 +126,8 @@ public sealed class ChunkMesh
             var u = ChunkData.CubeUvs[index++] * uvUnit.X + uvOffset.X;
             var v = ChunkData.CubeUvs[index] * uvUnit.Y + uvOffset.Y;
 
-            const float color = 1f;
-            var vertex = new ChunkVertex(new(x, y, z), new(u, v), new(color, color, color));
+            // TODO: fix this
+            var vertex = new ChunkVertex(new(x, y, z), new(u, v), 0);
             Vertices.Add(vertex);
         }
 
@@ -144,13 +145,16 @@ public sealed class ChunkMesh
 
     public void EmitFace(
         Vector3 position,
+        BlockData blockData,
+        BlockData neighborData,
         Direction direction,
         Vector2 uvOffset,
-        Vector2 uvUnit,
-        bool transparent,
-        bool shortenY
+        Vector2 uvUnit
     )
     {
+        var block = blockData.Block();
+        var neighbor = neighborData.Block();
+        var shortenY = block.Liquid && direction.Value is Direction.Type.Up && !neighbor.Liquid;
         for (var i = 0; i < 4; i++)
         {
             var index = ChunkData.CubeIndices[(direction * 6) + ChunkData.UniqueIndices[i]] * 3;
@@ -161,34 +165,34 @@ public sealed class ChunkMesh
             index = i * 2;
             var u = uvOffset.X + (uvUnit.X * ChunkData.CubeUvs[index++]);
             var v = uvOffset.Y + (uvUnit.Y * ChunkData.CubeUvs[index]);
-            float color;
-            if (transparent)
-                color = 1;
-            else
-            {
-                switch (direction.Value)
-                {
-                    case Direction.Type.Up:
-                        color = 1;
-                        break;
-                    case Direction.Type.North:
-                    case Direction.Type.South:
-                        color = 0.86f;
-                        break;
-                    case Direction.Type.East:
-                    case Direction.Type.West:
-                        color = 0.8f;
-                        break;
-                    case Direction.Type.Down:
-                        color = 0.6f;
-                        break;
-                    default:
-                        color = 0;
-                        break;
-                }
-            }
-
-            var vertex = new ChunkVertex(new(x, y, z), new(u, v), new(color, color, color));
+            // float color;
+            // if (transparent)
+            //     color = 1;
+            // else
+            // {
+            //     switch (direction.Value)
+            //     {
+            //         case Direction.Type.Up:
+            //             color = 1;
+            //             break;
+            //         case Direction.Type.North:
+            //         case Direction.Type.South:
+            //             color = 0.86f;
+            //             break;
+            //         case Direction.Type.East:
+            //         case Direction.Type.West:
+            //             color = 0.8f;
+            //             break;
+            //         case Direction.Type.Down:
+            //             color = 0.6f;
+            //             break;
+            //         default:
+            //             color = 0;
+            //             break;
+            //     }
+            // }
+            var light = neighborData.GetAllLight();
+            var vertex = new ChunkVertex(new(x, y, z), new(u, v), light);
             Vertices.Add(vertex);
         }
 
@@ -197,7 +201,7 @@ public sealed class ChunkMesh
             indices[i] = VertexCount + ChunkData.FaceIndices[i];
         var center = ChunkData.FaceCenters[direction];
         var face = new Face(indices, Vector3.Add(center, position));
-        if (transparent)
+        if (block.Transparent)
             TransparentFaces.Add(face);
         else
             SolidFaces.Add(face);
@@ -232,58 +236,57 @@ public sealed class ChunkMesh
 
     private void Mesh(Vector3I pos)
     {
-        var data = Chunk.GetBlockData(pos);
-        var block = Block.Blocks[data.BlockId];
+        var blockData = Chunk.GetBlockData(pos);
+        // var block = Block.Blocks[data.BlockId];
         // TODO: when air may has bug
-        if (block.Id is BlockId.Air)
+        if (blockData.Id is BlockId.Air)
             return;
-        var transparent = block.Transparent;
 
+        var block = blockData.Block();
         if (block.Sprite)
         {
-            var uv = block.GetTextureLocation(Direction.North);
-            // shit here
-            var uvOffset = State.Renderer.BlockAtlas.Atlas.Offset(uv);
-            var spriteUnit = State.Renderer.BlockAtlas.Atlas.SpriteUnit;
-            EmitSprite(pos.ToNumerics(), uvOffset, spriteUnit);
+            // var uv = block.GetTextureLocation(Direction.North);
+            // // shit here
+            // var uvOffset = State.Renderer.BlockAtlas.Atlas.Offset(uv);
+            // var spriteUnit = State.Renderer.BlockAtlas.Atlas.SpriteUnit;
+            // EmitSprite(pos.ToNumerics(), uvOffset, spriteUnit);
         }
         else
-            MeshNotSprite(pos, transparent, block);
+            MeshNotSprite(pos, blockData);
         DepthSort = false;
         Chunk.World.Meshing.AddOne();
     }
 
-    private void MeshNotSprite(Vector3I pos, bool transparent, Block block)
+    private void MeshNotSprite(Vector3I pos, BlockData blockData)
     {
         foreach (var direction in Direction.AllDirections)
         {
             var dv = direction.Vector3I;
-            var neighbor = Vector3I.Add(pos, dv);
+            var neighborPos = Vector3I.Add(pos, dv);
 
-            Block neighborBlock;
-            if (Chunk.InBounds(neighbor))
-            {
-                var nData = Chunk.GetBlockData(neighbor);
-                neighborBlock = Block.Blocks[nData.BlockId];
-            }
-            else
-            {
-                var nData = Chunk.GetBlockDataInOtherChunk(neighbor);
-                neighborBlock = Block.Blocks[nData.BlockId];
-            }
+            var neighborData = Chunk.InBounds(neighborPos)
+                ? Chunk.GetBlockData(neighborPos)
+                : Chunk.GetBlockDataInOtherChunk(neighborPos);
 
+            var block = blockData.Block();
+            var neighbor = neighborData.Block();
             if (
-                (neighborBlock.Transparent && !transparent)
-                || (transparent && neighborBlock.Id != block.Id)
+                (neighbor.Transparent && !block.Transparent)
+                || (block.Transparent && neighborData.Id != blockData.Id)
             )
             {
                 var uv = block.GetTextureLocation(direction);
                 // TODO: shit here
                 var uvOffset = State.Renderer.BlockAtlas.Atlas.Offset(uv);
                 var spriteUnit = State.Renderer.BlockAtlas.Atlas.SpriteUnit;
-                var shortenY =
-                    block.Liquid && direction.Value is Direction.Type.Up && !neighborBlock.Liquid;
-                EmitFace(pos.ToNumerics(), direction, uvOffset, spriteUnit, transparent, shortenY);
+                EmitFace(
+                    pos.ToNumerics(),
+                    blockData,
+                    neighborData,
+                    direction,
+                    uvOffset,
+                    spriteUnit
+                );
             }
         }
     }
@@ -310,7 +313,6 @@ public sealed class ChunkMesh
                 Mesh(gl);
             DepthSort = false;
             Chunk.World.Meshing.AddOne();
-            
         }
     }
 
@@ -328,7 +330,7 @@ public sealed class ChunkMesh
 
         Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
         Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
-        Vao.Link(gl, Vbo, 2, 3, VertexAttribPointerType.Float, sizeof(float) * 5);
+        Vao.Link(gl, Vbo, 2, 3, VertexAttribIType.UnsignedInt, sizeof(float) * 5);
 
         // TODO: shit here wireframe
         if (part is Part.Transparent)

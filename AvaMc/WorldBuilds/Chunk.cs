@@ -16,6 +16,7 @@ public sealed class Chunk
     public Vector3I Offset { get; set; }
     public Vector3I Position { get; set; }
     Dictionary<Vector3I, BlockData> Data { get; set; } = [];
+
     // bool Dirty { get; set; } = true;
     // bool DepthSort { get; set; } = true;
     bool Empty { get; set; } = true;
@@ -26,6 +27,7 @@ public sealed class Chunk
     // bool Generating { get; set; }
     // ChunkMesh Mesh { get; set; }
     ChunkMesh Mesh { get; }
+    int NoneAirCount { get; set; }
 
     public Chunk(GL gl, World world, Vector3I offset)
     {
@@ -69,11 +71,11 @@ public sealed class Chunk
             if (World.GetChunk(Vector3I.Add(Offset, new(-1, 0, 0)), out var chunk))
                 chunks.Add(chunk);
         }
-        // if (pos.Y is 0)
-        // {
-        //     if (World.GetChunk(Vector3I.Add(Offset, new(0, -1, 0)), out var chunk))
-        //         chunks.Add(chunk);
-        // }
+        if (pos.Y is 0)
+        {
+            if (World.GetChunk(Vector3I.Add(Offset, new(0, -1, 0)), out var chunk))
+                chunks.Add(chunk);
+        }
         if (pos.Z is 0)
         {
             if (World.GetChunk(Vector3I.Add(Offset, new(0, 0, -1)), out var chunk))
@@ -84,11 +86,11 @@ public sealed class Chunk
             if (World.GetChunk(Vector3I.Add(Offset, new(1, 0, 0)), out var chunk))
                 chunks.Add(chunk);
         }
-        // if (pos.Y == ChunkData.ChunkSizeY - 1)
-        // {
-        //     if (World.GetChunk(Vector3I.Add(Offset, new(0, 1, 0)), out var chunk))
-        //         chunks.Add(chunk);
-        // }
+        if (pos.Y == ChunkData.ChunkSizeY - 1)
+        {
+            if (World.GetChunk(Vector3I.Add(Offset, new(0, 1, 0)), out var chunk))
+                chunks.Add(chunk);
+        }
         if (pos.Z == ChunkData.ChunkSizeZ - 1)
         {
             if (World.GetChunk(Vector3I.Add(Offset, new(0, 0, 1)), out var chunk))
@@ -102,39 +104,32 @@ public sealed class Chunk
     //     return Vector3.Divide(pos, ChunkData.ChunkSize);
     // }
 
-    public void SetBlockData(Vector3I position, BlockData data)
-    {
-        if (!InBounds(position))
-            throw new ArgumentOutOfRangeException(
-                nameof(position),
-                position,
-                "block position out chunk"
-            );
-        if (Data.TryGetValue(position, out var prevData) && data.BlockId != prevData.BlockId)
-        {
-            Data[position] = data;
-            Mesh.Dirty = true;
-        }
-        else
-        {
-            Data[position] = data;
-            Mesh.Dirty = true;
-        }
-        Empty = Data.Count is 0;
-        if (OnBounds(position))
-        {
-            var neighbors = GetBorderingChunks(position);
-            foreach (var chunk in neighbors)
-                chunk.Mesh.Dirty = true;
-        }
-    }
-
     public BlockData GetBlockData(Vector3I position)
     {
         if (Data.TryGetValue(position, out var data))
             return data;
-        Data[position] = new BlockData { BlockId = BlockId.Air };
-        return Data[position];
+        Data[Position] = new();
+        return Data[Position];
+    }
+
+    public void SetBlockData(Vector3I position, BlockData data)
+    {
+        Mesh.Dirty = true;
+        if (GetBlockData(position).Id != data.Id)
+        {
+            Data[position] = data;
+            if (OnBounds(position))
+            {
+                var neighbors = GetBorderingChunks(position);
+                foreach (var chunk in neighbors)
+                    chunk.Mesh.Dirty = true;
+            }
+            var count = NoneAirCount + data.Id is BlockId.Air ? -1 : 1;
+            NoneAirCount = Math.Max(0, count);
+        }
+        else
+            Data[position] = data;
+        Empty = NoneAirCount == 0;
     }
 
     public Vector3I[] GetBlockPositions()
@@ -158,14 +153,14 @@ public sealed class Chunk
     // {
     //     return Vector2.Divide(pos, ChunkData.ChunkSizeF.Xz());
     // }
-    
+
     public void Prepare(GL gl)
     {
         if (Empty)
             return;
         Mesh.PrepareRender(gl);
     }
-    
+
     public void Render(GL gl, ChunkMesh.Part part)
     {
         if (Empty)
