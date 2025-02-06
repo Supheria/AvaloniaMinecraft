@@ -13,7 +13,7 @@ public static class CoordinateChangeExtensions
         return pos.Mod(ChunkData.ChunkSize).Add(ChunkData.ChunkSize).Mod(ChunkData.ChunkSize);
     }
 
-    public static Vector3I WorldBlockPosToChunkOffset(this Vector3I pos)
+    public static Vector3I BlockPosToChunkOffset(this Vector3I pos)
     {
         return new(
             (int)MathF.Floor(pos.X / (float)ChunkData.ChunkSizeX),

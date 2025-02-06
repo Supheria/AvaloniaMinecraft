@@ -4,7 +4,8 @@ precision highp float;
 
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec2 uv;
-layout (location = 2) in uint color;
+//layout (location = 2) in uint color;
+layout (location = 2) in vec4 light_rgbi;
 
 uniform mat4 m, v, p;
 
@@ -22,12 +23,13 @@ void main() {
     // - (4) G
     // - (4) B
     // - (4) intensity
-    vec3 light = vec3(
-    (float((color & 0x0F000U) >> 12U)) / 16.0,
-    (float((color & 0x00F00U) >>  8U)) / 16.0,
-    (float((color & 0x000F0U) >>  4U)) / 16.0
-    ) * (float((color & 0x0000FU)) / 16.0);
+//    vec3 light = vec3(
+//    (float((color & 0x0F000U) >> 12U)) / 16.0,
+//    (float((color & 0x00F00U) >>  8U)) / 16.0,
+//    (float((color & 0x000F0U) >>  4U)) / 16.0
+//    ) * (float((color & 0x0000FU)) / 16.0);
 
+    vec3 light = (light_rgbi.xyz / 16.0) * (light_rgbi.w / 16.0);
     // adjust light range to prevent entirely black lighting
     const float min_light = 0.005;
     light *= vec3(1.0 - min_light);

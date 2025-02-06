@@ -27,7 +27,6 @@ public sealed class Game
     }
 
     //TODO: for test
-    static Vector3I LastLight = Vector3I.Zero;
     static Random Random = new();
 
     public void Tick(GL gl)
@@ -39,15 +38,16 @@ public sealed class Game
         // TODO: for test
         if (State.Game.Keyboard[Key.C].PressedTick)
         {
-            LastLight = State.World.Player.Camera.Position.CameraPosToBlockPos();
+            var pos = State.World.Player.Camera.Position.CameraPosToBlockPos();
             var r = Random.Next() % 16;
             var g = Random.Next() % 16;
             var b = Random.Next() % 16;
-            Light.Add(State.World, LastLight, (r << 12) | (g << 8) | (b << 4) | 0xF);
+            Light.Add(State.World, pos, new(r, g, b, 15));
         }
         if (State.Game.Keyboard[Key.V].PressedTick)
         {
-            Light.Remove(State.World, LastLight);
+            var pos = State.World.Player.Camera.Position.CameraPosToBlockPos();
+            Light.Remove(State.World, pos);
         }
         // if (State.Game.Keyboard[Key.C].PressedTick)
         // {

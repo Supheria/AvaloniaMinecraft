@@ -25,7 +25,7 @@ public sealed class World
     public Threshold Meshing { get; } = new(8);
 
     // TODO: use dictionary
-    public Dictionary<Vector3I, BlockData> UnloadedData { get; } = [];
+    public Dictionary<Vector3I, BlockId> UnloadedBlockIds { get; } = [];
     WorldGenerator Generator { get; } = new(2);
 
     public World(GL gl)
@@ -68,34 +68,81 @@ public sealed class World
         Chunks[offset] = chunk;
     }
 
-    public BlockData GetBlockData(Vector3I position)
+    // TODO: cache unloaded chunks' blocks
+    private Chunk? GetChunk(Vector3I blockPos)
     {
-        var offset = position.WorldBlockPosToChunkOffset();
+        var offset = blockPos.BlockPosToChunkOffset();
         if (GetChunk(offset, out var chunk))
-        {
-            var pos = position.BlockPosWorldToChunk();
-            return chunk.GetBlockData(pos);
-        }
-        // TODO: cache unloaded chunks' blocks
-        if (UnloadedData.TryGetValue(position, out var data))
-            return data;
-        return new();
+            return chunk;
+        return null;
     }
 
-    public void SetBlockData(Vector3I position, BlockData data)
+    public BlockId GetBlockId(Vector3I blockPos)
     {
-        var offset = position.WorldBlockPosToChunkOffset();
-        if (GetChunk(offset, out var chunk))
-        {
-            var pos = position.BlockPosWorldToChunk();
-            chunk.SetBlockData(pos, data);
-        }
-        else
-        {
-            // TODO: cache unloaded chunks' blocks
-            UnloadedData[position] = data;
-        }
+        var chunk = GetChunk(blockPos);
+        blockPos = blockPos.BlockPosWorldToChunk();
+        return chunk?.GetBlockId(blockPos) ?? BlockId.Air;
     }
+
+    public LightRgbi GetBlockLight(Vector3I blockPos)
+    {
+        var chunk = GetChunk(blockPos);
+        blockPos = blockPos.BlockPosWorldToChunk();
+        return chunk?.GetBlockLight(blockPos) ?? new();
+    }
+    
+    public BlockData.Data GetBlockAllData(Vector3I blockPos)
+    {
+        var chunk = GetChunk(blockPos);
+        blockPos = blockPos.BlockPosWorldToChunk();
+        return chunk?.GetBlockAllData(blockPos) ?? new();
+    }
+
+    public void SetBlockId(Vector3I blockPos, BlockId id)
+    {
+        var chunk = GetChunk(blockPos);
+        blockPos = blockPos.BlockPosWorldToChunk();
+        if (chunk is not null)
+            chunk.SetBlockId(blockPos, id);
+        else
+            UnloadedBlockIds[blockPos] = id;
+    }
+
+    public void SetBlockLight(Vector3I blockPos, LightRgbi light)
+    {
+        var chunk = GetChunk(blockPos);
+        blockPos = blockPos.BlockPosWorldToChunk();
+        chunk?.SetBlockLight(blockPos, light);
+    }
+
+    // public BlockData GetBlockData(Vector3I position)
+    // {
+    //     var offset = position.WorldBlockPosToChunkOffset();
+    //     if (GetChunk(offset, out var chunk))
+    //     {
+    //         var pos = position.BlockPosWorldToChunk();
+    //         return chunk.GetBlockData(pos);
+    //     }
+    //     // TODO: cache unloaded chunks' blocks
+    //     if (UnloadedData.TryGetValue(position, out var data))
+    //         return data;
+    //     return new();
+    // }
+    //
+    // public void SetBlockData(Vector3I position, BlockData data)
+    // {
+    //     var offset = position.WorldBlockPosToChunkOffset();
+    //     if (GetChunk(offset, out var chunk))
+    //     {
+    //         var pos = position.BlockPosWorldToChunk();
+    //         chunk.SetBlockData(pos, data);
+    //     }
+    //     else
+    //     {
+    //         // TODO: cache unloaded chunks' blocks
+    //         UnloadedData[position] = data;
+    //     }
+    // }
 
     public void LoadEmptyChunks(GL gl)
     {
@@ -126,7 +173,7 @@ public sealed class World
 
     public void SetCenter(GL gl, Vector3I center)
     {
-        var newOffset = center.WorldBlockPosToChunkOffset();
+        var newOffset = center.BlockPosToChunkOffset();
         var newOrigin = Vector3I.Subtract(
             newOffset,
             // new(ChunksSize / 2 + 1, ChunksSize / 2 + 1, ChunksSize / 2 + 1)

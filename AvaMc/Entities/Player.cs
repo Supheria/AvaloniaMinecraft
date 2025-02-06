@@ -74,7 +74,7 @@ public sealed class Player
         if (BlockPositionChanged)
             BlockPosition = blockPosition;
 
-        var chunkOffset = blockPosition.WorldBlockPosToChunkOffset();
+        var chunkOffset = blockPosition.BlockPosToChunkOffset();
         ChunkOffsetChanged = ChunkOffset != chunkOffset;
         if (ChunkOffsetChanged)
             ChunkOffset = chunkOffset;
@@ -122,15 +122,11 @@ public sealed class Player
             LookBlock = lookBlock;
             LookFace = lookFace;
             if (State.Game.Pointer[PointerButton.Left].PressedTick)
-            {
-                var data = World.GetBlockData(LookBlock);
-                World.SetBlockData(LookBlock, data.SetId(BlockId.Air));
-            }
+                World.SetBlockId(LookBlock, BlockId.Air);
             if (State.Game.Pointer[PointerButton.Right].PressedTick)
             {
                 var pos = Vector3I.Add(LookBlock, LookFace.Vector3I);
-                var data = World.GetBlockData(LookBlock);
-                World.SetBlockData(pos, data.SetId(SelectedBlockId));
+                World.SetBlockId(pos, SelectedBlockId);
             }
         }
     }

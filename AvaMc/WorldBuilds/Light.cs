@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using AvaMc.Blocks;
 using AvaMc.Extensions;
+using AvaMc.Gfx;
 using AvaMc.Util;
 
 // using Microsoft.Xna.Framework;
@@ -12,43 +13,44 @@ public sealed class Light
     private class LightNode
     {
         public Vector3I Position { get; set; }
-        public int Value { get; set; }
+        public float Value { get; set; }
     }
 
-    public static void Add(World world, Vector3I pos, int light)
+    public static void Add(World world, Vector3I pos, LightRgbi light)
     {
-        var data = world.GetBlockData(pos);
-        if (!data.Block().Transparent)
+        var id = world.GetBlockId(pos);
+        if (!id.Block().Transparent)
             return;
-        world.SetBlockData(pos, data.SetLight(light));
+        world.SetBlockLight(pos, light);
+        // var queue = new Queue<LightNode>();
         var queue = new Queue<LightNode>();
-        for (var i = 0; i < 4; i++)
+        for (var i = 0; i < LightRgbi.ChannelCount; i++)
         {
             var node = new LightNode() { Position = pos };
             queue.Enqueue(node);
-            AddPropagate(world, queue, 0xF << (i * 4), i * 4);
+            AddPropagate(world, queue, i);
         }
     }
 
-    private static void AddPropagate(World world, Queue<LightNode> queue, int mask, int offset)
+    private static void AddPropagate(World world, Queue<LightNode> queue, int channel)
     {
         while (queue.TryDequeue(out var node))
         {
-            var light = world.GetBlockData(node.Position).Light;
+            var light = world.GetBlockLight(node.Position);
             foreach (var direction in Direction.AllDirections)
             {
                 var nPos = Vector3I.Add(node.Position, direction.Vector3I);
-                var nData = world.GetBlockData(nPos);
-                var nBlock = nData.Block();
+                var nData = world.GetBlockAllData(nPos);
+                var nBlock = nData.Id.Block();
                 var nLight = nData.Light;
 
-                var test = ((nLight & mask) >> offset) + 1 < (light & mask) >> offset;
+                var test = nLight[channel] + 1 < light[channel];
                 if (nBlock.Transparent && test)
                 {
-                    var l = (nLight & ~mask) | ((((light & mask) >> offset) - 1) << offset);
-                    world.SetBlockData(nPos, nData.SetLight(l));
-                    node = new() { Position = nPos };
-                    queue.Enqueue(node);
+                    nLight[channel] = light[channel] - 1;
+                    world.SetBlockLight(nPos, nLight);
+                    var newNode = new LightNode() { Position = nPos };
+                    queue.Enqueue(newNode);
                 }
             }
         }
@@ -56,19 +58,16 @@ public sealed class Light
 
     public static void Remove(World world, Vector3I pos)
     {
-        var data = world.GetBlockData(pos);
-        var light = world.GetBlockData(pos).Light;
-        world.SetBlockData(pos, data.SetLight(0));
+        var light = world.GetBlockLight(pos);
+        world.SetBlockLight(pos, LightRgbi.Zero);
         var queue = new Queue<LightNode>();
         var propQueue = new Queue<LightNode>();
-        for (var i = 0; i < 4; i++)
+        for (var i = 0; i < LightRgbi.ChannelCount; i++)
         {
-            var mask = 0xF << (i * 4);
-            var offset = i * 4;
-            var node = new LightNode() { Position = pos, Value = (light & mask) >> offset };
+            var node = new LightNode() { Position = pos, Value = light[i] };
             queue.Enqueue(node);
-            RemovePropagate(world, queue, ref propQueue, mask, offset);
-            AddPropagate(world, propQueue, mask, offset);
+            RemovePropagate(world, queue, ref propQueue, i);
+            AddPropagate(world, propQueue, i);
         }
     }
 
@@ -76,8 +75,7 @@ public sealed class Light
         World world,
         Queue<LightNode> queue,
         ref Queue<LightNode> propQueue,
-        int mask,
-        int offset
+        int channel
     )
     {
         while (queue.TryDequeue(out var node))
@@ -85,19 +83,19 @@ public sealed class Light
             foreach (var direction in Direction.AllDirections)
             {
                 var nPos = Vector3I.Add(node.Position, direction.Vector3I);
-                var nLight = world.GetBlockData(nPos).Light;
-                var nValue = (nLight & mask) >> offset;
-                if ((nLight & mask) != 0 && nValue < node.Value)
+                var nLight = world.GetBlockLight(nPos);
+                var nValue = nLight[channel];
+                if (nValue > 0 && nValue < node.Value)
                 {
-                    var data = world.GetBlockData(nPos);
-                    world.SetBlockData(nPos, data.SetLight(nLight & ~mask));
-                    node = new() { Position = nPos, Value = nValue };
-                    queue.Enqueue(node);
+                    nLight[channel] = 0;
+                    world.SetBlockLight(nPos, nLight);
+                    var newNode = new LightNode() { Position = nPos, Value = nValue };
+                    queue.Enqueue(newNode);
                 }
                 else if (nValue > node.Value)
                 {
-                    node = new() { Position = nPos };
-                    propQueue.Enqueue(node);
+                    var newNode = new LightNode()  { Position = nPos };
+                    propQueue.Enqueue(newNode);
                 }
             }
         }

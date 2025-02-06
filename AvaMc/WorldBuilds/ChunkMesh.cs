@@ -127,7 +127,7 @@ public sealed class ChunkMesh
             var v = ChunkData.CubeUvs[index] * uvUnit.Y + uvOffset.Y;
 
             // TODO: fix this
-            var vertex = new ChunkVertex(new(x, y, z), new(u, v), 0);
+            var vertex = new ChunkVertex(new(x, y, z), new(u, v), new());
             Vertices.Add(vertex);
         }
 
@@ -145,16 +145,14 @@ public sealed class ChunkMesh
 
     public void EmitFace(
         Vector3 position,
-        BlockData blockData,
-        BlockData neighborData,
         Direction direction,
         Vector2 uvOffset,
-        Vector2 uvUnit
+        Vector2 uvUnit,
+        LightRgbi light,
+        bool transparent,
+        bool shortenY
     )
     {
-        var block = blockData.Block();
-        var neighbor = neighborData.Block();
-        var shortenY = block.Liquid && direction.Value is Direction.Type.Up && !neighbor.Liquid;
         for (var i = 0; i < 4; i++)
         {
             var index = ChunkData.CubeIndices[(direction * 6) + ChunkData.UniqueIndices[i]] * 3;
@@ -191,7 +189,7 @@ public sealed class ChunkMesh
             //             break;
             //     }
             // }
-            var light = neighborData.GetAllLight();
+            // var light = neighborData.Light;
             var vertex = new ChunkVertex(new(x, y, z), new(u, v), light);
             Vertices.Add(vertex);
         }
@@ -201,7 +199,7 @@ public sealed class ChunkMesh
             indices[i] = VertexCount + ChunkData.FaceIndices[i];
         var center = ChunkData.FaceCenters[direction];
         var face = new Face(indices, Vector3.Add(center, position));
-        if (block.Transparent)
+        if (transparent)
             TransparentFaces.Add(face);
         else
             SolidFaces.Add(face);
@@ -236,13 +234,13 @@ public sealed class ChunkMesh
 
     private void Mesh(Vector3I pos)
     {
-        var blockData = Chunk.GetBlockData(pos);
+        var blockId = Chunk.GetBlockId(pos);
         // var block = Block.Blocks[data.BlockId];
         // TODO: when air may has bug
-        if (blockData.Id is BlockId.Air)
+        if (blockId is BlockId.Air)
             return;
 
-        var block = blockData.Block();
+        var block = blockId.Block();
         if (block.Sprite)
         {
             // var uv = block.GetTextureLocation(Direction.North);
@@ -252,12 +250,12 @@ public sealed class ChunkMesh
             // EmitSprite(pos.ToNumerics(), uvOffset, spriteUnit);
         }
         else
-            MeshNotSprite(pos, blockData);
+            MeshNotSprite(pos, blockId);
         DepthSort = false;
         Chunk.World.Meshing.AddOne();
     }
 
-    private void MeshNotSprite(Vector3I pos, BlockData blockData)
+    private void MeshNotSprite(Vector3I pos, BlockId blockId)
     {
         foreach (var direction in Direction.AllDirections)
         {
@@ -265,27 +263,30 @@ public sealed class ChunkMesh
             var neighborPos = Vector3I.Add(pos, dv);
 
             var neighborData = Chunk.InBounds(neighborPos)
-                ? Chunk.GetBlockData(neighborPos)
-                : Chunk.GetBlockDataInOtherChunk(neighborPos);
+                ? Chunk.GetBlockAllData(neighborPos)
+                : Chunk.World.GetBlockAllData(neighborPos + Chunk.Position);
 
-            var block = blockData.Block();
-            var neighbor = neighborData.Block();
+            var block = blockId.Block();
+            var neighbor = neighborData.Id.Block();
             if (
                 (neighbor.Transparent && !block.Transparent)
-                || (block.Transparent && neighborData.Id != blockData.Id)
+                || (block.Transparent && neighborData.Id != blockId)
             )
             {
                 var uv = block.GetTextureLocation(direction);
                 // TODO: shit here
                 var uvOffset = State.Renderer.BlockAtlas.Atlas.Offset(uv);
                 var spriteUnit = State.Renderer.BlockAtlas.Atlas.SpriteUnit;
+                var shortenY = block.Liquid && direction.Value is Direction.Type.Up && !neighbor.Liquid;
+                var light = neighborData.Light;
                 EmitFace(
                     pos.ToNumerics(),
-                    blockData,
-                    neighborData,
                     direction,
                     uvOffset,
-                    spriteUnit
+                    spriteUnit,
+                    light,
+                    block.Transparent,
+                    shortenY
                 );
             }
         }
@@ -330,7 +331,7 @@ public sealed class ChunkMesh
 
         Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
         Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
-        Vao.Link(gl, Vbo, 2, 3, VertexAttribIType.UnsignedInt, sizeof(float) * 5);
+        Vao.Link(gl, Vbo, 2, 4, VertexAttribPointerType.Float, sizeof(float) * 5);
 
         // TODO: shit here wireframe
         if (part is Part.Transparent)

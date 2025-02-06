@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using AvaMc.Blocks;
 using AvaMc.Extensions;
+using AvaMc.Gfx;
 using AvaMc.Util;
 using Silk.NET.OpenGLES;
 
@@ -19,7 +20,6 @@ public sealed class Chunk
 
     // bool Dirty { get; set; } = true;
     // bool DepthSort { get; set; } = true;
-    bool Empty { get; set; } = true;
 
     // int BlockCount { get; set; }
     //
@@ -28,6 +28,7 @@ public sealed class Chunk
     // ChunkMesh Mesh { get; set; }
     ChunkMesh Mesh { get; }
     int NoneAirCount { get; set; }
+    bool Empty => NoneAirCount is 0;
 
     public Chunk(GL gl, World world, Vector3I offset)
     {
@@ -99,37 +100,54 @@ public sealed class Chunk
         return chunks;
     }
 
-    // public static Vector3 BlockPositionToChunkOffset(Vector3 pos)
-    // {
-    //     return Vector3.Divide(pos, ChunkData.ChunkSize);
-    // }
-
-    public BlockData GetBlockData(Vector3I position)
+    private BlockData GetBlockData(Vector3I blockPos)
     {
-        if (Data.TryGetValue(position, out var data))
+        if (Data.TryGetValue(blockPos, out var data))
             return data;
-        Data[Position] = new();
-        return Data[Position];
+        Data[blockPos] = new();
+        return Data[blockPos];
     }
-
-    public void SetBlockData(Vector3I position, BlockData data)
+    
+    public BlockId GetBlockId(Vector3I blockPos)
     {
+        var data = GetBlockData(blockPos);
+        return data.Id;
+    }
+    
+    public LightRgbi GetBlockLight(Vector3I blockPos)
+    {
+        var data = GetBlockData(blockPos);
+        return data.Light;
+    }
+    
+    public BlockData.Data GetBlockAllData(Vector3I blockPos)
+    {
+        var data = GetBlockData(blockPos);
+        return data.GetData();
+    }
+    
+    public void SetBlockId(Vector3I blockPos, BlockId id)
+    {
+        var data = GetBlockData(blockPos);
+        if (data.Id == id)
+            return;
         Mesh.Dirty = true;
-        if (GetBlockData(position).Id != data.Id)
+        data.Id = id;
+        if (OnBounds(blockPos))
         {
-            Data[position] = data;
-            if (OnBounds(position))
-            {
-                var neighbors = GetBorderingChunks(position);
-                foreach (var chunk in neighbors)
-                    chunk.Mesh.Dirty = true;
-            }
-            var count = NoneAirCount + data.Id is BlockId.Air ? -1 : 1;
-            NoneAirCount = Math.Max(0, count);
+            var neighbors = GetBorderingChunks(blockPos);
+            foreach (var chunk in neighbors)
+                chunk.Mesh.Dirty = true;
         }
-        else
-            Data[position] = data;
-        Empty = NoneAirCount == 0;
+        var count = NoneAirCount + data.Id is BlockId.Air ? -1 : 1;
+        NoneAirCount = Math.Max(0, count);
+    }
+    
+    public void SetBlockLight(Vector3I blockPos, LightRgbi light)
+    {
+        var data = GetBlockData(blockPos);
+        Mesh.Dirty = true;
+        data.Light = light;
     }
 
     public Vector3I[] GetBlockPositions()
@@ -137,17 +155,17 @@ public sealed class Chunk
         return Data.Keys.ToArray();
     }
 
-    public BlockData GetBlockDataInOtherChunk(Vector3I position)
-    {
-        var pos = position + Position;
-        return World.GetBlockData(pos);
-    }
-
-    public void SetBlockDataInOtherChunk(Vector3I position, BlockData data)
-    {
-        var pos = position + Position;
-        World.SetBlockData(pos, data);
-    }
+    // public BlockId GetBlockIdInOtherChunk(Vector3I position)
+    // {
+    //     var pos = position + Position;
+    //     return World.GetBlockId(pos);
+    // }
+    //
+    // public void SetBlockIdInOtherChunk(Vector3I position, BlockId id)
+    // {
+    //     var pos = position + Position;
+    //     World.SetBlockId(pos, id);
+    // }
 
     // public static Vector2 BlockPositionToChunkOffset(Vector2 pos)
     // {

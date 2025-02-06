@@ -6,9 +6,9 @@ namespace AvaMc.Blocks;
 
 partial class Block
 {
-    public static Block Get(BlockData data)
+    public static Block Get(BlockId id)
     {
-        return Blocks[data.Id];
+        return Blocks[id];
     }
     
     public static Block[] AllBlocks()
