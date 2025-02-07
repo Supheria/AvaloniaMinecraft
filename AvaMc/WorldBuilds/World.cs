@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using AvaMc.Blocks;
 using AvaMc.Comparers;
+using AvaMc.Coordinates;
 using AvaMc.Entities;
 using AvaMc.Extensions;
 using AvaMc.Gfx;
@@ -16,22 +18,22 @@ public sealed class World
 {
     // const int ChunksSize = 28;
 
-    const int ChunksSize = 8;
+    const int ChunksMagnitude = 8;
     public Player Player { get; set; }
     Dictionary<Vector3I, Chunk> Chunks { get; set; } = [];
     Vector3I ChunksOrigin { get; set; }
-    Vector3I CenterOffset { get; set; }
+    Vector3I CenterChunkOffset { get; set; }
     public Threshold Loading { get; } = new(1);
     public Threshold Meshing { get; } = new(8);
 
     // TODO: use dictionary
-    public Dictionary<Vector3I, BlockId> UnloadedBlockIds { get; } = [];
+    public Dictionary<BlockWorldPosition, BlockId> UnloadedBlockIds { get; } = [];
     WorldGenerator Generator { get; } = new(2);
 
     public World(GL gl)
     {
         Player = new(this);
-        SetCenter(gl, Vector3I.Zero);
+        SetCenter(gl, BlockWorldPosition.Zero);
     }
 
     public void Delete(GL gl)
@@ -44,16 +46,21 @@ public sealed class World
 
     public bool ChunkInBounds(Vector3I offset)
     {
-        var p = Vector3I.Subtract(offset, ChunksOrigin);
-        return p.X >= 0
-            && p.Y >= 0
-            && p.Z >= 0
-            && p.X < ChunksSize
-            && p.Y < ChunksSize
-            && p.Z < ChunksSize;
+        var modified = Vector3I.Subtract(offset, ChunksOrigin);
+        return modified.X >= 0
+            && modified.Y >= 0
+            && modified.Z >= 0
+            && modified.X < ChunksMagnitude
+            && modified.Y < ChunksMagnitude
+            && modified.Z < ChunksMagnitude;
     }
 
-    public bool GetChunk(Vector3I offset, [NotNullWhen(true)] out Chunk? chunk)
+    public bool GetChunk(ChunkOffset offset, [NotNullWhen(true)] out Chunk? chunk)
+    {
+        return GetChunk(offset.ToInernal(), out chunk);
+    }
+
+    private bool GetChunk(Vector3I offset, [NotNullWhen(true)] out Chunk? chunk)
     {
         chunk = null;
         if (!ChunkInBounds(offset))
@@ -61,58 +68,79 @@ public sealed class World
         return Chunks.TryGetValue(offset, out chunk);
     }
 
-    public void LoadChunk(GL gl, Vector3I offset)
-    {
-        var chunk = new Chunk(gl, this, offset);
-        Generator.Generate(chunk);
-        Chunks[offset] = chunk;
-    }
-
     // TODO: cache unloaded chunks' blocks
-    private Chunk? GetChunk(Vector3I blockPos)
+    private Chunk? GetChunk(BlockWorldPosition position)
     {
-        var offset = blockPos.BlockPosToChunkOffset();
+        var offset = position.ToChunkOffset();
         if (GetChunk(offset, out var chunk))
             return chunk;
         return null;
     }
 
-    public BlockId GetBlockId(Vector3I blockPos)
+    public BlockId GetBlockId(BlockWorldPosition position)
     {
-        var chunk = GetChunk(blockPos);
-        blockPos = blockPos.BlockPosWorldToChunk();
-        return chunk?.GetBlockId(blockPos) ?? BlockId.Air;
+        var chunk = GetChunk(position);
+        if (chunk is null)
+            return BlockId.Air;
+        var cPos = chunk.CreatePosition(position);
+        return chunk.GetBlockId(cPos);
     }
 
-    public LightRgbi GetBlockLight(Vector3I blockPos)
+    public BlockId GetBlockId(BlockChunkPosition position)
     {
-        var chunk = GetChunk(blockPos);
-        blockPos = blockPos.BlockPosWorldToChunk();
-        return chunk?.GetBlockLight(blockPos) ?? new();
-    }
-    
-    public BlockData.Data GetBlockAllData(Vector3I blockPos)
-    {
-        var chunk = GetChunk(blockPos);
-        blockPos = blockPos.BlockPosWorldToChunk();
-        return chunk?.GetBlockAllData(blockPos) ?? new();
+        var wPos = position.ToWorld();
+        return GetBlockId(wPos);
     }
 
-    public void SetBlockId(Vector3I blockPos, BlockId id)
+    public LightRgbi GetBlockLight(BlockWorldPosition position)
     {
-        var chunk = GetChunk(blockPos);
-        blockPos = blockPos.BlockPosWorldToChunk();
-        if (chunk is not null)
-            chunk.SetBlockId(blockPos, id);
+        var chunk = GetChunk(position);
+        if (chunk is null)
+            return new();
+        var cPos = chunk.CreatePosition(position);
+        return chunk.GetBlockLight(cPos);
+    }
+
+    public BlockData.Data GetBlockAllData(BlockWorldPosition position)
+    {
+        var chunk = GetChunk(position);
+        if (chunk is null)
+            return new();
+        var cPos = chunk.CreatePosition(position);
+        return chunk.GetBlockAllData(cPos);
+    }
+
+    public BlockData.Data GetBlockAllData(BlockChunkPosition position)
+    {
+        var wPos = position.ToWorld();
+        return GetBlockAllData(wPos);
+    }
+
+    public void SetBlockId(BlockWorldPosition position, BlockId id)
+    {
+        var chunk = GetChunk(position);
+        if (chunk is null)
+            UnloadedBlockIds[position] = id;
         else
-            UnloadedBlockIds[blockPos] = id;
+        {
+            var cPos = chunk.CreatePosition(position);
+            chunk.SetBlockId(cPos, id);
+        }
     }
 
-    public void SetBlockLight(Vector3I blockPos, LightRgbi light)
+    public void SetBlockId(BlockChunkPosition position, BlockId id)
     {
-        var chunk = GetChunk(blockPos);
-        blockPos = blockPos.BlockPosWorldToChunk();
-        chunk?.SetBlockLight(blockPos, light);
+        var wPos = position.ToWorld();
+        SetBlockId(wPos, id);
+    }
+
+    public void SetBlockLight(BlockWorldPosition position, LightRgbi light)
+    {
+        var chunk = GetChunk(position);
+        if (chunk is null)
+            return;
+        var cPos = chunk.CreatePosition(position);
+        chunk.SetBlockLight(cPos, light);
     }
 
     // public BlockData GetBlockData(Vector3I position)
@@ -147,18 +175,18 @@ public sealed class World
     public void LoadEmptyChunks(GL gl)
     {
         var offsets = new List<Vector3I>();
-        for (var x = 0; x < ChunksSize; x++)
+        for (var x = 0; x < ChunksMagnitude; x++)
         {
-            for (var y = 0; y < ChunksSize; y++)
+            for (var y = 0; y < ChunksMagnitude; y++)
             {
-                for (var z = 0; z < ChunksSize; z++)
+                for (var z = 0; z < ChunksMagnitude; z++)
                 {
                     var offset = Vector3I.Add(ChunksOrigin, new(x, y, z));
                     offsets.Add(offset);
                 }
             }
         }
-        var comparer = new ChunkDepthComparer(CenterOffset, DepthOrder.Nearer);
+        var comparer = new ChunkDepthComparer(CenterChunkOffset, DepthOrder.Nearer);
         offsets.Sort(comparer);
 
         foreach (var offset in offsets)
@@ -171,17 +199,21 @@ public sealed class World
         }
     }
 
-    public void SetCenter(GL gl, Vector3I center)
+    private void LoadChunk(GL gl, Vector3I offset)
     {
-        var newOffset = center.BlockPosToChunkOffset();
-        var newOrigin = Vector3I.Subtract(
-            newOffset,
-            // new(ChunksSize / 2 + 1, ChunksSize / 2 + 1, ChunksSize / 2 + 1)
-            new(ChunksSize / 2, ChunksSize / 2, ChunksSize / 2)
-        );
+        var chunk = new Chunk(gl, this, offset);
+        Generator.Generate(chunk);
+        Chunks[offset] = chunk;
+    }
+
+    public void SetCenter(GL gl, BlockWorldPosition position)
+    {
+        var newOffset = position.ToChunkOffset();
+        var magnitude = new Vector3I(ChunksMagnitude / 2, ChunksMagnitude / 2, ChunksMagnitude / 2);
+        var newOrigin = Vector3I.Subtract(newOffset, magnitude);
         if (ChunksOrigin == newOrigin)
             return;
-        CenterOffset = newOffset;
+        CenterChunkOffset = newOffset;
         ChunksOrigin = newOrigin;
         foreach (var (offset, chunk) in Chunks)
         {
@@ -200,7 +232,7 @@ public sealed class World
         foreach (var offset in SortChunksByOffset(DepthOrder.Nearer))
         {
             if (GetChunk(offset, out var chunk))
-                chunk.Prepare(gl);
+                chunk.PrepareRender(gl);
         }
 
         var renderer = State.Renderer;
@@ -213,15 +245,15 @@ public sealed class World
         var shader = renderer.Shaders[Renderer.ShaderType.Chunk];
         shader.UniformTexture(gl, "tex", renderer.BlockAtlas.Atlas.Texture);
         shader.UniformVector4(gl, "fog_color", renderer.ClearColor);
-        shader.UniformFloat(gl, "fog_near", ChunksSize / 2f * 32 - 12);
-        shader.UniformFloat(gl, "fog_far", ChunksSize / 2f * 32 - 4);
+        shader.UniformFloat(gl, "fog_near", ChunksMagnitude / 2f * 32 - 12);
+        shader.UniformFloat(gl, "fog_far", ChunksMagnitude / 2f * 32 - 4);
 
         foreach (var chunk in Chunks.Values)
-            chunk.Render(gl, ChunkMesh.Part.Solid);
+            chunk.RenderSolid(gl);
         foreach (var offset in SortChunksByOffset(DepthOrder.Farther))
         {
             if (GetChunk(offset, out var chunk))
-                chunk.Render(gl, ChunkMesh.Part.Transparent);
+                chunk.RenderTransparent(gl);
         }
 
         Player.Render(gl);
@@ -245,13 +277,11 @@ public sealed class World
         Player.Tick();
     }
 
-    private Vector3I[] SortChunksByOffset(DepthOrder order)
+    private List<Vector3I> SortChunksByOffset(DepthOrder order)
     {
-        var offsets = new List<Vector3I>();
-        foreach (var offset in Chunks.Keys)
-            offsets.Add(offset);
-        var comparer = new ChunkDepthComparer(CenterOffset, order);
+        var offsets = Chunks.Keys.ToList();
+        var comparer = new ChunkDepthComparer(CenterChunkOffset, order);
         offsets.Sort(comparer);
-        return offsets.ToArray();
+        return offsets;
     }
 }

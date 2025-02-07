@@ -48,7 +48,7 @@ public sealed class Renderer
     CameraType CurrentCameraType { get; set; } = CameraType.Perspective;
     ConcurrentStack<CameraType> CameraStack { get; } = [];
     public PerspectiveCamera PerspectiveCamera { get; } = new();
-    OrthographicCamera OrthographicCamera { get; } = new();
+    public OrthographicCamera OrthographicCamera { get; } = new();
     public Dictionary<ShaderType, ShaderHandler> Shaders { get; }
     ShaderType CurrentShaderType { get; set; } = ShaderType.None;
 
@@ -192,7 +192,14 @@ public sealed class Renderer
         Shaders[type].Use(gl);
     }
 
-    public void ImmediateQuad(
+    struct Vertex
+    {
+        Vector3 Position {get;set;}
+        Vector2 Uv {get;set;}
+        Vector4 Color {get;set;}
+    }
+
+    public unsafe void ImmediateQuad(
         GL gl,
         Texture2D texture,
         Vector3 position,
@@ -210,29 +217,34 @@ public sealed class Renderer
         // csharpier-ignore
         float[] data =[
             position.X + 0, position.Y + 0, position.Z + 0,
-            position.X + 0, position.Y + size.Y, position.Z + 0,
-            position.X + size.X, position.Y + size.Y, position.Z + 0,
-            position.X + size.X, position.Y + 0, position.Z + 0,
-
             uvMin.X, uvMin.Y,
+            color.X, color.Y, color.Z, color.W,
+            
+            position.X + 0, position.Y + size.Y, position.Z + 0,
             uvMin.X, uvMax.Y,
+            color.X, color.Y, color.Z, color.W,
+            
+            position.X + size.X, position.Y + size.Y, position.Z + 0,
             uvMax.X, uvMax.Y,
+            color.X, color.Y, color.Z, color.W,
+            
+            position.X + size.X, position.Y + 0, position.Z + 0,
             uvMax.X, uvMin.Y,
-
-            color.X, color.Y, color.Z, color.W,
-            color.X, color.Y, color.Z, color.W,
-            color.X, color.Y, color.Z, color.W,
             color.X, color.Y, color.Z, color.W
         ];
         uint[] indices = [3, 0, 1, 3, 1, 2];
         Vbo.Buffer(gl, data);
         Ibo.Buffer(gl, indices);
         
-        Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
-        Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, (3 * 4) * sizeof(float));
-        Vao.Link(gl, Vbo, 2, 4, VertexAttribPointerType.Float, ((3 * 4) + (2 * 4)) * sizeof(float));
+        var s = (uint)(9 * sizeof(float));
+        Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, s, 0);
+        Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, s, 3 * sizeof(float));
+        Vao.Link(gl, Vbo, 2, 4, VertexAttribPointerType.Float, s, 5 * sizeof(float));
         
-        Ibo.DrawElements(gl, Wireframe);
+        // gl.DrawArrays(PrimitiveType.Triangles, 0, 4);
+        Ibo.Bind(gl);
+        gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, null);
+        // Ibo.DrawElements(gl, Wireframe);
     }
 
     // public void RenderQuadColor(GL gl, Vector2 size, Vector4 color, Matrix4 model)

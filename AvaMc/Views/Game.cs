@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using Avalonia.Input;
 using AvaMc.Blocks;
+using AvaMc.Coordinates;
 using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
@@ -33,21 +34,20 @@ public sealed class Game
     {
         State.Ticks++;
         State.World.Tick();
-        State.World.SetCenter(gl, State.World.Player.Camera.Position.CameraPosToBlockPos());
+        var blockPosition = new BlockWorldPosition(State.World.Player.Camera.Position);
+        State.World.SetCenter(gl, blockPosition);
 
         // TODO: for test
         if (State.Game.Keyboard[Key.C].PressedTick)
         {
-            var pos = State.World.Player.Camera.Position.CameraPosToBlockPos();
             var r = Random.Next() % 16;
             var g = Random.Next() % 16;
             var b = Random.Next() % 16;
-            Light.Add(State.World, pos, new(r, g, b, 15));
+            Light.Add(State.World, blockPosition, new(15, 15, 15, 15));
         }
         if (State.Game.Keyboard[Key.V].PressedTick)
         {
-            var pos = State.World.Player.Camera.Position.CameraPosToBlockPos();
-            Light.Remove(State.World, pos);
+            Light.Remove(State.World, blockPosition);
         }
         // if (State.Game.Keyboard[Key.C].PressedTick)
         // {
@@ -72,16 +72,20 @@ public sealed class Game
             State.Renderer.Wireframe = !State.Renderer.Wireframe;
     }
 
+    float Z = 0;
     public void Render(GL gl)
     {
         State.Renderer.ClearColor = new(0.5f, 0.8f, 0.9f, 1.0f);
         State.Renderer.Prepare(gl, Renderer.RenderPass.Pass3D);
         State.World.Render(gl);
 
+        // Z -= 0.05f;
         State.Renderer.Prepare(gl, Renderer.RenderPass.Pass2D);
         State.Renderer.PushCamera();
         {
             State.Renderer.SetCamera(CameraType.Orthographic);
+            // TODO: not good here
+            State.Renderer.OrthographicCamera.Initialize(Vector2.Zero, State.Game.WindowSize.ToVector2());
             var pos = new Vector3(
                 (float)(State.Game.WindowSize.Width / 2) - 8,
                 (float)(State.Game.WindowSize.Height / 2) - 8,

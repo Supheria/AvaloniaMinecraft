@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using AvaMc.Blocks;
+using AvaMc.Coordinates;
 using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
@@ -12,11 +13,11 @@ public sealed class Light
 {
     private class LightNode
     {
-        public Vector3I Position { get; set; }
+        public BlockWorldPosition Position { get; set; }
         public float Value { get; set; }
     }
 
-    public static void Add(World world, Vector3I pos, LightRgbi light)
+    public static void Add(World world, BlockWorldPosition pos, LightRgbi light)
     {
         var id = world.GetBlockId(pos);
         if (!id.Block().Transparent)
@@ -39,7 +40,11 @@ public sealed class Light
             var light = world.GetBlockLight(node.Position);
             foreach (var direction in Direction.AllDirections)
             {
-                var nPos = Vector3I.Add(node.Position, direction.Vector3I);
+                var nPos = node.Position.ToNeighbor(direction);
+                // if (nPos == new Vector3I(0, 66, -1))
+                // {
+                //
+                // }
                 var nData = world.GetBlockAllData(nPos);
                 var nBlock = nData.Id.Block();
                 var nLight = nData.Light;
@@ -56,7 +61,7 @@ public sealed class Light
         }
     }
 
-    public static void Remove(World world, Vector3I pos)
+    public static void Remove(World world, BlockWorldPosition pos)
     {
         var light = world.GetBlockLight(pos);
         world.SetBlockLight(pos, LightRgbi.Zero);
@@ -82,7 +87,7 @@ public sealed class Light
         {
             foreach (var direction in Direction.AllDirections)
             {
-                var nPos = Vector3I.Add(node.Position, direction.Vector3I);
+                var nPos = node.Position.ToNeighbor(direction);
                 var nLight = world.GetBlockLight(nPos);
                 var nValue = nLight[channel];
                 if (nValue > 0 && nValue < node.Value)
@@ -94,7 +99,7 @@ public sealed class Light
                 }
                 else if (nValue > node.Value)
                 {
-                    var newNode = new LightNode()  { Position = nPos };
+                    var newNode = new LightNode() { Position = nPos };
                     propQueue.Enqueue(newNode);
                 }
             }

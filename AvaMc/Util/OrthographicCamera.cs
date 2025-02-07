@@ -6,7 +6,7 @@ namespace AvaMc.Util;
 
 public sealed class OrthographicCamera : Camera
 {
-    public Vector2D<float> Position { get; set; }
+    public Vector2 Position { get; set; }
     public Vector2 Min { get; set; }
     public Vector2 Max { get; set; }
     
@@ -14,6 +14,7 @@ public sealed class OrthographicCamera : Camera
     {
         Min = min;
         Max = max;
+        Update();
     }
     
     public void Update()
@@ -22,8 +23,8 @@ public sealed class OrthographicCamera : Camera
         var min = Min;
         var max = Max;
         
-        // View = Matrix4.Identity;
-        View = Matrix4x4.CreateTranslation(-position.X, -position.Y, 0f);
+        View = Matrix4x4.Identity;
+        // View = Matrix4x4.CreateTranslation(-position.X, -position.Y, 0f);
         Project = Matrix4x4.CreateOrthographicOffCenter(min.X, max.X, min.Y, max.Y, -10f, 10f);
     }
 }

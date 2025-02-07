@@ -13,11 +13,6 @@ public sealed class BlockAtlas
 {
     public const int FramesPerSecond = 6;
     public const int FrameCount = 16;
-
-    // static Vector2I AtlasSize { get; } = new(256, 256);
-    // static Vector2I AtlasSizeSprites { get; } = new(16, 16);
-    // static Vector2I AtlasSpriteSize { get; } = new(16, 16);
-
     public Vector2I Size { get; }
     public Vector2I SpriteSize { get; }
     public Vector2I SizeSprites { get; }

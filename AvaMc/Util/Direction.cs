@@ -19,6 +19,7 @@ public sealed class Direction
     public Type Value { get; }
     public Vector3 Vector3F { get; }
     public Vector3I Vector3I { get; }
+    public Vector3I Sign => Vector3I;
 
     private Direction(Type value)
     {
@@ -54,11 +55,34 @@ public sealed class Direction
         }
     }
 
+    /// <summary>
+    /// 0, 0, -1
+    /// </summary>
     public static Direction North { get; } = new(Type.North);
+
+    /// <summary>
+    /// 0, 0, 1
+    /// </summary>
     public static Direction South { get; } = new(Type.South);
+
+    /// <summary>
+    /// 1, 0, 0
+    /// </summary>
     public static Direction East { get; } = new(Type.East);
+
+    /// <summary>
+    /// -1, 0, 0
+    /// </summary>
     public static Direction West { get; } = new(Type.West);
+
+    /// <summary>
+    /// 0, 1, 0
+    /// </summary>
     public static Direction Up { get; } = new(Type.Up);
+
+    /// <summary>
+    /// 0, -1, 0
+    /// </summary>
     public static Direction Down { get; } = new(Type.Down);
     public static Direction[] AllDirections { get; } = [North, South, East, West, Up, Down];
 

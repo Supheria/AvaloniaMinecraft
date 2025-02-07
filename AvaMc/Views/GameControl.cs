@@ -3,6 +3,7 @@ using System.Numerics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using AvaMc.Blocks;
 using AvaMc.Extensions;
 using AvaMc.Gfx;
@@ -33,6 +34,12 @@ public sealed class GameControl : GlEsControl
     private void OnKeyUp(TopLevel _, KeyEventArgs e)
     {
         State.Game.Keyboard[e.Key].Down = false;
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        State.Game.Keyboard.Clear();
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)

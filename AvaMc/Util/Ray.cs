@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using AvaMc.Blocks;
+using AvaMc.Coordinates;
 using AvaMc.Extensions;
 using AvaMc.WorldBuilds;
 
@@ -31,12 +32,12 @@ public readonly struct Ray
         return v;
     }
 
-    public bool RayBlock(float maxDistance, out Vector3I blockPos, out Direction? direction)
+    public bool RayBlock(float maxDistance, out BlockWorldPosition blockPos, out Direction? direction)
     {
-        blockPos = Vector3I.Zero;
+        blockPos = BlockWorldPosition.Zero;
         direction = null;
 
-        var p = new Vector3I(
+        var p = new BlockWorldPosition(
             MathHelper.FloorI(Origin.X),
             MathHelper.FloorI(Origin.Y),
             MathHelper.FloorI(Origin.Z)
@@ -100,7 +101,7 @@ public readonly struct Ray
         return false;
     }
 
-    private static bool GetBlockNotAir(Vector3I position)
+    private static bool GetBlockNotAir(BlockWorldPosition position)
     {
         var id = State.World.GetBlockId(position);
         return id is not BlockId.Air;
