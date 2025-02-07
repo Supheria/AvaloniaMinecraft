@@ -236,6 +236,7 @@ public sealed class Renderer
         Vbo.Buffer(gl, data);
         Ibo.Buffer(gl, indices);
         
+        // TODO: shit here, will use Vertex
         var s = (uint)(9 * sizeof(float));
         Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, s, 0);
         Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, s, 3 * sizeof(float));

@@ -101,19 +101,19 @@ public sealed class World
         return chunk.GetBlockLight(cPos);
     }
 
-    public BlockData.Data GetBlockAllData(BlockWorldPosition position)
+    public BlockData.Data GetBlockData(BlockWorldPosition position)
     {
         var chunk = GetChunk(position);
         if (chunk is null)
             return new();
         var cPos = chunk.CreatePosition(position);
-        return chunk.GetBlockAllData(cPos);
+        return chunk.GetBlockData(cPos);
     }
 
-    public BlockData.Data GetBlockAllData(BlockChunkPosition position)
+    public BlockData.Data GetBlockData(BlockChunkPosition position)
     {
         var wPos = position.ToWorld();
-        return GetBlockAllData(wPos);
+        return GetBlockData(wPos);
     }
 
     public void SetBlockId(BlockWorldPosition position, BlockId id)
@@ -142,35 +142,6 @@ public sealed class World
         var cPos = chunk.CreatePosition(position);
         chunk.SetBlockLight(cPos, light);
     }
-
-    // public BlockData GetBlockData(Vector3I position)
-    // {
-    //     var offset = position.WorldBlockPosToChunkOffset();
-    //     if (GetChunk(offset, out var chunk))
-    //     {
-    //         var pos = position.BlockPosWorldToChunk();
-    //         return chunk.GetBlockData(pos);
-    //     }
-    //     // TODO: cache unloaded chunks' blocks
-    //     if (UnloadedData.TryGetValue(position, out var data))
-    //         return data;
-    //     return new();
-    // }
-    //
-    // public void SetBlockData(Vector3I position, BlockData data)
-    // {
-    //     var offset = position.WorldBlockPosToChunkOffset();
-    //     if (GetChunk(offset, out var chunk))
-    //     {
-    //         var pos = position.BlockPosWorldToChunk();
-    //         chunk.SetBlockData(pos, data);
-    //     }
-    //     else
-    //     {
-    //         // TODO: cache unloaded chunks' blocks
-    //         UnloadedData[position] = data;
-    //     }
-    // }
 
     public void LoadEmptyChunks(GL gl)
     {

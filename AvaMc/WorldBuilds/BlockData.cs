@@ -30,13 +30,27 @@ public sealed class BlockData
     // public float SunLightIntensity { get; set; }
     // public Vector3 Color { get; set; }
     // public float LightIntensity { get; set; }
-    public BlockId Id { get; set; } = BlockId.Air;
-    public int SunLight { get; set; }
-    public LightRgbi Light { get; set; } = new();
+    public BlockId Id { get; private set; } = BlockId.Air;
+    public int SunLight { get; private set; }
+    public LightRgbi Light { get; private set; } = new();
 
     public Data GetData()
     {
         return new(Id, Light);
+    }
+    
+    public void SetId(BlockId id, out Data old, out Data @new)
+    {
+        old = GetData();
+        Id = id;
+        @new = GetData();
+    }
+    
+    public void SetLight(LightRgbi light, out Data old, out Data @new)
+    {
+        old = GetData();
+        Light = light;
+        @new = GetData();
     }
 
     // public uint AllLight { get; private set; }

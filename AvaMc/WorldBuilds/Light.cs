@@ -41,11 +41,7 @@ public sealed class Light
             foreach (var direction in Direction.AllDirections)
             {
                 var nPos = node.Position.ToNeighbor(direction);
-                // if (nPos == new Vector3I(0, 66, -1))
-                // {
-                //
-                // }
-                var nData = world.GetBlockAllData(nPos);
+                var nData = world.GetBlockData(nPos);
                 var nBlock = nData.Id.Block();
                 var nLight = nData.Light;
 

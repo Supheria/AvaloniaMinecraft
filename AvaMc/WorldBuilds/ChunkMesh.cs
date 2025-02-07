@@ -268,25 +268,11 @@ public sealed class ChunkMesh
     {
         foreach (var direction in Direction.AllDirections)
         {
-            // if (
-            //     pos == new Vector3I(0, 1, 0)
-            //     && (
-            //         direction.Value is Direction.Type.North
-            //         || direction.Value is Direction.Type.West
-            //     )
-            // )
-            // {
-            //
-            // }
-            // if (pos == new Vector3I(0, 1, 31) && direction.Value is Direction.Type.South)
-            // {
-            //
-            // }
             var neighborPos = pos.ToNeighbor(direction);
 
             var neighborData = neighborPos.InChunkBounds()
-                ? Chunk.GetBlockAllData(neighborPos)
-                : Chunk.World.GetBlockAllData(neighborPos);
+                ? Chunk.GetBlockData(neighborPos)
+                : Chunk.World.GetBlockData(neighborPos);
 
             var block = blockId.Block();
             var neighbor = neighborData.Id.Block();
@@ -361,7 +347,7 @@ public sealed class ChunkMesh
 
         Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
         Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
-        Vao.Link(gl, Vbo, 2, 4, VertexAttribPointerType.Float, sizeof(float) * 5);
+        Vao.Link(gl, Vbo, 2, 1, VertexAttribIType.UnsignedInt, sizeof(float) * 5);
 
         ibo.DrawElements(gl, State.Renderer.Wireframe);
     }

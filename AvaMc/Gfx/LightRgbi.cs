@@ -56,8 +56,8 @@ public struct LightRgbi
         return channel * 4;
     }
 
-    public Vector4 GetChannels()
+    public uint GetChannels()
     {
-        return new(Red, Green, Blue, Intensity);
+        return (uint)Channels;
     }
 }
