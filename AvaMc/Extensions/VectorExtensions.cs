@@ -11,12 +11,6 @@ public static class VectorExtensions
         return new((float)size.Width, (float)size.Height);
     }
 
-    // public static Vector2D<T> Xz<T>(this Vector3D<T> p)
-    //     where T : unmanaged, IFormattable, IEquatable<T>, IComparable<T>
-    // {
-    //     return new(p.X, p.Z);
-    // }
-
     public static Vector2I Mod(this Vector2I p1, Vector2I p2)
     {
         return new(p1.X % p2.X, p1.Y % p2.Y);
@@ -41,10 +35,4 @@ public static class VectorExtensions
     {
         return float.IsNaN(p.X) || float.IsNaN(p.Y) || float.IsNaN(p.Z);
     }
-
-    // public static Vector3D<T> Add<T>(this Vector3D<T> p1, Vector3D<T> p2)
-    //     where T : unmanaged, IFormattable, IEquatable<T>, IComparable<T>
-    // {
-    //     return Vector3D.Add(p1, p2);
-    // }
 }

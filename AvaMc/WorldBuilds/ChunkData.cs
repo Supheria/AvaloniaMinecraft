@@ -1,3 +1,4 @@
+using System.Numerics;
 using AvaMc.Util;
 
 namespace AvaMc.WorldBuilds;
@@ -23,10 +24,21 @@ public sealed class ChunkData
         ];
 
     // csharpier-ignore
-    public static uint[] SpriteIndices { get; } =
+    public static Vector3[] FaceCenters { get; } =
+    [
+        new(0.5f, 0.5f, 0.0f), // north (-z)
+        new(0.5f, 0.5f, 1.0f), // south (+z)
+        new(1.0f, 0.5f, 0.5f), // east (+x)
+        new(0.0f, 0.5f, 0.5f), // west (-x)
+        new(0.5f, 1.0f, 0.5f), // top (+y)
+        new(0.5f, 0.0f, 0.5f), // bottom (-y)
+    ];
+
+    // csharpier-ignore
+    public static uint[][] SpriteIndices { get; } =
         [
-            3, 0, 5, 3, 5, 6,
-            4, 2, 1, 4, 2, 7
+            [3, 0, 5, 3, 5, 6],
+            [4, 2, 1, 4, 2, 7]
         ];
 
     // csharpier-ignore

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Numerics;
 using Avalonia.Input;
 using AvaMc.Blocks;
+using AvaMc.Coordinates;
 using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
@@ -21,7 +22,7 @@ public sealed class Player
     World World { get; set; }
     public PerspectiveCamera Camera { get; set; }
     bool HasLookBlock { get; set; }
-    Vector3I LookBlock { get; set; }
+    BlockWorldPosition LookBlock { get; set; }
     Direction LookFace { get; set; }
     public Vector3I ChunkOffset { get; set; }
     Vector3I BlockPosition { get; set; }
@@ -47,31 +48,36 @@ public sealed class Player
     {
         World = world;
         Camera = new();
-        Camera.Initialize(float.DegreesToRadians(75));
+        Camera.Initialize(75, true);
     }
 
     public void Delete(GL gl) { }
 
-    public void Render(GL gl) { }
+    public void Render(GL gl)
+    {
+        // TODO: not good here
+        Camera = State.Renderer.PerspectiveCamera;
+    }
 
     public void Update()
     {
         Camera.Update();
+        Debug.WriteLine(Camera);
         if (State.Game.Pointer[PointerButton.Left].Down)
         {
             Camera.Pitch -=
                 State.Game.Pointer.Delta.Y / (State.Game.FrameDelta / (MouseSensitivity * 10000));
             Camera.Yaw -=
                 State.Game.Pointer.Delta.X / (State.Game.FrameDelta / (MouseSensitivity * 10000));
-            State.Game.Pointer.Delta = Vector2.Zero;
         }
 
-        var blockPosition = Camera.Position.CameraPosToBlockPos();
+        var blockWorldPosition = new BlockWorldPosition(Camera.Position);
+        var blockPosition = blockWorldPosition.ToChunk();
         BlockPositionChanged = BlockPosition != blockPosition;
         if (BlockPositionChanged)
             BlockPosition = blockPosition;
 
-        var chunkOffset = blockPosition.WorldBlockPosToChunkOffset();
+        var chunkOffset = blockWorldPosition.ToChunkOffset();
         ChunkOffsetChanged = ChunkOffset != chunkOffset;
         if (ChunkOffsetChanged)
             ChunkOffset = chunkOffset;
@@ -111,19 +117,19 @@ public sealed class Player
         Camera.Position = Vector3.Add(Camera.Position, movement);
 
         const float reach = 6f;
-        // var ray = new Ray(Camera.Position, Camera.Direction);
-        var ray = GetRay();
+        var ray = new Ray(Camera.Position, Camera.Direction);
+        // var ray = GetRay();
         HasLookBlock = ray.RayBlock(reach, out var lookBlock, out var lookFace);
         if (HasLookBlock && lookFace != null)
         {
             LookBlock = lookBlock;
             LookFace = lookFace;
             if (State.Game.Pointer[PointerButton.Left].PressedTick)
-                World.SetBlockData(LookBlock, new BlockData() { BlockId = BlockId.Air });
+                World.SetBlockId(LookBlock, BlockId.Air);
             if (State.Game.Pointer[PointerButton.Right].PressedTick)
             {
-                var pos = Vector3I.Add(LookBlock, LookFace.Vector3I);
-                World.SetBlockData(pos, new BlockData() { BlockId = SelectedBlockId });
+                var pos = LookBlock.ToNeighbor(LookFace);
+                World.SetBlockId(pos, SelectedBlockId);
             }
         }
     }

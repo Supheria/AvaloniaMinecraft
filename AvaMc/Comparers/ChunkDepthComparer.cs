@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using AvaMc.Coordinates;
 using AvaMc.Util;
 
 namespace AvaMc.Comparers;

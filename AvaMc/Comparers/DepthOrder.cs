@@ -1,6 +1,6 @@
 namespace AvaMc.Comparers;
 
-public enum DepthOrder
+public enum DepthOrder : byte
 {
     Nearer,
     Farther,

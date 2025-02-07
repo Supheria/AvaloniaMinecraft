@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using AvaMc.Coordinates;
 
 namespace AvaMc.Util;
 
@@ -20,16 +21,19 @@ public sealed class PerspectiveCamera : Camera
         get => _yaw;
         set =>
             _yaw =
-                (value < 0f ? MathHelper.TwoPi : 0f) + MathF.IEEERemainder(value, MathHelper.TwoPi);
+                (value < 0f ? MathHelper.TwoPi : 0f) + (value % MathHelper.TwoPi);
     }
     float _yaw;
-    public float Fov { get; set; }
+    float Fov { get; set; }
     public float ZNear { get; set; } = 0.01f;
     public float ZFar { get; set; } = 1000.0f;
 
-    public void Initialize(float fov)
+    public void Initialize(float fov, bool degree)
     {
-        Fov = fov;
+        if (degree)
+            Fov = float.DegreesToRadians(fov);
+        else
+            Fov = fov;
         Update();
     }
 
@@ -51,5 +55,11 @@ public sealed class PerspectiveCamera : Camera
         Up = Vector3.Cross(Direction, Right);
         View = Matrix4x4.CreateLookAt(pos, Vector3.Add(pos, Direction), Up);
         Project = Matrix4x4.CreatePerspectiveFieldOfView(fov, ratio, zNear, zFar);
+    }
+
+    public override string ToString()
+    {
+        var info = $"dir: {Direction}, pos: {Position}, yaw: {Yaw}, pit: {Pitch}";
+        return info;
     }
 }

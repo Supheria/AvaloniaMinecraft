@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Numerics;
 using AvaMc.Blocks;
+using AvaMc.Coordinates;
 using AvaMc.Extensions;
+using AvaMc.Gfx;
 using AvaMc.Util;
 using Silk.NET.OpenGLES;
 
@@ -11,277 +14,230 @@ namespace AvaMc.WorldBuilds;
 
 public sealed class Chunk
 {
-    public enum MeshPass
-    {
-        Full,
-        Transparency,
-    }
-
     public World World { get; set; }
-    public Vector3I Offset { get; set; }
-    public Vector3I Position { get; set; }
+    ChunkOffset Offset { get; set; }
+    Vector3I ChunckPosition { get; set; }
     Dictionary<Vector3I, BlockData> Data { get; set; } = [];
-    bool Dirty { get; set; } = true;
-    bool DepthSort { get; set; } = true;
-    bool Empty { get; set; } = true;
+
+    // bool Dirty { get; set; } = true;
+    // bool DepthSort { get; set; } = true;
 
     // int BlockCount { get; set; }
     //
     // // if true, this chunk is generating
     // bool Generating { get; set; }
     // ChunkMesh Mesh { get; set; }
-    ChunkMesh BaseMesh { get; set; }
-    ChunkMesh TransparentMesh { get; set; }
+    ChunkMesh Mesh { get; }
+    int NoneAirCount { get; set; }
+    bool Empty => NoneAirCount is 0;
 
     public Chunk(GL gl, World world, Vector3I offset)
     {
         World = world;
-        Offset = offset;
-        Position = Vector3I.Multiply(offset, ChunkData.ChunkSize);
-        BaseMesh = new(gl, this);
-        TransparentMesh = new(gl, this);
+        Offset = new(offset);
+        ChunckPosition = Offset.ToChunkPosition();
+        Mesh = new(gl, this);
     }
 
     public void Delete(GL gl)
     {
-        BaseMesh.Delete(gl);
-        TransparentMesh.Delete(gl);
+        Data = [];
+        Mesh.Delete(gl);
     }
 
-    public static bool InBounds(Vector3I pos)
+    public long GetOffsetHashCode()
     {
-        return pos.X >= 0
-            && pos.Y >= 0
-            && pos.Z >= 0
-            && pos.X < ChunkData.ChunkSizeX
-            && pos.Y < ChunkData.ChunkSizeY
-            && pos.Z < ChunkData.ChunkSizeZ;
+        var h = 0L;
+        var v = Offset.ToNumerics();
+        for (var i = 0; i < 3; i++)
+        {
+            h ^= (int)v[i] + 0x9e3779b9 + (h << 6) + (h >> 2);
+        }
+        return h;
     }
 
-    public static bool OnBounds(Vector3I pos)
+    public BlockChunkPosition CreatePosition(int x, int y, int z)
     {
-        return pos.X is 0
-            || pos.Y is 0
-            || pos.Z is 0
-            || pos.X is ChunkData.ChunkSizeX - 1
-            || pos.Y is ChunkData.ChunkSizeY - 1
-            || pos.Z is ChunkData.ChunkSizeZ - 1;
+        return new(new(x, y, z), ChunckPosition);
     }
 
-    public List<Chunk> GetBorderingChunks(Vector3I pos)
+    public BlockChunkPosition CreatePosition(BlockWorldPosition position)
     {
-        var chunks = new List<Chunk>();
-        if (pos.X is 0)
+        return new(position.ToChunk(), ChunckPosition);
+    }
+
+    public Matrix4x4 CreateModel()
+    {
+        return Matrix4x4.CreateTranslation(ChunckPosition.ToNumerics());
+    }
+
+    public ChunkOffset[] GetBorderingChunkOffsets(Vector3I position)
+    {
+        var offsets = new List<ChunkOffset>(6);
+        if (position.X is 0)
         {
-            if (World.GetChunk(Vector3I.Add(Offset, new(-1, 0, 0)), out var chunk))
-                chunks.Add(chunk);
+            offsets.Add(Offset.ToNeighbor(Direction.West));
         }
-        if (pos.Y is 0)
+        if (position.Y is 0)
         {
-            if (World.GetChunk(Vector3I.Add(Offset, new(0, -1, 0)), out var chunk))
-                chunks.Add(chunk);
+            offsets.Add(Offset.ToNeighbor(Direction.Down));
         }
-        if (pos.Z is 0)
+        if (position.Z is 0)
         {
-            if (World.GetChunk(Vector3I.Add(Offset, new(0, 0, -1)), out var chunk))
-                chunks.Add(chunk);
+            offsets.Add(Offset.ToNeighbor(Direction.North));
         }
-        if (pos.X == ChunkData.ChunkSizeX - 1)
+        if (position.X == ChunkData.ChunkSizeX - 1)
         {
-            if (World.GetChunk(Vector3I.Add(Offset, new(1, 0, 0)), out var chunk))
-                chunks.Add(chunk);
+            offsets.Add(Offset.ToNeighbor(Direction.East));
         }
-        if (pos.Y == ChunkData.ChunkSizeY - 1)
+        if (position.Y == ChunkData.ChunkSizeY - 1)
         {
-            if (World.GetChunk(Vector3I.Add(Offset, new(0, 1, 0)), out var chunk))
-                chunks.Add(chunk);
+            offsets.Add(Offset.ToNeighbor(Direction.Up));
         }
-        if (pos.Z == ChunkData.ChunkSizeZ - 1)
+        if (position.Z == ChunkData.ChunkSizeZ - 1)
         {
-            if (World.GetChunk(Vector3I.Add(Offset, new(0, 0, 1)), out var chunk))
+            offsets.Add(Offset.ToNeighbor(Direction.South));
+        }
+        return offsets.ToArray();
+    }
+
+    private List<Chunk> GetBorderingChunks(Vector3I position)
+    {
+        var offsets = GetBorderingChunkOffsets(position);
+        var chunks = new List<Chunk>(offsets.Length);
+        foreach (var offset in offsets)
+        {
+            if (World.GetChunk(offset, out var chunk))
                 chunks.Add(chunk);
         }
         return chunks;
     }
 
-    // public static Vector3 BlockPositionToChunkOffset(Vector3 pos)
-    // {
-    //     return Vector3.Divide(pos, ChunkData.ChunkSize);
-    // }
-
-    public void SetData(Vector3I position, BlockData data)
-    {
-        if (!InBounds(position))
-            throw new ArgumentOutOfRangeException(
-                nameof(position),
-                position,
-                "block position out chunk"
-            );
-        if (Data.TryGetValue(position, out var prevData) && data.BlockId != prevData.BlockId)
-        {
-            Data[position] = data;
-            Dirty = true;
-        }
-        else
-        {
-            Data[position] = data;
-            Dirty = true;
-        }
-        Empty = Data.Count is 0;
-        if (OnBounds(position))
-        {
-            var neighbors = GetBorderingChunks(position);
-            foreach (var chunk in neighbors)
-                chunk.Dirty = true;
-        }
-    }
-
-    public BlockData GetBlockData(Vector3I position)
+    private BlockData GetBlockData(Vector3I position)
     {
         if (Data.TryGetValue(position, out var data))
             return data;
-        Data[position] = new BlockData { BlockId = BlockId.Air };
+        Data[position] = new();
         return Data[position];
     }
 
-    public BlockData GetBlockDataInOtherChunk(Vector3I position)
+    public BlockId GetBlockId(BlockChunkPosition position)
     {
-        var pos = position + Position;
-        return World.GetBlockData(pos);
+        return GetBlockId(position.ToInternal());
     }
 
-    public void SetBlockDataInOtherChunk(Vector3I position, BlockData data)
+    private BlockId GetBlockId(Vector3I position)
     {
-        var pos = position + Position;
-        World.SetBlockData(pos, data);
+        var data = GetBlockData(position);
+        return data.Id;
     }
 
-    // public static Vector2 BlockPositionToChunkOffset(Vector2 pos)
-    // {
-    //     return Vector2.Divide(pos, ChunkData.ChunkSizeF.Xz());
-    // }
-
-    public void DoMesh(GL gl, MeshPass pass)
+    public LightRgbi GetBlockLight(BlockChunkPosition position)
     {
-        if (pass is MeshPass.Full)
-            BaseMesh.Prepare();
-        TransparentMesh.Prepare();
-
-        for (var x = 0; x < ChunkData.ChunkSizeX; x++)
-        {
-            for (var y = 0; y < ChunkData.ChunkSizeY; y++)
-            {
-                for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
-                {
-                    MeshPosition(new(x, y, z), pass);
-                }
-            }
-        }
-
-        if (pass is MeshPass.Full)
-            BaseMesh.Finalize(gl, false);
-        TransparentMesh.Finalize(gl, true);
-
-        GC.Collect();
+        return GetBlockLight(position.ToInternal());
     }
 
-    private void MeshPosition(Vector3I pos, MeshPass pass)
+    private LightRgbi GetBlockLight(Vector3I position)
     {
-        var data = GetBlockData(pos);
-        var block = Block.Blocks[data.BlockId];
-        // TODO: when air may has bug
-        if (block.Id is BlockId.Air)
+        var data = GetBlockData(position);
+        return data.Light;
+    }
+
+    public BlockData.Data GetBlockAllData(BlockChunkPosition position)
+    {
+        return GetBlockAllData(position.ToInternal());
+    }
+
+    private BlockData.Data GetBlockAllData(Vector3I position)
+    {
+        var data = GetBlockData(position);
+        return data.GetData();
+    }
+
+    // public BlockData.Data GetBlockAllData
+
+    private void SetBlockId(Vector3I position, BlockId id)
+    {
+        var data = GetBlockData(position);
+        if (data.Id == id)
             return;
-        var transparent = block.Transparent;
-
-        if (block.Sprite)
-        {
-            var uv = Block.Blocks[data.BlockId].GetTextureLocation(Direction.North);
-            var uvOffset = State.BlockAtlas.Atlas.Offset(uv);
-            TransparentMesh.EmitSprite(
-                pos.ToNumerics(),
-                uvOffset,
-                State.BlockAtlas.Atlas.SpriteUnit
-            );
-        }
-        else
-            MeshNotSprite(pos, pass, transparent, block);
+        Mesh.Dirty = true;
+        data.Id = id;
+        var neighbors = GetBorderingChunks(position);
+        foreach (var chunk in neighbors)
+            chunk.Mesh.Dirty = true;
+        var count = NoneAirCount + (data.Id is BlockId.Air ? -1 : 1);
+        NoneAirCount = Math.Max(0, count);
     }
 
-    private void MeshNotSprite(Vector3I pos, MeshPass pass, bool transparent, Block block)
+    public void SetBlockId(BlockChunkPosition position, BlockId id)
     {
-        foreach (var direction in Direction.AllDirections)
-        {
-            var dv = direction.Vector3I;
-            var neighbor = Vector3I.Add(pos, dv);
-
-            Block neighborBlock;
-            if (InBounds(neighbor))
-            {
-                var nData = GetBlockData(neighbor);
-                neighborBlock = Block.Blocks[nData.BlockId];
-            }
-            else
-            {
-                var nData = GetBlockDataInOtherChunk(neighbor);
-                neighborBlock = Block.Blocks[nData.BlockId];
-            }
-
-            if (
-                neighborBlock.Transparent && (pass is MeshPass.Full && !transparent)
-                || (transparent && neighborBlock.Id != block.Id)
-            )
-            {
-                var uv = block.GetTextureLocation(direction);
-                var uvOffset = State.BlockAtlas.Atlas.Offset(uv);
-                var shortenY =
-                    block.Liquid && direction.Value is Direction.Type.Up && !neighborBlock.Liquid;
-                var mesh = transparent ? TransparentMesh : BaseMesh;
-                mesh.EmitFace(
-                    pos.ToNumerics(),
-                    direction,
-                    uvOffset,
-                    State.BlockAtlas.Atlas.SpriteUnit,
-                    transparent,
-                    shortenY
-                );
-            }
-        }
+        SetBlockId(position.ToInternal(), id);
     }
 
-    public void Render(GL gl)
+    public void SetBlockId(int x, int y, int z, BlockId id)
+    {
+        SetBlockId(new Vector3I(x, y, z), id);
+    }
+
+    public bool SetBlockId(BlockWorldPosition position, BlockId id)
+    {
+        var offset = position.ToChunkOffset();
+        if (offset != Offset.ToInernal())
+            return false;
+        SetBlockId(position.ToChunk(), id);
+        return true;
+    }
+
+    public void SetBlockLight(BlockChunkPosition position, LightRgbi light)
+    {
+        SetBlockLight(position.ToInternal(), light);
+    }
+
+    private void SetBlockLight(Vector3I position, LightRgbi light)
+    {
+        var data = GetBlockData(position);
+        Mesh.Dirty = true;
+        data.Light = light;
+    }
+
+    public List<BlockChunkPosition> GetBlockPositions()
+    {
+        var result = new List<BlockChunkPosition>(Data.Count);
+        foreach (var pos in Data.Keys)
+        {
+            result.Add(new(pos, ChunckPosition));
+        }
+        return result;
+    }
+
+    public void PrepareRender(GL gl)
     {
         if (Empty)
             return;
-        if (World.Mesh.UnderThreshold())
-        {
-            if (Dirty)
-            {
-                DoMesh(gl, MeshPass.Full);
-                Dirty = false;
-                DepthSort = false;
-                World.Mesh.AddOne();
-            }
-            else if (DepthSort)
-            {
-                if (!TransparentMesh.DepthSort(gl))
-                    DoMesh(gl, MeshPass.Transparency);
-                DepthSort = false;
-                World.Mesh.AddOne();
-            }
-        }
-        BaseMesh.Render(gl);
-        TransparentMesh.Render(gl);
+        Mesh.PrepareRender(gl);
+    }
+    
+    public void RenderTransparent(GL gl)
+    {
+        if (!Empty)
+            Mesh.RederTransparent(gl);
+    }
+    
+    public void RenderSolid(GL gl)
+    {
+        if (!Empty)
+            Mesh.RenderSolid(gl);
     }
 
     public void Update()
     {
         var player = World.Player;
-        var withinDistance = Vector3I.Distance(Offset, player.ChunkOffset) < 4;
+        var withinDistance = Offset.Distance(player.ChunkOffset) < 4;
         var blockchanged = Offset == player.ChunkOffset && player.BlockPositionChanged;
         var chunkChanged = player.ChunkOffsetChanged && withinDistance;
-        DepthSort = blockchanged || chunkChanged;
-        TransparentMesh.SetPersist(withinDistance);
+        Mesh.DepthSort = blockchanged || chunkChanged;
+        Mesh.SetPersist(withinDistance);
     }
 
     public void Tick() { }

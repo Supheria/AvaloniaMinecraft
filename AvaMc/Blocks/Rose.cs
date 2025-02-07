@@ -4,7 +4,7 @@ namespace AvaMc.Blocks;
 
 public sealed class Rose : Block
 {
-    public override BlockId Id { get; } = BlockId.Rose;
+    // public override BlockId Id { get; } = BlockId.Rose;
     public override bool Transparent { get; } = true;
     public override bool Sprite { get; } = true;
 

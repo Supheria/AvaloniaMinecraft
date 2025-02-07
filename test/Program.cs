@@ -9,8 +9,13 @@ var aa = new Aa();
 var a = aa.GetA(1, 2);
 a.Value = 10;
 var b = aa.GetA(1, 2);
-Console.ReadLine();
 
+var ss = new List<S>() { new(), new() };
+ss[0] = ss[0].SetValue(10);
+var s0 = ss[0];
+ss[0].SetFx(100);
+
+Console.ReadLine();
 
 class A
 {
@@ -26,6 +31,26 @@ class Aa
         var a = Values[x, y];
         if (a is null)
             a = Values[x, y] = new();
-        return a ;
+        return a;
+    }
+}
+
+struct S
+{
+    public int Value { get; private set; }
+
+    public S()
+    {
+        Value = 7;
+    }
+    public S SetValue(int value)
+    {
+        Value = value;
+        return this;
+    }
+    
+    public void SetFx(int value)
+    {
+        Value = value;
     }
 }

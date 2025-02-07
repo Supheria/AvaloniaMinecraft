@@ -35,4 +35,9 @@ public sealed class Keyboard
             key.Last = key.Down;
         }
     }
+    
+    public void Clear()
+    {
+        Keys.Clear();
+    }
 }

@@ -36,6 +36,24 @@ public sealed class VaoHandler : Resource
         VboHandler vbo,
         uint slot,
         int count,
+        VertexAttribPointerType type,
+        uint stride,
+        int offset
+    )
+    {
+        Bind(gl);
+        vbo.Bind(gl);
+        if (type is not VertexAttribPointerType.Float)
+            throw new ArgumentOutOfRangeException($"unsupported vertex attribute type");
+        gl.VertexAttribPointer(slot, count, type, false, stride, offset);
+        gl.EnableVertexAttribArray(slot);
+    }
+
+    public void Link(
+        GL gl,
+        VboHandler vbo,
+        uint slot,
+        int count,
         VertexAttribIType type,
         int offset
     )

@@ -1,12 +1,13 @@
 using System.Numerics;
 using AvaMc.Util;
+using AvaMc.WorldBuilds;
 
 namespace AvaMc.Blocks;
 
 // TODO: not complete yet
 public abstract partial class Block
 {
-    public abstract BlockId Id { get; }
+    // public abstract BlockId Id { get; }
     public virtual bool Transparent { get; } = false;
     public virtual bool Animated { get; } = false;
     public virtual bool Sprite { get; } = false;
