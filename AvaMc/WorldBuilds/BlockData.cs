@@ -16,56 +16,40 @@ public sealed class BlockData
     public readonly struct Data
     {
         public BlockId Id { get; }
-        public LightRgbi Light { get; }
-        public Data(BlockId id, LightRgbi light)
+        public LightIbgrs AllLight { get; }
+        public Data(BlockId id, LightIbgrs allLight)
         {
             Id = id;
-            Light = light;
+            AllLight = allLight;
         }
     }
-
-    //TODO: - 28 bits metadata/extra
-    //
-
-    // public float SunLightIntensity { get; set; }
-    // public Vector3 Color { get; set; }
-    // public float LightIntensity { get; set; }
     public BlockId Id { get; private set; } = BlockId.Air;
-    public int SunLight { get; private set; }
-    public LightRgbi Light { get; private set; } = new();
+    LightIbgrs _allLight  = new();
+    public LightIbgrs AllLight => _allLight;
 
     public Data GetData()
     {
-        return new(Id, Light);
+        return new(Id, _allLight);
     }
     
-    public void SetId(BlockId id, out Data old, out Data @new)
+    public void SetId(BlockId id, out Data prev, out Data changed)
     {
-        old = GetData();
+        prev = GetData();
         Id = id;
-        @new = GetData();
+        changed = GetData();
     }
     
-    public void SetLight(LightRgbi light, out Data old, out Data @new)
+    public void SetAllLight(LightIbgrs allLight, out Data prev, out Data changed)
     {
-        old = GetData();
-        Light = light;
-        @new = GetData();
+        prev = GetData();
+        _allLight = allLight;
+        changed = GetData();
     }
-
-    // public uint AllLight { get; private set; }
-
-    // public uint GetAllLight()
-    // {
-    //     // var allLight = (SunLight << 16) + (Light & 0xFFFF);
-    //     // if (Light != 0)
-    //     // {
-    //     //
-    //     // }
-    //     // if (allLight != 0)
-    //     // {
-    //     //
-    //     // }
-    //     // return (uint)allLight & 0xFFFFF;
-    // }
+    
+    public void SetSunlight(int sunlight, out Data prev, out Data changed)
+    {
+        prev = GetData();
+        _allLight.Sunlight = sunlight;
+        changed = GetData();
+    }
 }

@@ -11,8 +11,8 @@ partial class Chunk
     private void SetBlockId(Vector3I position, BlockId id)
     {
         var data = GetBlockData(position);
-        data.SetId(id, out var old, out var @new);
-        OnModify(position, old, @new);
+        data.SetId(id, out var prev, out var changed);
+        OnModify(position, prev, changed);
     }
 
     public void SetBlockId(BlockChunkPosition position, BlockId id)
@@ -25,24 +25,37 @@ partial class Chunk
         SetBlockId(new Vector3I(x, y, z), id);
     }
 
-    public bool SetBlockId(BlockWorldPosition position, BlockId id)
+    public void SetBlockId(BlockWorldPosition position, BlockId id)
     {
-        var offset = position.ToChunkOffset();
-        if (offset != Offset.ToInernal())
-            return false;
-        SetBlockId(position.ToChunk(), id);
-        return true;
+        World.SetBlockId(position, id);
     }
 
-    private void SetBlockLight(Vector3I position, LightRgbi light)
+    private void SetAllLight(Vector3I position, LightIbgrs light)
     {
         var data = GetBlockData(position);
-        data.SetLight(light, out var old, out var @new);
-        OnModify(position, old, @new);
+        data.SetAllLight(light, out var prev, out var changed);
+        OnModify(position, prev, changed);
     }
 
-    public void SetBlockLight(BlockChunkPosition position, LightRgbi light)
+    public void SetAllLight(BlockChunkPosition position, LightIbgrs light)
     {
-        SetBlockLight(position.ToInternal(), light);
+        SetAllLight(position.ToInternal(), light);
+    }
+
+    private void SetSunlight(Vector3I position, int sunlight)
+    {
+        var data = GetBlockData(position);
+        data.SetSunlight(sunlight, out var prev, out var changed);
+        OnModify(position, prev, changed);
+    }
+
+    public void SetSunlight(BlockChunkPosition position, int sunlight)
+    {
+        SetSunlight(position.ToInternal(), sunlight);
+    }
+    
+    public void SetSunlight(BlockWorldPosition position, int sunlight)
+    {
+        World.SetSunlight(position, sunlight);
     }
 }

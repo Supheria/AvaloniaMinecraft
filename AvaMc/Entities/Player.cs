@@ -56,19 +56,19 @@ public sealed class Player
     public void Render(GL gl)
     {
         // TODO: not good here
-        Camera = State.Renderer.PerspectiveCamera;
+        Camera = GlobalState.Renderer.PerspectiveCamera;
     }
 
     public void Update()
     {
         Camera.Update();
         Debug.WriteLine(Camera);
-        if (State.Game.Pointer[PointerButton.Left].Down)
+        if (GlobalState.Game.Pointer[PointerButton.Left].Down)
         {
             Camera.Pitch -=
-                State.Game.Pointer.Delta.Y / (State.Game.FrameDelta / (MouseSensitivity * 10000));
+                GlobalState.Game.Pointer.Delta.Y / (GlobalState.Game.FrameDelta / (MouseSensitivity * 10000));
             Camera.Yaw -=
-                State.Game.Pointer.Delta.X / (State.Game.FrameDelta / (MouseSensitivity * 10000));
+                GlobalState.Game.Pointer.Delta.X / (GlobalState.Game.FrameDelta / (MouseSensitivity * 10000));
         }
 
         var blockWorldPosition = new BlockWorldPosition(Camera.Position);
@@ -84,7 +84,7 @@ public sealed class Player
 
         foreach (var (key, id) in BlockPack)
         {
-            if (State.Game.Keyboard[key].Down)
+            if (GlobalState.Game.Keyboard[key].Down)
                 SelectedBlockId = id;
         }
     }
@@ -95,7 +95,7 @@ public sealed class Player
         var right = Vector3.Cross(Vector3.UnitY, forward);
 
         var direction = Vector3.Zero;
-        var keyboard = State.Game.Keyboard;
+        var keyboard = GlobalState.Game.Keyboard;
         if (keyboard[Key.W].Down)
             direction = Vector3.Add(direction, forward);
         if (keyboard[Key.S].Down)
@@ -124,9 +124,9 @@ public sealed class Player
         {
             LookBlock = lookBlock;
             LookFace = lookFace;
-            if (State.Game.Pointer[PointerButton.Left].PressedTick)
+            if (GlobalState.Game.Pointer[PointerButton.Left].PressedTick)
                 World.SetBlockId(LookBlock, BlockId.Air);
-            if (State.Game.Pointer[PointerButton.Right].PressedTick)
+            if (GlobalState.Game.Pointer[PointerButton.Right].PressedTick)
             {
                 var pos = LookBlock.ToNeighbor(LookFace);
                 World.SetBlockId(pos, SelectedBlockId);
@@ -136,13 +136,13 @@ public sealed class Player
 
     private Ray GetRay()
     {
-        var size = State.Game.WindowSize;
+        var size = GlobalState.Game.WindowSize;
         var width = (float)size.Width;
         var height = (float)size.Height;
         // heavily influenced by: http://antongerdelan.net/opengl/raycasting.html
         // viewport coordinate system
         // normalized device coordinates
-        var point = State.Game.Pointer.Position;
+        var point = GlobalState.Game.Pointer.Position;
         var x = (2f * point.X) / width - 1f;
         var y = 1f - (2f * point.Y) / height;
         var z = 1f;

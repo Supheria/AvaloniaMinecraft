@@ -3,10 +3,10 @@ using AvaMc.WorldBuilds;
 
 namespace AvaMc;
 
-public sealed class State
+public sealed class GlobalState
 {
     public const int TickRate = 60;
-    public static int Ticks { get; set; }
+    public static long Ticks { get; set; }
     public static Game Game { get; set; } = new();
     public static Renderer Renderer { get; set; }
 

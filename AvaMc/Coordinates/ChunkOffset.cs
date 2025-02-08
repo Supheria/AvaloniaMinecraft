@@ -51,12 +51,12 @@ public readonly struct ChunkOffset : IEquatable<ChunkOffset>
     {
         return offset.Value != other;
     }
-    
+
     public Vector3 ToNumerics()
     {
         return Value.ToNumerics();
     }
-    
+
     public Vector3I ToInernal()
     {
         return Value;

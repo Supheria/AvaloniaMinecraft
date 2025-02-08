@@ -23,7 +23,7 @@ public sealed class Renderer
         None,
         Chunk,
         Basic2D,
-        // Sky,
+        Sky,
         // BasicTexture,
         // BasicColor,
     }
@@ -31,10 +31,10 @@ public sealed class Renderer
     public enum TextureType : byte
     {
         CrossHair,
+        Sun,
+        Moon,
         // Clouds,
         // Star,
-        // Sun,
-        // Moon,
         // Hotbar,
     }
 
@@ -71,7 +71,7 @@ public sealed class Renderer
         Vbo = VboHandler.Create(gl, true);
         Ibo = IboHandler.Create(gl, true);
         PerspectiveCamera.Initialize(75, true);
-        OrthographicCamera.Initialize(Vector2.Zero, State.Game.WindowSize.ToVector2());
+        OrthographicCamera.Initialize(Vector2.Zero, GlobalState.Game.WindowSize.ToVector2());
     }
 
     private static Dictionary<ShaderType, ShaderHandler> InitializeShaders(GL gl)
@@ -80,11 +80,7 @@ public sealed class Renderer
         {
             [ShaderType.Basic2D] = ShaderHandler.Create(gl, "basic2d"),
             [ShaderType.Chunk] = ShaderHandler.Create(gl, "chunk"),
-            // [ShaderType.Sky] = Shader.Create(gl, "sky", new()
-            // {
-            //     [0] = "position",
-            //     [1] = "uv",
-            // }),
+            [ShaderType.Sky] = ShaderHandler.Create(gl, "sky"),
             // [ShaderType.BasicColor] = Shader.Create(gl, "basic_color", new()
             // {
             //     [0] = "position",
@@ -97,10 +93,10 @@ public sealed class Renderer
         return new()
         {
             [TextureType.CrossHair] = Texture2D.Create(gl, "crosshair", 0),
+            [TextureType.Sun] = Texture2D.Create(gl, "sun", 0),
+            [TextureType.Moon] = Texture2D.Create(gl, "moon", 0),
             // [TextureType.Clouds] = Texture2D.Create(gl, "clouds", 0),
             // [TextureType.Star] = Texture2D.Create(gl, "star", 0),
-            // [TextureType.Sun] = Texture2D.Create(gl, "sun", 0),
-            // [TextureType.Moon] = Texture2D.Create(gl, "moon", 0),
             // [TextureType.Hotbar] = Texture2D.Create(gl, "hotbar", 0),
         };
     }
@@ -194,9 +190,9 @@ public sealed class Renderer
 
     struct Vertex
     {
-        Vector3 Position {get;set;}
-        Vector2 Uv {get;set;}
-        Vector4 Color {get;set;}
+        Vector3 Position { get; set; }
+        Vector2 Uv { get; set; }
+        Vector4 Color { get; set; }
     }
 
     public unsafe void ImmediateQuad(
@@ -219,15 +215,15 @@ public sealed class Renderer
             position.X + 0, position.Y + 0, position.Z + 0,
             uvMin.X, uvMin.Y,
             color.X, color.Y, color.Z, color.W,
-            
+
             position.X + 0, position.Y + size.Y, position.Z + 0,
             uvMin.X, uvMax.Y,
             color.X, color.Y, color.Z, color.W,
-            
+
             position.X + size.X, position.Y + size.Y, position.Z + 0,
             uvMax.X, uvMax.Y,
             color.X, color.Y, color.Z, color.W,
-            
+
             position.X + size.X, position.Y + 0, position.Z + 0,
             uvMax.X, uvMin.Y,
             color.X, color.Y, color.Z, color.W
@@ -235,17 +231,17 @@ public sealed class Renderer
         uint[] indices = [3, 0, 1, 3, 1, 2];
         Vbo.Buffer(gl, data);
         Ibo.Buffer(gl, indices);
-        
+
         // TODO: shit here, will use Vertex
-        var s = (uint)(9 * sizeof(float));
-        Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, s, 0);
-        Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, s, 3 * sizeof(float));
-        Vao.Link(gl, Vbo, 2, 4, VertexAttribPointerType.Float, s, 5 * sizeof(float));
-        
+        const uint stride = 9 * sizeof(float);
+        Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, stride, 0);
+        Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, stride, 3 * sizeof(float));
+        Vao.Link(gl, Vbo, 2, 4, VertexAttribPointerType.Float, stride, 5 * sizeof(float));
+
         // gl.DrawArrays(PrimitiveType.Triangles, 0, 4);
         Ibo.Bind(gl);
-        gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, null);
-        // Ibo.DrawElements(gl, Wireframe);
+        // gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, null);
+        Ibo.DrawElements(gl, false);
     }
 
     // public void RenderQuadColor(GL gl, Vector2 size, Vector4 color, Matrix4 model)

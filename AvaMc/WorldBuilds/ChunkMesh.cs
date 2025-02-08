@@ -156,7 +156,7 @@ public sealed class ChunkMesh
         Direction direction,
         Vector2 uvOffset,
         Vector2 uvUnit,
-        LightRgbi light,
+        LightIbgrs allLight,
         bool transparent,
         bool shortenY
     )
@@ -171,33 +171,7 @@ public sealed class ChunkMesh
             index = i * 2;
             var u = uvOffset.X + (uvUnit.X * ChunkData.CubeUvs[index++]);
             var v = uvOffset.Y + (uvUnit.Y * ChunkData.CubeUvs[index]);
-            // float color;
-            // if (transparent)
-            //     color = 1;
-            // else
-            // {
-            //     switch (direction.Value)
-            //     {
-            //         case Direction.Type.Up:
-            //             color = 1;
-            //             break;
-            //         case Direction.Type.North:
-            //         case Direction.Type.South:
-            //             color = 0.86f;
-            //             break;
-            //         case Direction.Type.East:
-            //         case Direction.Type.West:
-            //             color = 0.8f;
-            //             break;
-            //         case Direction.Type.Down:
-            //             color = 0.6f;
-            //             break;
-            //         default:
-            //             color = 0;
-            //             break;
-            //     }
-            // }
-            // var light = neighborData.Light;
+            var light = allLight.GetChannels(direction);
             var vertex = new ChunkVertex(new(x, y, z), new(u, v), light);
             Vertices.Add(vertex);
         }
@@ -269,10 +243,7 @@ public sealed class ChunkMesh
         foreach (var direction in Direction.AllDirections)
         {
             var neighborPos = pos.ToNeighbor(direction);
-
-            var neighborData = neighborPos.InChunkBounds()
-                ? Chunk.GetBlockData(neighborPos)
-                : Chunk.World.GetBlockData(neighborPos);
+            var neighborData = Chunk.GetBlockData(neighborPos);
 
             var block = blockId.Block();
             var neighbor = neighborData.Id.Block();
@@ -283,11 +254,11 @@ public sealed class ChunkMesh
             {
                 var uv = block.GetTextureLocation(direction);
                 // TODO: shit here
-                var uvOffset = State.Renderer.BlockAtlas.Atlas.Offset(uv);
-                var spriteUnit = State.Renderer.BlockAtlas.Atlas.SpriteUnit;
+                var uvOffset = GlobalState.Renderer.BlockAtlas.Atlas.Offset(uv);
+                var spriteUnit = GlobalState.Renderer.BlockAtlas.Atlas.SpriteUnit;
                 var shortenY =
                     block.Liquid && direction.Value is Direction.Type.Up && !neighbor.Liquid;
-                var light = neighborData.Light;
+                var light = neighborData.AllLight;
                 EmitFace(
                     pos.ToNumerics(),
                     direction,
@@ -341,7 +312,7 @@ public sealed class ChunkMesh
     private void Render(GL gl, IboHandler ibo)
     {
         // TODO: shit here
-        var shader = State.Renderer.Shaders[Renderer.ShaderType.Chunk];
+        var shader = GlobalState.Renderer.Shaders[Renderer.ShaderType.Chunk];
         var model = Chunk.CreateModel();
         shader.UniformMatrix4(gl, "m", model);
 
@@ -349,7 +320,7 @@ public sealed class ChunkMesh
         Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
         Vao.Link(gl, Vbo, 2, 1, VertexAttribIType.UnsignedInt, sizeof(float) * 5);
 
-        ibo.DrawElements(gl, State.Renderer.Wireframe);
+        ibo.DrawElements(gl, GlobalState.Renderer.Wireframe);
     }
 
     public void SetPersist(bool persist)

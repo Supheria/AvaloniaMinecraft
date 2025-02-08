@@ -19,10 +19,10 @@ public readonly struct BlockChunkPosition : IEquatable<BlockChunkPosition>
         ChunkPosition = chunkPosition;
     }
 
-    public BlockChunkPosition ToNeighbor(Direction direction)
+    public BlockWorldPosition ToNeighbor(Direction direction)
     {
-        var val = Vector3I.Add(Value, direction.Vector3I);
-        return new(val, ChunkPosition);
+        var val = ToWorld();
+        return val.ToNeighbor(direction);
     }
 
     public BlockWorldPosition ToWorld()
@@ -50,14 +50,19 @@ public readonly struct BlockChunkPosition : IEquatable<BlockChunkPosition>
             && Value.Y < ChunkData.ChunkSizeY
             && Value.Z < ChunkData.ChunkSizeZ;
     }
-    
+
     public Vector3 ToNumerics()
     {
         return Value.ToNumerics();
     }
-    
+
     public Vector3I ToInternal()
     {
         return Value;
+    }
+
+    public Vector2I Xz()
+    {
+        return new(Value.X, Value.Z);
     }
 }

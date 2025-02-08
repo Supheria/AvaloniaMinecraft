@@ -8,6 +8,7 @@ public sealed class ChunkData
     public const int ChunkSizeX = 32;
     public const int ChunkSizeY = 32;
     public const int ChunkSizeZ = 32;
+    public static Vector2I ChunkSizeXz { get; } = new(ChunkSizeX, ChunkSizeZ);
     public static Vector3I ChunkSize { get; } = new(ChunkSizeX, ChunkSizeY, ChunkSizeZ);
     public static uint[] FaceIndices { get; } = [1, 0, 3, 1, 3, 2];
     public static int[] UniqueIndices { get; } = [1, 0, 5, 2];

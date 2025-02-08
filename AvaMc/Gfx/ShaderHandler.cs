@@ -116,12 +116,12 @@ public sealed unsafe class ShaderHandler : Resource
         var location = gl.GetUniformLocation(Handle, uniformName);
         gl.Uniform1(location, value);
     }
-
-    public void UniformUnsignedInt(GL gl, string uniformName, uint value)
-    {
-        var location = gl.GetUniformLocation(Handle, uniformName);
-        gl.Uniform1(location, value);
-    }
+    //
+    // public void UniformUnsignedInt(GL gl, string uniformName, uint value)
+    // {
+    //     var location = gl.GetUniformLocation(Handle, uniformName);
+    //     gl.Uniform1(location, value);
+    // }
 
     public void UniformVector2(GL gl, string uniformName, Vector2 value)
     {

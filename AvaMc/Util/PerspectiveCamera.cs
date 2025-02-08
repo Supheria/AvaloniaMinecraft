@@ -43,7 +43,7 @@ public sealed class PerspectiveCamera : Camera
         var yaw = Yaw;
         var pos = Position;
         var fov = Fov;
-        var ratio = (float)State.Game.WindowSize.AspectRatio;
+        var ratio = (float)GlobalState.Game.WindowSize.AspectRatio;
         var zNear = ZNear;
         var zFar = ZFar;
 

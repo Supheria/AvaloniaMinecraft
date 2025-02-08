@@ -28,18 +28,18 @@ public sealed class GameControl : GlEsControl
 
     private void OnKeyDown(TopLevel _, KeyEventArgs e)
     {
-        State.Game.Keyboard[e.Key].Down = true;
+        GlobalState.Game.Keyboard[e.Key].Down = true;
     }
 
     private void OnKeyUp(TopLevel _, KeyEventArgs e)
     {
-        State.Game.Keyboard[e.Key].Down = false;
+        GlobalState.Game.Keyboard[e.Key].Down = false;
     }
 
     protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
-        State.Game.Keyboard.Clear();
+        GlobalState.Game.Keyboard.Clear();
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)
@@ -54,9 +54,9 @@ public sealed class GameControl : GlEsControl
         var position = e.GetPosition(this);
         var dX = position.X - LastPointerPostion.X;
         var dY = position.Y - LastPointerPostion.Y;
-        State.Game.Pointer.Delta = new((float)dX, (float)dY);
+        GlobalState.Game.Pointer.Delta = new((float)dX, (float)dY);
         LastPointerPostion = position;
-        State.Game.Pointer.Position = new((float)position.X, (float)position.Y);
+        GlobalState.Game.Pointer.Position = new((float)position.X, (float)position.Y);
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -64,16 +64,16 @@ public sealed class GameControl : GlEsControl
         base.OnPointerPressed(e);
         var point = e.GetCurrentPoint(this);
         if (point.Properties.IsLeftButtonPressed)
-            State.Game.Pointer[PointerButton.Left].Down = true;
+            GlobalState.Game.Pointer[PointerButton.Left].Down = true;
         if (point.Properties.IsRightButtonPressed)
-            State.Game.Pointer[PointerButton.Right].Down = true;
+            GlobalState.Game.Pointer[PointerButton.Right].Down = true;
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
-        State.Game.Pointer[PointerButton.Left].Down = false;
-        State.Game.Pointer[PointerButton.Right].Down = false;
+        GlobalState.Game.Pointer[PointerButton.Left].Down = false;
+        GlobalState.Game.Pointer[PointerButton.Right].Down = false;
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)
@@ -82,7 +82,7 @@ public sealed class GameControl : GlEsControl
 
         var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
         var size = e.NewSize * scaling;
-        State.Game.WindowSize = size;
+        GlobalState.Game.WindowSize = size;
     }
 
     protected override void OnGlInit(GL gl)
@@ -99,7 +99,7 @@ public sealed class GameControl : GlEsControl
     protected override void OnGlRender(GL gl)
     {
         var now = Time.Now();
-        State.Game.FrameDelta = FrameDelta = now - LastFrameTime;
+        GlobalState.Game.FrameDelta = FrameDelta = now - LastFrameTime;
         LastFrameTime = now;
 
         const long nsPerTick = Time.NanosecondsPerSecond / 60;
@@ -117,16 +117,16 @@ public sealed class GameControl : GlEsControl
     private void Tick(GL gl)
     {
         Ticks++;
-        State.Game.Pointer.Tick();
-        State.Game.Keyboard.Tick();
+        GlobalState.Game.Pointer.Tick();
+        GlobalState.Game.Keyboard.Tick();
         Game.Tick(gl);
     }
 
     private void Update(GL gl)
     {
-        State.Game.Pointer.Update();
-        State.Game.Keyboard.Update();
+        GlobalState.Game.Pointer.Update();
+        GlobalState.Game.Keyboard.Update();
         Game.Update(gl);
-        State.Game.Pointer.Delta = Vector2.Zero;
+        GlobalState.Game.Pointer.Delta = Vector2.Zero;
     }
 }

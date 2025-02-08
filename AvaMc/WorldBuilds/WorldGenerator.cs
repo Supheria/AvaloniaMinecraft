@@ -48,20 +48,14 @@ public sealed class WorldGenerator
         (chunk, x, y, z) =>
         {
             var p = chunk.CreatePosition(x, y, z);
-            if (p.InChunkBounds())
-                return chunk.GetBlockId(p);
-            else
-                return chunk.World.GetBlockId(p);
+            return chunk.GetBlockId(p);
         };
 
     private Set SetBlockData { get; } =
         (chunk, x, y, z, id) =>
         {
             var p = chunk.CreatePosition(x, y, z);
-            if (p.InChunkBounds())
-                chunk.SetBlockId(p, id);
-            else
-                chunk.World.SetBlockId(p, id);
+            chunk.SetBlockId(p, id);
         };
 
     private void Tree(Random random, Chunk chunk, Get get, Set set, int x, int y, int z)
@@ -371,12 +365,7 @@ public sealed class WorldGenerator
             }
         }
 
-        var loaded = new List<BlockWorldPosition>();
         foreach (var (pos, id) in chunk.World.UnloadedBlockIds)
-        {
-            if (chunk.SetBlockId(pos, id))
-                loaded.Add(pos);
-        }
-        loaded.ForEach(d => chunk.World.UnloadedBlockIds.Remove(d));
+            chunk.SetBlockId(pos, id);
     }
 }

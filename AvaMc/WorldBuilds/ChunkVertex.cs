@@ -7,13 +7,13 @@ public readonly struct ChunkVertex
 {
     public Vector3 Position { get; }
     public Vector2 Uv { get; }
-    public uint LightRgbi {get;}
+    public uint Light {get;}
 
-    public ChunkVertex(Vector3 position, Vector2 uv, LightRgbi lightRgbi)
+    public ChunkVertex(Vector3 position, Vector2 uv, uint light)
     {
         Position = position;
         Uv = uv;
-        LightRgbi = lightRgbi.GetChannels();
+        Light = light;
     }
 
     // public ChunkVertex(Vector3 position, Vector2 uv)

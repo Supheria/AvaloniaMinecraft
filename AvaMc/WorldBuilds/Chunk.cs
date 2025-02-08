@@ -18,18 +18,10 @@ public sealed partial class Chunk
     ChunkOffset Offset { get; set; }
     Vector3I ChunckPosition { get; set; }
     Dictionary<Vector3I, BlockData> Data { get; set; } = [];
-
-    // bool Dirty { get; set; } = true;
-    // bool DepthSort { get; set; } = true;
-
-    // int BlockCount { get; set; }
-    //
-    // // if true, this chunk is generating
-    // bool Generating { get; set; }
-    // ChunkMesh Mesh { get; set; }
     ChunkMesh Mesh { get; }
     int NoneAirCount { get; set; }
     bool Empty => NoneAirCount is 0;
+    bool Generating { get; set; } = true;
 
     public Chunk(GL gl, World world, Vector3I offset)
     {
@@ -37,6 +29,13 @@ public sealed partial class Chunk
         Offset = new(offset);
         ChunckPosition = Offset.ToChunkPosition();
         Mesh = new(gl, this);
+    }
+
+    public void Generate(WorldGenerator generator)
+    {
+        Generating = true;
+        generator.Generate(this);
+        Generating = false;
     }
 
     public void Delete(GL gl)
@@ -58,7 +57,8 @@ public sealed partial class Chunk
 
     public BlockChunkPosition CreatePosition(int x, int y, int z)
     {
-        return new(new(x, y, z), ChunckPosition);
+        var position = new Vector3I(x, y, z);
+        return new(position, ChunckPosition);
     }
 
     public BlockChunkPosition CreatePosition(BlockWorldPosition position)
@@ -112,17 +112,37 @@ public sealed partial class Chunk
         }
         return chunks;
     }
-    
-    private void OnModify(Vector3I position, BlockData.Data old, BlockData.Data @new)
+
+    private void OnModify(Vector3I position, BlockData.Data prev, BlockData.Data changed)
     {
         Mesh.Dirty = true;
-        if (old.Id == @new.Id)
-            return;
-        var neighbors = GetBorderingChunks(position);
-        foreach (var chunk in neighbors)
-            chunk.Mesh.Dirty = true;
-        var count = NoneAirCount + (@new.Id is BlockId.Air ? -1 : 1);
-        NoneAirCount = Math.Max(0, count);
+
+        if (prev.Id != changed.Id)
+        {
+            var pos = new BlockChunkPosition(position, ChunckPosition);
+            if (changed.Id is BlockId.Air)
+            {
+                NoneAirCount--;
+                World.RecaculateHeightmap(pos.ToWorld());
+                if (!Generating)
+                    Light.UpdateAllLight(World, pos.ToWorld());
+            }
+            else
+            {
+                NoneAirCount++;
+                World.UpdateHeightmap(pos.ToWorld());
+                if (!Generating)
+                    Light.RemoveAllLight(World, pos.ToWorld());
+            }
+            NoneAirCount = Math.Max(0, NoneAirCount);
+        }
+
+        if (prev.Id != changed.Id || prev.AllLight != changed.AllLight)
+        {
+            var neighbors = GetBorderingChunks(position);
+            foreach (var chunk in neighbors)
+                chunk.Mesh.Dirty = true;
+        }
     }
 
     public List<BlockChunkPosition> GetBlockPositions()
@@ -135,19 +155,30 @@ public sealed partial class Chunk
         return result;
     }
 
+    public int GetHighest(BlockChunkPosition position)
+    {
+        var heightMap = World.GetHeightmap(Offset);
+        return heightMap.Get(position) - ChunckPosition.Y;
+    }
+
+    public int GetHighest(BlockWorldPosition position)
+    {
+        return World.GetHighest(position);
+    }
+
     public void PrepareRender(GL gl)
     {
         if (Empty)
             return;
         Mesh.PrepareRender(gl);
     }
-    
+
     public void RenderTransparent(GL gl)
     {
         if (!Empty)
             Mesh.RederTransparent(gl);
     }
-    
+
     public void RenderSolid(GL gl)
     {
         if (!Empty)

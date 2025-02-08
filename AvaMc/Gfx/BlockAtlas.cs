@@ -124,7 +124,7 @@ public sealed class BlockAtlas
 
     public void Update()
     {
-        var frame = (State.Ticks / (State.TickRate / FramesPerSecond)) % FrameCount;
+        var frame = (GlobalState.Ticks / (GlobalState.TickRate / FramesPerSecond)) % FrameCount;
         Atlas.Texture = Frames[frame];
     }
 }

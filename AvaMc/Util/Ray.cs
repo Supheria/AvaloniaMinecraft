@@ -103,7 +103,7 @@ public readonly struct Ray
 
     private static bool GetBlockNotAir(BlockWorldPosition position)
     {
-        var id = State.World.GetBlockId(position);
+        var id = GlobalState.World.GetBlockId(position);
         return id is not BlockId.Air;
     }
 }

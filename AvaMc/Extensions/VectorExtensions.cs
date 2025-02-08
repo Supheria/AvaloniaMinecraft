@@ -35,4 +35,14 @@ public static class VectorExtensions
     {
         return float.IsNaN(p.X) || float.IsNaN(p.Y) || float.IsNaN(p.Z);
     }
+
+    public static Vector2I Xz(this Vector3I p)
+    {
+        return new(p.X, p.Z);
+    }
+
+    public static Vector3 Xyz(this Vector4 v)
+    {
+        return new(v.X, v.Y, v.Z);
+    }
 }

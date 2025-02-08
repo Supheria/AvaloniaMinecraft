@@ -6,7 +6,7 @@ namespace AvaMc.Util;
 
 public sealed class Direction
 {
-    public enum Type
+    public enum Type : byte
     {
         North = 0,
         South = 1,
@@ -85,6 +85,8 @@ public sealed class Direction
     /// </summary>
     public static Direction Down { get; } = new(Type.Down);
     public static Direction[] AllDirections { get; } = [North, South, East, West, Up, Down];
+    public static Direction[] AllDirectionsRevers { get; } = [Down, Up, West, East, South, North];
+    public static Direction[] DirectionsXz { get; } = [North, South, East, West];
 
     public static Direction? ToDirection(Vector3I v)
     {

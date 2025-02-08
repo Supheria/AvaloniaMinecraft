@@ -20,10 +20,20 @@ partial class Chunk
         var data = GetBlockData(position.ToInternal());
         return data.GetData();
     }
+    
+    public BlockData.Data GetBlockData(BlockWorldPosition position)
+    {
+        return World.GetBlockData(position);
+    }
 
     public BlockId GetBlockId(BlockChunkPosition position)
     {
         return GetBlockId(position.ToInternal());
+    }
+    
+    public BlockId GetBlockId(BlockWorldPosition position)
+    {
+        return World.GetBlockId(position);
     }
 
     private BlockId GetBlockId(Vector3I position)
@@ -32,14 +42,19 @@ partial class Chunk
         return data.Id;
     }
 
-    public LightRgbi GetBlockLight(BlockChunkPosition position)
-    {
-        return GetBlockLight(position.ToInternal());
-    }
-
-    private LightRgbi GetBlockLight(Vector3I position)
+    private LightIbgrs GetAllLight(Vector3I position)
     {
         var data = GetBlockData(position);
-        return data.Light;
+        return data.AllLight;
+    }
+
+    public LightIbgrs GetAllLight(BlockChunkPosition position)
+    {
+        return GetAllLight(position.ToInternal());
+    }
+    
+    public LightIbgrs GetAllLight(BlockWorldPosition position)
+    {
+        return World.GetAllLight(position);
     }
 }

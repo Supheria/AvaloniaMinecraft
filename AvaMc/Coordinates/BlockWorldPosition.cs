@@ -24,6 +24,7 @@ public struct BlockWorldPosition
         get => _value.Z;
         set => _value.Z = value;
     }
+    public int Height => Y;
     public static BlockWorldPosition Zero { get; } = new();
 
     public BlockWorldPosition()
@@ -50,6 +51,11 @@ public struct BlockWorldPosition
         );
     }
 
+    public BlockWorldPosition(BlockHeightmapPosition position, int height)
+    {
+        _value = new Vector3I(position.X, height, position.Z);
+    }
+
     public Vector3I ToChunkOffset()
     {
         return new(
@@ -57,6 +63,20 @@ public struct BlockWorldPosition
             (int)MathF.Floor(_value.Y / (float)ChunkData.ChunkSizeY),
             (int)MathF.Floor(_value.Z / (float)ChunkData.ChunkSizeZ)
         );
+    }
+
+    public Vector2I ToChunkOffsetXz()
+    {
+        return new(
+            (int)MathF.Floor(_value.X / (float)ChunkData.ChunkSizeX),
+            (int)MathF.Floor(_value.Z / (float)ChunkData.ChunkSizeZ)
+        );
+    }
+
+    public Vector2I ToHeightmap()
+    {
+        var val = new Vector2I(_value.X, _value.Z);
+        return val.Mod(ChunkData.ChunkSizeXz).Add(ChunkData.ChunkSizeXz).Mod(ChunkData.ChunkSizeXz);
     }
 
     public Vector3I ToChunk()

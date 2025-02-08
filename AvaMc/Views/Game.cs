@@ -15,16 +15,16 @@ public sealed class Game
 {
     public void Initialize(GL gl)
     {
-        State.Renderer = new(gl);
-        State.World = new(gl);
+        GlobalState.Renderer = new(gl);
+        GlobalState.World = new(gl);
         // TODO: not good here
-        State.Renderer.PerspectiveCamera.Position = new(0, 80, 0);
+        GlobalState.Renderer.PerspectiveCamera.Position = new(0, 80, 0);
     }
 
     public void Delete(GL gl)
     {
-        State.Renderer.Delete(gl);
-        State.World.Delete(gl);
+        GlobalState.Renderer.Delete(gl);
+        GlobalState.World.Delete(gl);
     }
 
     //TODO: for test
@@ -32,22 +32,22 @@ public sealed class Game
 
     public void Tick(GL gl)
     {
-        State.Ticks++;
-        State.World.Tick();
-        var blockPosition = new BlockWorldPosition(State.World.Player.Camera.Position);
-        State.World.SetCenter(gl, blockPosition);
+        GlobalState.Ticks++;
+        GlobalState.World.Tick();
+        var blockPosition = new BlockWorldPosition(GlobalState.World.Player.Camera.Position);
+        GlobalState.World.SetCenter(gl, blockPosition);
 
         // TODO: for test
-        if (State.Game.Keyboard[Key.C].PressedTick)
+        if (GlobalState.Game.Keyboard[Key.C].PressedTick)
         {
             var r = Random.Next() % 16;
             var g = Random.Next() % 16;
             var b = Random.Next() % 16;
-            Light.Add(State.World, blockPosition, new(15, 15, 15, 15));
+            Light.Add(GlobalState.World, blockPosition, new(15, 15, 15, 15, 0));
         }
-        if (State.Game.Keyboard[Key.V].PressedTick)
+        if (GlobalState.Game.Keyboard[Key.V].PressedTick)
         {
-            Light.Remove(State.World, blockPosition);
+            Light.Remove(GlobalState.World, blockPosition);
         }
         // if (State.Game.Keyboard[Key.C].PressedTick)
         // {
@@ -65,39 +65,42 @@ public sealed class Game
 
     public void Update(GL gl)
     {
-        State.Renderer.Update();
-        State.World.Update(gl);
+        GlobalState.Renderer.Update();
+        GlobalState.World.Update(gl);
 
-        if (State.Game.Keyboard[Key.T].Pressed)
-            State.Renderer.Wireframe = !State.Renderer.Wireframe;
+        if (GlobalState.Game.Keyboard[Key.T].Pressed)
+            GlobalState.Renderer.Wireframe = !GlobalState.Renderer.Wireframe;
     }
 
     float Z = 0;
+
     public void Render(GL gl)
     {
-        State.Renderer.ClearColor = new(0.5f, 0.8f, 0.9f, 1.0f);
-        State.Renderer.Prepare(gl, Renderer.RenderPass.Pass3D);
-        State.World.Render(gl);
+        GlobalState.Renderer.Prepare(gl, Renderer.RenderPass.Pass3D);
+        GlobalState.World.Render(gl);
 
         // Z -= 0.05f;
-        State.Renderer.Prepare(gl, Renderer.RenderPass.Pass2D);
-        State.Renderer.PushCamera();
+        GlobalState.Renderer.Prepare(gl, Renderer.RenderPass.Pass2D);
+        GlobalState.Renderer.PushCamera();
         {
-            State.Renderer.SetCamera(CameraType.Orthographic);
+            GlobalState.Renderer.SetCamera(CameraType.Orthographic);
             // TODO: not good here
-            State.Renderer.OrthographicCamera.Initialize(Vector2.Zero, State.Game.WindowSize.ToVector2());
+            GlobalState.Renderer.OrthographicCamera.Initialize(
+                Vector2.Zero,
+                GlobalState.Game.WindowSize.ToVector2()
+            );
             var pos = new Vector3(
-                (float)(State.Game.WindowSize.Width / 2) - 8,
-                (float)(State.Game.WindowSize.Height / 2) - 8,
+                (float)(GlobalState.Game.WindowSize.Width / 2) - 8,
+                (float)(GlobalState.Game.WindowSize.Height / 2) - 8,
                 0
             );
             var size = new Vector3(16, 16, 0);
             var color = new Vector4(1.0f, 1.0f, 1.0f, 0.4f);
             var min = new Vector2(0, 0);
             var max = new Vector2(1, 1);
-            State.Renderer.ImmediateQuad(
+            GlobalState.Renderer.ImmediateQuad(
                 gl,
-                State.Renderer.Textures[Renderer.TextureType.CrossHair],
+                GlobalState.Renderer.Textures[Renderer.TextureType.CrossHair],
                 pos,
                 size,
                 color,
@@ -105,6 +108,6 @@ public sealed class Game
                 max
             );
         }
-        State.Renderer.PopCamera();
+        GlobalState.Renderer.PopCamera();
     }
 }
