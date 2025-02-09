@@ -349,9 +349,15 @@ public class MathHelper
     {
         return (value > 0) && ((value & (value - 1)) == 0);
     }
-    
+
     public static int FloorI(float value)
     {
         return (int)MathF.Floor(value);
+    }
+
+    public static bool RandomChance(Random random, double chance)
+    {
+        var rand = random.NextDouble();
+        return rand <= chance;
     }
 }

@@ -24,40 +24,40 @@ partial class World
         return GetHeightmap(offset);
     }
 
-    private void SetHeightmap(BlockWorldPosition position)
+    private void SetHeightmap(BlockPosition position)
     {
         var offset = position.ToChunkOffsetXz();
         var heightmap = GetHeightmap(offset);
-        heightmap.Set(position);
+        heightmap.SetHeight(position);
     }
 
-    public int GetHighest(BlockWorldPosition position)
+    public int GetHighest(BlockPosition position)
     {
         var offset = position.ToChunkOffset().Xz();
         if (!InBounds(offset))
             return Heightmap.UnknownHeight;
         var heightmap = GetHeightmap(offset);
-        return heightmap.Get(position);
+        return heightmap.GetHeight(position);
     }
 
-    public bool UpdateHeightmap(BlockWorldPosition position)
+    public bool UpdateHeightmap(BlockPosition position)
     {
         var offset = position.ToChunkOffsetXz();
         var heightmap = GetHeightmap(offset);
-        var height = heightmap.Get(position);
+        var height = heightmap.GetHeight(position);
         if (position.Y <= height)
             return false;
-        heightmap.Set(position);
+        heightmap.SetHeight(position);
         return true;
     }
 
-    public void RecaculateHeightmap(BlockWorldPosition position)
+    public void RecaculateHeightmap(BlockPosition position)
     {
         var offset = position.ToChunkOffset();
         if (!InBounds(offset))
             throw new ArgumentOutOfRangeException(nameof(position));
-        var yMin = ChunksOrigin.Y - ChunksMagnitude / 2 * ChunkData.ChunkSizeY;
-        var yMax = ChunksOrigin.Y + ChunksMagnitude / 2 * ChunkData.ChunkSizeY;
+        var yMin = ChunksOrigin.Y * ChunkData.ChunkSizeY;
+        var yMax = (ChunksOrigin.Y + ChunksMagnitude) * ChunkData.ChunkSizeY;
         for (var y = yMax; y >= yMin; y--)
         {
             position.Y = y;

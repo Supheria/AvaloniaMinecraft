@@ -5,17 +5,8 @@ using Silk.NET.Maths;
 
 namespace AvaMc.Util;
 
-public sealed class ColorHelper
+public sealed class Color
 {
-    public static Vector4 ValueToNormalizedRgba(uint value)
-    {
-        var r = ((value & 0xFF000000) >> 24) / 255.0f;
-        var g = ((value & 0x00FF0000) >> 16) / 255.0f;
-        var b = ((value & 0x0000FF00) >> 08) / 255.0f;
-        var a = ((value & 0x000000FF) >> 00) / 255.0f;
-        return new(r, g, b, a);
-    }
-
     // Conversion code adapted from https://gist.github.com/mattatz/44f081cac87e2f7c8980#file-labcolorspace-cginc-L29
 
     private static Vector3 RgbToXyz(Vector3 c)
@@ -24,12 +15,20 @@ public sealed class ColorHelper
         tmp.X = c.X > 0.04045f ? MathF.Pow((c.X + 0.055f) / 1.055f, 2.4f) : c.X / 12.92f;
         tmp.Y = c.Y > 0.04045f ? MathF.Pow((c.Y + 0.055f) / 1.055f, 2.4f) : c.Y / 12.92f;
         tmp.Z = c.Z > 0.04045f ? MathF.Pow((c.Z + 0.055f) / 1.055f, 2.4f) : c.Z / 12.92f;
+        // var mat = new Matrix3X3(
+        //     new[,]
+        //     {
+        //         { 0.4124f, 0.3576f, 0.1805f },
+        //         { 0.2126f, 0.7152f, 0.0722f },
+        //         { 0.0193f, 0.1192f, 0.9505f },
+        //     }
+        // );       
         var mat = new Matrix3X3(
             new[,]
             {
-                { 0.4124f, 0.3576f, 0.1805f },
-                { 0.2126f, 0.7152f, 0.0722f },
-                { 0.0193f, 0.1192f, 0.9505f },
+                { 0.4124f, 0.2126f, 0.0193f },
+                { 0.3576f, 0.7152f, 0.1192f },
+                { 0.1805f, 0.0722f, 0.9505f },
             }
         );
         return Vector3.Multiply(Matrix3X3.Multiply(mat, tmp), 100.0f);
@@ -65,12 +64,20 @@ public sealed class ColorHelper
 
     private static Vector3 XyzToRgb(Vector3 c)
     {
+        // var mat = new Matrix3X3(
+        //     new[,]
+        //     {
+        //         { 3.2406f, -1.5372f, -0.4986f },
+        //         { -0.9689f, 1.8758f, 0.0415f },
+        //         { 0.0557f, -0.2040f, 1.0570f },
+        //     }
+        // );
         var mat = new Matrix3X3(
             new[,]
             {
-                { 3.2406f, -1.5372f, -0.4986f },
-                { -0.9689f, 1.8758f, 0.0415f },
-                { 0.0557f, -0.2040f, 1.0570f },
+                { 3.2406f, -0.9689f, 0.0557f },
+                { -1.5372f, 1.8758f, -0.2040f },
+                { -0.4986f, 0.0415f, 1.0570f },
             }
         );
         var v = Matrix3X3.Multiply(mat, Vector3.Multiply(c, 1.0f / 100.0f));

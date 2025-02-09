@@ -25,7 +25,7 @@ partial class Chunk
         SetBlockId(new Vector3I(x, y, z), id);
     }
 
-    public void SetBlockId(BlockWorldPosition position, BlockId id)
+    public void SetBlockId(BlockPosition position, BlockId id)
     {
         World.SetBlockId(position, id);
     }
@@ -54,7 +54,7 @@ partial class Chunk
         SetSunlight(position.ToInternal(), sunlight);
     }
     
-    public void SetSunlight(BlockWorldPosition position, int sunlight)
+    public void SetSunlight(BlockPosition position, int sunlight)
     {
         World.SetSunlight(position, sunlight);
     }

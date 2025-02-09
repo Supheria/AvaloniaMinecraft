@@ -28,27 +28,31 @@ public sealed class Game
     }
 
     //TODO: for test
-    static Random Random = new();
 
     public void Tick(GL gl)
     {
         GlobalState.Ticks++;
         GlobalState.World.Tick();
-        var blockPosition = new BlockWorldPosition(GlobalState.World.Player.Camera.Position);
+        var blockPosition = new BlockPosition(GlobalState.World.Player.Camera.Position);
         GlobalState.World.SetCenter(gl, blockPosition);
 
         // TODO: for test
         if (GlobalState.Game.Keyboard[Key.C].PressedTick)
         {
-            var r = Random.Next() % 16;
-            var g = Random.Next() % 16;
-            var b = Random.Next() % 16;
-            Light.Add(GlobalState.World, blockPosition, new(15, 15, 15, 15, 0));
+            var random = new Random();
+            var r = random.Next() % 16;
+            var g = random.Next() % 16;
+            var b = random.Next() % 16;
+            Light.Add(GlobalState.World, blockPosition, new(r, g, b, 15, 0));
         }
         if (GlobalState.Game.Keyboard[Key.V].PressedTick)
         {
             Light.Remove(GlobalState.World, blockPosition);
         }
+        if (GlobalState.Game.Keyboard[Key.L].Down)
+            GlobalState.World.Ticks += 30;
+        if (GlobalState.Game.Keyboard[Key.P].PressedTick)
+            GlobalState.World.Ticks += Sky.CycleTicks / 3;
         // if (State.Game.Keyboard[Key.C].PressedTick)
         // {
         //     for (var x = 0; x < 32; x++)

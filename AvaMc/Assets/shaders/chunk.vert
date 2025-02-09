@@ -11,8 +11,7 @@ layout (location = 2) in uint color;
 
 uniform mat4 m, v, p;
 
-// TODO: make this a uniform
-const vec3 sunlight_color = vec3(1.0, 1.0, 1.0);
+uniform vec4 sunlight_color;
 
 // should match enum Direction in direction.h
 const uint NORTH = 0U;
@@ -29,7 +28,6 @@ out vec3 v_viewpos;
 void main() {
     gl_Position = p * v * m * vec4(position, 1.0);
 
-    // TODO: sunlight
     // 'color' is packed:
     // - (3) face direction, NORTH, SOUTH, EAST, WEST, UP, DOWN
     // - (4) sunlight intensity
@@ -44,7 +42,7 @@ void main() {
     ) * (float((color & 0x0000FU)) / 16.0);
     
     // vec3 light = (light_rgbi.xyz / 16.0) * (light_rgbi.w / 16.0);
-    light += sunlight_color * ((float((color & 0xF0000U) >> 16U)) / 16.0);
+    light += vec3(sunlight_color.rgb) * (float(((color & 0xF0000U) >> 16U)) / 16.0);
     // adjust light range to prevent entirely black lighting
     const float min_light = 0.005;
     light *= vec3(1.0 - min_light);
@@ -55,11 +53,11 @@ void main() {
     if (direction == UP) {
         light *= 1.0;
     } else if (direction == EAST || direction == WEST) {
-        light *= 0.95;
+        light *= 0.85;
     } else if (direction == NORTH || direction == SOUTH) {
-        light *= 0.92;
+        light *= 0.7;
     } else {
-        light *= 0.89;
+        light *= 0.6;
     }
 
     // set and gamma correct

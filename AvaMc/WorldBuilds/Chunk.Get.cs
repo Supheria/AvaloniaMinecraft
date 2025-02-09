@@ -21,7 +21,7 @@ partial class Chunk
         return data.GetData();
     }
     
-    public BlockData.Data GetBlockData(BlockWorldPosition position)
+    public BlockData.Data GetBlockData(BlockPosition position)
     {
         return World.GetBlockData(position);
     }
@@ -31,7 +31,7 @@ partial class Chunk
         return GetBlockId(position.ToInternal());
     }
     
-    public BlockId GetBlockId(BlockWorldPosition position)
+    public BlockId GetBlockId(BlockPosition position)
     {
         return World.GetBlockId(position);
     }
@@ -53,7 +53,7 @@ partial class Chunk
         return GetAllLight(position.ToInternal());
     }
     
-    public LightIbgrs GetAllLight(BlockWorldPosition position)
+    public LightIbgrs GetAllLight(BlockPosition position)
     {
         return World.GetAllLight(position);
     }

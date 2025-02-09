@@ -18,7 +18,7 @@ public sealed partial class World
 {
     // const int ChunksSize = 28;
 
-    const int ChunksMagnitude = 8;
+    const int ChunksMagnitude = 10;
     Sky Sky { get; }
     public Player Player { get; set; }
     Dictionary<Vector3I, Chunk> Chunks { get; set; } = [];
@@ -28,14 +28,18 @@ public sealed partial class World
     public Threshold Meshing { get; } = new(8);
 
     // TODO: use dictionary
-    public Dictionary<BlockWorldPosition, BlockId> UnloadedBlockIds { get; } = [];
-    WorldGenerator Generator { get; } = new(2);
+    public Dictionary<BlockPosition, BlockId> UnloadedBlockIds { get; } = [];
+    WorldGenerator Generator { get; }
+    public long Ticks { get; set; }
+    public int Seed { get; set; }
 
     public World(GL gl)
     {
         Sky = new(gl, this);
         Player = new(this);
-        SetCenter(gl, BlockWorldPosition.Zero);
+        Seed = new Random().Next();
+        Generator = new(Seed);
+        SetCenter(gl, BlockPosition.Zero);
     }
 
     public void Delete(GL gl)
@@ -62,9 +66,9 @@ public sealed partial class World
     {
         var modified = Vector2I.Subtract(offset, ChunksOrigin.Xz());
         return modified.X >= 0
-               && modified.Y >= 0
-               && modified.X < ChunksMagnitude
-               && modified.Y < ChunksMagnitude;
+            && modified.Y >= 0
+            && modified.X < ChunksMagnitude
+            && modified.Y < ChunksMagnitude;
     }
 
     public bool GetChunk(ChunkOffset offset, [NotNullWhen(true)] out Chunk? chunk)
@@ -81,7 +85,7 @@ public sealed partial class World
     }
 
     // TODO: cache unloaded chunks' blocks
-    private Chunk? GetChunk(BlockWorldPosition position)
+    private Chunk? GetChunk(BlockPosition position)
     {
         var offset = position.ToChunkOffset();
         if (GetChunk(offset, out var chunk))
@@ -89,7 +93,7 @@ public sealed partial class World
         return null;
     }
 
-    public BlockId GetBlockId(BlockWorldPosition position)
+    public BlockId GetBlockId(BlockPosition position)
     {
         var chunk = GetChunk(position);
         if (chunk is null)
@@ -98,7 +102,7 @@ public sealed partial class World
         return chunk.GetBlockId(cPos);
     }
 
-    public LightIbgrs GetAllLight(BlockWorldPosition position)
+    public LightIbgrs GetAllLight(BlockPosition position)
     {
         var chunk = GetChunk(position);
         if (chunk is null)
@@ -107,7 +111,7 @@ public sealed partial class World
         return chunk.GetAllLight(cPos);
     }
 
-    public BlockData.Data GetBlockData(BlockWorldPosition position)
+    public BlockData.Data GetBlockData(BlockPosition position)
     {
         var chunk = GetChunk(position);
         if (chunk is null)
@@ -116,7 +120,7 @@ public sealed partial class World
         return chunk.GetBlockData(cPos);
     }
 
-    public void SetBlockId(BlockWorldPosition position, BlockId id)
+    public void SetBlockId(BlockPosition position, BlockId id)
     {
         var chunk = GetChunk(position);
         if (chunk is null)
@@ -125,11 +129,10 @@ public sealed partial class World
         {
             var cPos = chunk.CreatePosition(position);
             chunk.SetBlockId(cPos, id);
-            UnloadedBlockIds.Remove(position);
         }
     }
 
-    public void SetAllLight(BlockWorldPosition position, LightIbgrs light)
+    public void SetAllLight(BlockPosition position, LightIbgrs light)
     {
         var chunk = GetChunk(position);
         if (chunk is null)
@@ -138,7 +141,7 @@ public sealed partial class World
         chunk.SetAllLight(cPos, light);
     }
 
-    public void SetSunlight(BlockWorldPosition position, int sunlight)
+    public void SetSunlight(BlockPosition position, int sunlight)
     {
         var chunk = GetChunk(position);
         if (chunk is null)
@@ -179,12 +182,22 @@ public sealed partial class World
         if (!InBounds(offset))
             throw new ArgumentOutOfRangeException(nameof(offset), offset, null);
         var chunk = new Chunk(gl, this, offset);
-        chunk.Generate(Generator);
         Chunks[offset] = chunk;
-        Light.ApplyAllLight(chunk);
+        chunk.Generating = true;
+        Generator.Generate(chunk);
+        foreach (var (position, blockId) in UnloadedBlockIds)
+        {
+            if (position.ToChunkOffset() != offset)
+                continue;
+            var cPos = chunk.CreatePosition(position);
+            chunk.SetBlockId(cPos, blockId);
+            UnloadedBlockIds.Remove(position);
+        }
+        chunk.Generating = false;
+        chunk.AfterGenerate();
     }
 
-    public void SetCenter(GL gl, BlockWorldPosition position)
+    public void SetCenter(GL gl, BlockPosition position)
     {
         var newOffset = position.ToChunkOffset();
         var magnitude = new Vector3I(ChunksMagnitude / 2, ChunksMagnitude / 2, ChunksMagnitude / 2);
@@ -217,7 +230,7 @@ public sealed partial class World
         Sky.FogFar = ChunksMagnitude / 2f * 32 - 4;
         Sky.Render(gl);
         GlobalState.Renderer.ClearColor = Sky.ClearColor;
-        
+
         foreach (var offset in SortChunksByOffset(DepthOrder.Nearer))
         {
             if (GetChunk(offset, out var chunk))
@@ -233,6 +246,8 @@ public sealed partial class World
         //TODO: shit here
         var shader = renderer.Shaders[Renderer.ShaderType.Chunk];
         shader.UniformTexture(gl, "tex", renderer.BlockAtlas.Atlas.Texture);
+        shader.UniformVector4(gl, "sunlight_color", Sky.SunlgihtColor);
+
         shader.UniformVector4(gl, "fog_color", renderer.ClearColor);
         shader.UniformFloat(gl, "fog_near", ChunksMagnitude / 2f * 32 - 12);
         shader.UniformFloat(gl, "fog_far", ChunksMagnitude / 2f * 32 - 4);
@@ -261,6 +276,7 @@ public sealed partial class World
 
     public void Tick()
     {
+        Ticks++;
         foreach (var chunk in Chunks.Values)
             chunk.Tick();
         Player.Tick();

@@ -1,7 +1,8 @@
 namespace AvaMc.WorldBuilds;
 
-// TODO
 public sealed class WorldgenData
 {
-    
+    public int H { get; set; }
+    public float T { get; set; }
+    public float R { get; set; }
 }

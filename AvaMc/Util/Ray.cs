@@ -32,12 +32,12 @@ public readonly struct Ray
         return v;
     }
 
-    public bool RayBlock(float maxDistance, out BlockWorldPosition blockPos, out Direction? direction)
+    public bool RayBlock(float maxDistance, out BlockPosition blockPos, out Direction? direction)
     {
-        blockPos = BlockWorldPosition.Zero;
+        blockPos = BlockPosition.Zero;
         direction = null;
 
-        var p = new BlockWorldPosition(
+        var p = new BlockPosition(
             MathHelper.FloorI(Origin.X),
             MathHelper.FloorI(Origin.Y),
             MathHelper.FloorI(Origin.Z)
@@ -101,7 +101,7 @@ public readonly struct Ray
         return false;
     }
 
-    private static bool GetBlockNotAir(BlockWorldPosition position)
+    private static bool GetBlockNotAir(BlockPosition position)
     {
         var id = GlobalState.World.GetBlockId(position);
         return id is not BlockId.Air;

@@ -8,32 +8,50 @@ namespace AvaMc.WorldBuilds;
 public sealed class Heightmap
 {
     public const int UnknownHeight = int.MinValue;
-    Dictionary<Vector2I, int> Data { get; } = [];
+    Dictionary<Vector2I, int> HeightData { get; } = [];
+    Dictionary<Vector2, WorldgenData> WorldgenData { get; } = [];
+    public bool Generated { get; set; }
 
-    public void Set(BlockWorldPosition position)
+    public void SetHeight(BlockPosition position)
     {
-        var pos = position.ToHeightmap();
-        Data[pos] = position.Height;
+        var pos = position.IntoHeightmap();
+        HeightData[pos] = position.Height;
     }
-    
-    private int Get(Vector2I position)
+
+    private int GetHeight(Vector2I position)
     {
-        if (Data.TryGetValue(position, out var height))
+        if (HeightData.TryGetValue(position, out var height))
             return height;
-        Data[position] = UnknownHeight;
-        return Data[position];
+        HeightData[position] = UnknownHeight;
+        return HeightData[position];
     }
 
-    public int Get(BlockWorldPosition position)
+    public int GetHeight(BlockPosition position)
     {
-        var pos = position.ToHeightmap();
-        return Get(pos);
+        var pos = position.IntoHeightmap();
+        return GetHeight(pos);
     }
 
-    public int Get(BlockChunkPosition position)
+    public int GetHeight(BlockChunkPosition position)
     {
         var pos = position.Xz();
-        return Get(pos);
+        return GetHeight(pos);
+    }
+    
+    public int GetHeight(int x, int z)
+    {
+        return GetHeight(new Vector2I(x, z));
+    }
+
+    // TODO: split gen-data from heightmap
+    public void SetGenData(int x, int z, WorldgenData gen)
+    {
+        WorldgenData[new(x, z)] = gen;
+    }
+    
+    public WorldgenData GetGenData(int x, int z)
+    {
+        return WorldgenData[new(x, z)];
     }
 
     // int[,] Data { get; set; }

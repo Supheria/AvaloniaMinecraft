@@ -21,7 +21,7 @@ public sealed partial class Chunk
     ChunkMesh Mesh { get; }
     int NoneAirCount { get; set; }
     bool Empty => NoneAirCount is 0;
-    bool Generating { get; set; } = true;
+    public bool Generating { get; set; } = true;
 
     public Chunk(GL gl, World world, Vector3I offset)
     {
@@ -29,13 +29,6 @@ public sealed partial class Chunk
         Offset = new(offset);
         ChunckPosition = Offset.ToChunkPosition();
         Mesh = new(gl, this);
-    }
-
-    public void Generate(WorldGenerator generator)
-    {
-        Generating = true;
-        generator.Generate(this);
-        Generating = false;
     }
 
     public void Delete(GL gl)
@@ -55,15 +48,19 @@ public sealed partial class Chunk
         return h;
     }
 
-    public BlockChunkPosition CreatePosition(int x, int y, int z)
+    private BlockChunkPosition CreatePosition(Vector3I position)
     {
-        var position = new Vector3I(x, y, z);
         return new(position, ChunckPosition);
     }
 
-    public BlockChunkPosition CreatePosition(BlockWorldPosition position)
+    public BlockChunkPosition CreatePosition(int x, int y, int z)
     {
-        return new(position.ToChunk(), ChunckPosition);
+        return CreatePosition(new Vector3I(x, y, z));
+    }
+
+    public BlockChunkPosition CreatePosition(BlockPosition position)
+    {
+        return CreatePosition(position.IntoChunk());
     }
 
     public Matrix4x4 CreateModel()
@@ -119,21 +116,21 @@ public sealed partial class Chunk
 
         if (prev.Id != changed.Id)
         {
-            var pos = new BlockChunkPosition(position, ChunckPosition);
-            if (changed.Id is BlockId.Air)
+            if (!Generating)
             {
-                NoneAirCount--;
-                World.RecaculateHeightmap(pos.ToWorld());
-                if (!Generating)
-                    Light.UpdateAllLight(World, pos.ToWorld());
+                var wPos = CreatePosition(position).IntoWorld();
+                if (changed.Id.Block().Transparent)
+                {
+                    World.RecaculateHeightmap(wPos);
+                    Light.UpdateAllLight(World, wPos);
+                }
+                else
+                {
+                    World.UpdateHeightmap(wPos);
+                    Light.RemoveAllLight(World, wPos);
+                }
             }
-            else
-            {
-                NoneAirCount++;
-                World.UpdateHeightmap(pos.ToWorld());
-                if (!Generating)
-                    Light.RemoveAllLight(World, pos.ToWorld());
-            }
+            NoneAirCount += changed.Id is BlockId.Air ? -1 : 1;
             NoneAirCount = Math.Max(0, NoneAirCount);
         }
 
@@ -158,12 +155,17 @@ public sealed partial class Chunk
     public int GetHighest(BlockChunkPosition position)
     {
         var heightMap = World.GetHeightmap(Offset);
-        return heightMap.Get(position) - ChunckPosition.Y;
+        return heightMap.GetHeight(position);
     }
 
-    public int GetHighest(BlockWorldPosition position)
+    public int GetHighest(BlockPosition position)
     {
         return World.GetHighest(position);
+    }
+
+    public Heightmap GetHeightmap()
+    {
+        return World.GetHeightmap(Offset);
     }
 
     public void PrepareRender(GL gl)
@@ -197,11 +199,33 @@ public sealed partial class Chunk
 
     public void Tick() { }
 
-    // /// <summary>
-    // /// MUST be run once a chunk has completed generating
-    // /// </summary>
-    // public void AfterGenerate()
-    // {
-    //     World.HeightMapRecaculate(this);
-    // }
+    // MUST be run once a chunk has completed generating
+    public void AfterGenerate()
+    {
+        RecaculateHeightmap();
+        Light.ApplyAllLight(this);
+    }
+    
+    private void RecaculateHeightmap()
+    {
+        var heightmap = GetHeightmap();
+        for (var x = 0; x < ChunkData.ChunkSizeX; x++)
+        {
+            for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
+            {
+                var h = heightmap.GetHeight(x, z);
+                if (h > ChunckPosition.Y + ChunkData.ChunkSizeY - 1)
+                    continue;
+                for (var y = ChunkData.ChunkSizeY - 1; y >= 0; y--)
+                {
+                    var id = GetBlockId(new Vector3I(x, y, z));
+                    if (!id.Block().Transparent)
+                    {
+                        var pos = CreatePosition(x, y ,z).IntoWorld();
+                        heightmap.SetHeight(pos);
+                    }
+                }
+            }
+        }
+    }
 }

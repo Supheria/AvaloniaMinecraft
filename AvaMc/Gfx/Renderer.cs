@@ -33,8 +33,8 @@ public sealed class Renderer
         CrossHair,
         Sun,
         Moon,
-        // Clouds,
-        // Star,
+        Clouds,
+        Star,
         // Hotbar,
     }
 
@@ -95,8 +95,8 @@ public sealed class Renderer
             [TextureType.CrossHair] = Texture2D.Create(gl, "crosshair", 0),
             [TextureType.Sun] = Texture2D.Create(gl, "sun", 0),
             [TextureType.Moon] = Texture2D.Create(gl, "moon", 0),
-            // [TextureType.Clouds] = Texture2D.Create(gl, "clouds", 0),
-            // [TextureType.Star] = Texture2D.Create(gl, "star", 0),
+            [TextureType.Clouds] = Texture2D.Create(gl, "clouds", 0),
+            [TextureType.Star] = Texture2D.Create(gl, "star", 0),
             // [TextureType.Hotbar] = Texture2D.Create(gl, "hotbar", 0),
         };
     }

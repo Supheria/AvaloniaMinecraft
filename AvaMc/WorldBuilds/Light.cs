@@ -21,18 +21,18 @@ public sealed class Light
 
     private class LightChannelNode
     {
-        public BlockWorldPosition Position { get; set; }
+        public BlockPosition Position { get; set; }
         public int Value { get; set; }
     }
 
     private class LightNode
     {
-        public BlockWorldPosition Position { get; set; }
+        public BlockPosition Position { get; set; }
         public LightIbgrs Light { get; set; }
     }
 
     // TODO: for test
-    public static void Add(World world, BlockWorldPosition position, LightIbgrs light)
+    public static void Add(World world, BlockPosition position, LightIbgrs light)
     {
         var id = world.GetBlockId(position);
         if (!id.Block().Transparent)
@@ -43,7 +43,7 @@ public sealed class Light
 
     private static void AddChannel(
         World world,
-        BlockWorldPosition position,
+        BlockPosition position,
         int value,
         int channel,
         PropagateMode mode
@@ -59,13 +59,13 @@ public sealed class Light
     }
 
     // TODO: for test
-    public static void Remove(World world, BlockWorldPosition position)
+    public static void Remove(World world, BlockPosition position)
     {
         for (var i = 0; i < LightIbgrs.SunlightChannel; i++)
             RemoveChannel(world, position, i, PropagateMode.Default);
     }
 
-    public static void UpdateAllLight(World world, BlockWorldPosition position)
+    public static void UpdateAllLight(World world, BlockPosition position)
     {
         var queue = new Queue<LightChannelNode>();
         for (var i = 0; i < LightIbgrs.ChannelCount; i++)
@@ -125,13 +125,13 @@ public sealed class Light
         }
     }
 
-    public static void RemoveAllLight(World world, BlockWorldPosition position)
+    public static void RemoveAllLight(World world, BlockPosition position)
     {
         RemoveDefaultLight(world, position);
         RemoveChannel(world, position, LightIbgrs.SunlightChannel, PropagateMode.Sunlight);
     }
 
-    private static void RemoveDefaultLight(World world, BlockWorldPosition position)
+    private static void RemoveDefaultLight(World world, BlockPosition position)
     {
         for (var i = 0; i < LightIbgrs.SunlightChannel; i++)
             RemoveChannel(world, position, i, PropagateMode.Default);
@@ -139,17 +139,18 @@ public sealed class Light
 
     private static void RemoveChannel(
         World world,
-        BlockWorldPosition position,
+        BlockPosition position,
         int channel,
         PropagateMode mode
     )
     {
         var light = world.GetAllLight(position);
+        var value = light[channel];
         light[channel] = 0;
         world.SetAllLight(position, light);
 
         var queue = new Queue<LightChannelNode>();
-        var node = new LightChannelNode() { Position = position, Value = light[channel] };
+        var node = new LightChannelNode() { Position = position, Value = value };
         queue.Enqueue(node);
         var propQueue = new Queue<LightChannelNode>();
         RemovePropagate(world, queue, ref propQueue, channel, mode);
@@ -198,18 +199,19 @@ public sealed class Light
         {
             for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
             {
-                var cPos = chunk.CreatePosition(x, 0, z);
-                var cH = chunk.GetHighest(cPos);
-                if (cH < 0)
-                    continue;
-                for (var y = ChunkData.ChunkSizeY - 1; y >= cH; y--)
+                var pos = chunk.CreatePosition(x, 0, z);
+                var h = chunk.GetHighest(pos);
+
+                for (var y = ChunkData.ChunkSizeY - 1; y >= 0; y--)
                 {
-                    cPos = chunk.CreatePosition(x, y, z);
-                    chunk.SetSunlight(cPos, LightMax);
-                    var wPos = cPos.ToWorld();
+                    pos = chunk.CreatePosition(x, y, z);
+                    var wPos = pos.IntoWorld();
+                    if (wPos.Height <= h)
+                        continue;
+                    chunk.SetSunlight(pos, LightMax);
                     foreach (var direction in Direction.DirectionsXz)
                     {
-                        var nPos = cPos.ToNeighbor(direction);
+                        var nPos = pos.ToNeighbor(direction);
                         var nH = chunk.GetHighest(nPos);
                         if (wPos.Height >= nH)
                             continue;
@@ -228,14 +230,14 @@ public sealed class Light
         {
             for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
             {
-                var pos = chunk.CreatePosition(x, -1, z).ToWorld();
+                var pos = chunk.CreatePosition(x, -1, z).IntoWorld();
                 var light = chunk.GetAllLight(pos);
                 if (light != LightIbgrs.Zero)
                 {
                     var node = new LightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
-                pos = chunk.CreatePosition(x, ChunkData.ChunkSizeY, z).ToWorld();
+                pos = chunk.CreatePosition(x, ChunkData.ChunkSizeY, z).IntoWorld();
                 light = chunk.GetAllLight(pos);
                 if (light != LightIbgrs.Zero)
                 {
@@ -249,14 +251,14 @@ public sealed class Light
         {
             for (var y = 0; y < ChunkData.ChunkSizeY; y++)
             {
-                var pos = chunk.CreatePosition(x, y, -1).ToWorld();
+                var pos = chunk.CreatePosition(x, y, -1).IntoWorld();
                 var light = chunk.GetAllLight(pos);
                 if (light != LightIbgrs.Zero)
                 {
                     var node = new LightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
-                pos = chunk.CreatePosition(x, y, ChunkData.ChunkSizeZ).ToWorld();
+                pos = chunk.CreatePosition(x, y, ChunkData.ChunkSizeZ).IntoWorld();
                 light = chunk.GetAllLight(pos);
                 if (light != LightIbgrs.Zero)
                 {
@@ -270,14 +272,14 @@ public sealed class Light
         {
             for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
             {
-                var pos = chunk.CreatePosition(-1, y, z).ToWorld();
+                var pos = chunk.CreatePosition(-1, y, z).IntoWorld();
                 var light = chunk.GetAllLight(pos);
                 if (light != LightIbgrs.Zero)
                 {
                     var node = new LightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
-                pos = chunk.CreatePosition(ChunkData.ChunkSizeX, y, z).ToWorld();
+                pos = chunk.CreatePosition(ChunkData.ChunkSizeX, y, z).IntoWorld();
                 light = chunk.GetAllLight(pos);
                 if (light != LightIbgrs.Zero)
                 {

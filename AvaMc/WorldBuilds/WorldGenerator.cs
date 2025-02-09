@@ -20,12 +20,6 @@ public sealed class WorldGenerator
         Seed = seed;
     }
 
-    private bool RandomChance(Random random, double chance)
-    {
-        var rand = random.NextDouble();
-        return rand <= chance;
-    }
-
     private float Radial2I(Vector2I c, Vector2I r, Vector2I v)
     {
         var div = Vector2.Subtract(c.ToNumerics(), v.ToNumerics()) / r.ToNumerics().Length();
@@ -80,7 +74,7 @@ public sealed class WorldGenerator
                     var corner = bx && bz;
                     if (
                         (!(xx == x && zz == z) || yy > y + h)
-                        && !(corner && yy == y + h + 1 && RandomChance(random, 0.4f))
+                        && !(corner && yy == y + h + 1 && MathHelper.RandomChance(random, 0.4f))
                     )
                     {
                         set(chunk, xx, yy, zz, BlockId.Leaves);
@@ -98,7 +92,7 @@ public sealed class WorldGenerator
                     var bx = xx == x - 1 || xx == x + 1;
                     var bz = zz == z - 1 || zz == z + 1;
                     var corner = bx && bz;
-                    if (!(corner && yy == y + h + lh && RandomChance(random, 0.8)))
+                    if (!(corner && yy == y + h + lh && MathHelper.RandomChance(random, 0.8)))
                     {
                         set(chunk, xx, yy, zz, BlockId.Leaves);
                     }
@@ -109,7 +103,7 @@ public sealed class WorldGenerator
 
     private void Flowers(Random random, Chunk chunk, Get get, Set set, int x, int y, int z)
     {
-        var flower = RandomChance(random, 0.6) ? BlockId.Rose : BlockId.Buttercup;
+        var flower = MathHelper.RandomChance(random, 0.6) ? BlockId.Rose : BlockId.Buttercup;
         var s = random.Next(2, 6);
         var l = random.Next(s - 1, s + 1);
         var h = random.Next(s - 1, s + 1);
@@ -118,7 +112,7 @@ public sealed class WorldGenerator
             for (var zz = z - h; zz <= z + h; zz++)
             {
                 var under = get(chunk, xx, y, zz);
-                if (under is BlockId.Grass && RandomChance(random, 0.5))
+                if (under is BlockId.Grass && MathHelper.RandomChance(random, 0.5))
                 {
                     set(chunk, xx, y + 1, zz, flower);
                 }
@@ -156,7 +150,7 @@ public sealed class WorldGenerator
                 {
                     var d = 1 - Radial3I(new(x, h, z), new(l, w, i), new(xx, yy, zz));
                     var target = get(chunk, xx, yy, zz);
-                    if (target is BlockId.Stone && RandomChance(random, 0.2 + d * 0.7))
+                    if (target is BlockId.Stone && MathHelper.RandomChance(random, 0.2 + d * 0.7))
                         set(chunk, xx, yy, zz, id);
                 }
             }
@@ -189,7 +183,7 @@ public sealed class WorldGenerator
 
                 if (!allow)
                     continue;
-                if (RandomChance(random, 0.2 + d * 0.95))
+                if (MathHelper.RandomChance(random, 0.2 + d * 0.95))
                     set(chunk, xx, h, zz, BlockId.Lava);
             }
         }
@@ -199,100 +193,80 @@ public sealed class WorldGenerator
     {
         var seed = GetChunkRandomSeed(chunk);
         var random = new Random(seed);
-
-        // chunk.SetBlockData(new(2, 2, 2), new() { BlockId = BlockId.Stone });
-        // return;
-
-        //TODO
-        for (var x = 0; x < ChunkData.ChunkSizeX; x++)
+        var heightmap = chunk.GetHeightmap();
+        if (!heightmap.Generated)
         {
-            for (var y = 0; y < ChunkData.ChunkSizeY; y++)
+            heightmap.Generated = true;
+            var offsets = new[]
+            {
+                new OctaveNoise(8, 1),
+                new OctaveNoise(8, 2),
+                new OctaveNoise(8, 3),
+                new OctaveNoise(8, 4),
+                new OctaveNoise(8, 5),
+                new OctaveNoise(8, 6),
+            };
+            var combineds = new[]
+            {
+                new CombinedNoise(offsets[0], offsets[1]),
+                new CombinedNoise(offsets[2], offsets[3]),
+                new CombinedNoise(offsets[4], offsets[5]),
+            };
+            var biomeNoise = new OctaveNoise(6, 0);
+            var auxiliaryNoise = new OctaveNoise(6, 1);
+            for (var x = 0; x < ChunkData.ChunkSizeX; x++)
             {
                 for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
                 {
-                    var p = chunk.CreatePosition(x, 0, z);
-                    var w = p.ToWorld();
-                    // if (w.Y > 60 && w.Y < 70)
-                    BlockId id;
-                    if (w.Y > 64)
-                    {
-                        continue;
-                    }
-                    else if (w.Y > 63)
-                    {
-                        id = BlockId.Grass;
-                    }
-                    else if (w.Y > 60)
-                    {
-                        id = BlockId.Dirt;
-                    }
-                    else
-                    {
-                        id = BlockId.Stone;
-                    }
+                    var w = chunk.CreatePosition(x, 0, z).IntoWorld();
+                    var wx = w.X;
+                    var wz = w.Z;
+                    
+                    var baseScale = 1.3f;
+                    var hl = (int)(
+                        (combineds[0].Compute(Seed, wx * baseScale, wz * baseScale) / 6.0f) - 4.0f
+                    );
+                    var hh = (int)(
+                        (combineds[1].Compute(Seed, wx * baseScale, wz * baseScale) / 5.0f) + 6.0f
+                    );
 
-                    chunk.SetBlockId(p, id);
+                    var t = biomeNoise.Compute(Seed, wx, wz);
+                    var r = auxiliaryNoise.Compute(Seed, wx / 4f, wz / 4f) / 32;
+
+                    var hr = t > 0 ? hl : Math.Max(hl, hh);
+                    var h = hr + WaterLevel;
+                    
+                    var gen = new WorldgenData()
+                    {
+                        H = h,
+                        T = r,
+                        R = r,
+                    };
+                    heightmap.SetGenData(x, z, gen);
                 }
             }
         }
-        return;
-
-        var offsets = new[]
+        
+        for (var x = 0; x < ChunkData.ChunkSizeX; x++)
         {
-            new OctaveNoise(8, 1),
-            new OctaveNoise(8, 2),
-            new OctaveNoise(8, 3),
-            new OctaveNoise(8, 4),
-            new OctaveNoise(8, 5),
-            new OctaveNoise(8, 6),
-        };
-        var combineds = new[]
-        {
-            new CombinedNoise(offsets[0], offsets[1]),
-            new CombinedNoise(offsets[2], offsets[3]),
-            new CombinedNoise(offsets[4], offsets[5]),
-        };
-        var biomeNoise = new OctaveNoise(6, 0);
-        var oreNoise = new OctaveNoise(6, 1);
-
-        for (var x = 0; x < 16; x++)
-        {
-            for (var z = 0; z < 16; z++)
+            for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
             {
-                var p = chunk.CreatePosition(x, 0, z);
-                var w = p.ToWorld();
-                var wx = w.X;
-                var wz = w.Z;
-                var baseScale = 1.3f;
-                var hl = (int)(
-                    (combineds[0].Compute(Seed, wx * baseScale, wz * baseScale) / 6.0f) - 4.0f
-                );
-                var hh = (int)(
-                    (combineds[1].Compute(Seed, wx * baseScale, wz * baseScale) / 5.0f) + 6.0f
-                );
-
-                var t = biomeNoise.Compute(Seed, wx, wz);
-                var r = oreNoise.Compute(Seed, wx / 4f, wz / 4f) / 32;
-
-                var hr = t > 0 ? hl : Math.Max(hl, hh);
-                var h = hr + WaterLevel;
-
+                var gen = heightmap.GetGenData(x, z);
+                var h = gen.H;
+                var t = gen.T;
+                var r = gen.R;
+                
                 Biome biome;
                 if (h < WaterLevel)
                     biome = Biome.Ocean;
                 else if (t < 0.08f && h < WaterLevel + 2)
                     biome = Biome.Beach;
-                // TODO
-                else if (false)
-                    biome = Biome.Mountain;
                 else
                     biome = Biome.Plains;
-
-                if (biome is Biome.Mountain)
-                    h += (int)(r + (-t / 12)) * 2 + 2;
-
-                var d = r * 1.4f + 5;
-
+                
+                // dirt or sand depth
+                var d = r * 1.4f + 5.0f;
+                
                 var topBlock = BlockId.Air;
                 switch (biome)
                 {
@@ -324,48 +298,207 @@ public sealed class WorldGenerator
                             topBlock = BlockId.Stone;
                         break;
                 }
-
-                for (var y = 0; y < h; y++)
+                
+                for (var y = 0; y < ChunkData.ChunkSizeY; y++)
                 {
+                    var pos = chunk.CreatePosition(x, y, z);
+                    var w = pos.IntoWorld();
+                    var wY = w.Y;
+                    
                     var id = BlockId.Air;
-                    if (y == h - 1)
+                    if (wY > h && wY <= WaterLevel)
+                        id = BlockId.Water;
+                    else if (wY > h)
+                        continue;
+                    else if (wY == h)
                         id = topBlock;
-                    else if (y > h - d)
+                    else if (wY > h - d)
                     {
-                        if (topBlock is BlockId.Grass)
+                        if (topBlock == BlockId.Grass)
                             id = BlockId.Dirt;
                         else
                             id = topBlock;
                     }
-                    else
+                    else if (wY <= h - d)
                         id = BlockId.Stone;
-                    chunk.SetBlockId(x, y, z, id);
-                }
 
-                for (var y = h; y < WaterLevel; y++)
-                {
-                    chunk.SetBlockId(x, y, z, BlockId.Water);
+                    chunk.SetBlockId(pos, id);
                 }
-
-                if (RandomChance(random, 0.02))
-                    Orevein(random, chunk, GetBlockData, SetBlockData, x, h, z, BlockId.Coal);
-                if (RandomChance(random, 0.02))
-                    Orevein(random, chunk, GetBlockData, SetBlockData, x, h, z, BlockId.Copper);
-                if (
-                    biome is not Biome.Ocean
-                    && h < WaterLevel + 3
-                    && t < 0.1f
-                    && RandomChance(random, 0.001)
-                )
-                    LavaPool(random, chunk, GetBlockData, SetBlockData, x, h, z);
-                if (biome is Biome.Plains && RandomChance(random, 0.005))
-                    Tree(random, chunk, GetBlockData, SetBlockData, x, h, z);
-                if (biome is Biome.Plains && RandomChance(random, 0.0085))
-                    Flowers(random, chunk, GetBlockData, SetBlockData, x, h, z);
             }
         }
 
-        foreach (var (pos, id) in chunk.World.UnloadedBlockIds)
-            chunk.SetBlockId(pos, id);
+        return;
+        
+        // // var temp = chunk.CreatePosition(2, 2, 2);
+        // // chunk.SetBlockId(temp,BlockId.Stone);
+        // // return;
+        //
+        // //TODO
+        // for (var x = 0; x < ChunkData.ChunkSizeX; x++)
+        // {
+        //     for (var y = 0; y < 1; y++)
+        //     {
+        //         for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
+        //         {
+        //             var p = chunk.CreatePosition(x, y, z);
+        //             var w = p.ToWorld();
+        //             // if (w.Y > 60 && w.Y < 70)
+        //             BlockId id;
+        //             if (w.Y > 64)
+        //             {
+        //                 continue;
+        //             }
+        //             else if (w.Y > 63)
+        //             {
+        //                 id = BlockId.Grass;
+        //             }
+        //             else if (w.Y > 60)
+        //             {
+        //                 id = BlockId.Dirt;
+        //             }
+        //             else
+        //             {
+        //                 id = BlockId.Stone;
+        //             }
+        //
+        //             chunk.SetBlockId(p, id);
+        //         }
+        //     }
+        // }
+        // return;
+
+        {
+            var offsets = new[]
+            {
+                new OctaveNoise(8, 1),
+                new OctaveNoise(8, 2),
+                new OctaveNoise(8, 3),
+                new OctaveNoise(8, 4),
+                new OctaveNoise(8, 5),
+                new OctaveNoise(8, 6),
+            };
+            var combineds = new[]
+            {
+                new CombinedNoise(offsets[0], offsets[1]),
+                new CombinedNoise(offsets[2], offsets[3]),
+                new CombinedNoise(offsets[4], offsets[5]),
+            };
+            var biomeNoise = new OctaveNoise(6, 0);
+            var oreNoise = new OctaveNoise(6, 1);
+
+            for (var x = 0; x < 16; x++)
+            {
+                for (var z = 0; z < 16; z++)
+                {
+                    var p = chunk.CreatePosition(x, 0, z);
+                    var w = p.IntoWorld();
+                    var wx = w.X;
+                    var wz = w.Z;
+                    var baseScale = 1.3f;
+                    var hl = (int)(
+                        (combineds[0].Compute(Seed, wx * baseScale, wz * baseScale) / 6.0f) - 4.0f
+                    );
+                    var hh = (int)(
+                        (combineds[1].Compute(Seed, wx * baseScale, wz * baseScale) / 5.0f) + 6.0f
+                    );
+
+                    var t = biomeNoise.Compute(Seed, wx, wz);
+                    var r = oreNoise.Compute(Seed, wx / 4f, wz / 4f) / 32;
+
+                    var hr = t > 0 ? hl : Math.Max(hl, hh);
+                    var h = hr + WaterLevel;
+
+                    Biome biome;
+                    if (h < WaterLevel)
+                        biome = Biome.Ocean;
+                    else if (t < 0.08f && h < WaterLevel + 2)
+                        biome = Biome.Beach;
+                    // TODO
+                    else if (false)
+                        biome = Biome.Mountain;
+                    else
+                        biome = Biome.Plains;
+
+                    if (biome is Biome.Mountain)
+                        h += (int)(r + (-t / 12)) * 2 + 2;
+
+                    var d = r * 1.4f + 5;
+
+                    var topBlock = BlockId.Air;
+                    switch (biome)
+                    {
+                        case Biome.Ocean:
+                            if (r > 0.8f)
+                                topBlock = BlockId.Gravel;
+                            else if (r > 0.3f)
+                                topBlock = BlockId.Sand;
+                            else if (r > 0.15f && t < 0.08f)
+                                topBlock = BlockId.Clay;
+                            else
+                                topBlock = BlockId.Dirt;
+                            break;
+                        case Biome.Beach:
+                            topBlock = BlockId.Sand;
+                            break;
+                        case Biome.Plains:
+                            if (t > 4f && r > 0.78f)
+                                topBlock = BlockId.Gravel;
+                            else
+                                topBlock = BlockId.Grass;
+                            break;
+                        case Biome.Mountain:
+                            if (r > 0.8f)
+                                topBlock = BlockId.Gravel;
+                            else if (r > 0.7f)
+                                topBlock = BlockId.Dirt;
+                            else
+                                topBlock = BlockId.Stone;
+                            break;
+                    }
+
+                    for (var y = 0; y < h; y++)
+                    {
+                        var id = BlockId.Air;
+                        if (y == h - 1)
+                            id = topBlock;
+                        else if (y > h - d)
+                        {
+                            if (topBlock is BlockId.Grass)
+                                id = BlockId.Dirt;
+                            else
+                                id = topBlock;
+                        }
+                        else
+                            id = BlockId.Stone;
+
+                        chunk.SetBlockId(x, y, z, id);
+                    }
+
+                    for (var y = h; y < WaterLevel; y++)
+                    {
+                        chunk.SetBlockId(x, y, z, BlockId.Water);
+                    }
+
+                    if (MathHelper.RandomChance(random, 0.02))
+                        Orevein(random, chunk, GetBlockData, SetBlockData, x, h, z, BlockId.Coal);
+                    if (MathHelper.RandomChance(random, 0.02))
+                        Orevein(random, chunk, GetBlockData, SetBlockData, x, h, z, BlockId.Copper);
+                    if (
+                        biome is not Biome.Ocean
+                        && h < WaterLevel + 3
+                        && t < 0.1f
+                        && MathHelper.RandomChance(random, 0.001)
+                    )
+                        LavaPool(random, chunk, GetBlockData, SetBlockData, x, h, z);
+                    if (biome is Biome.Plains && MathHelper.RandomChance(random, 0.005))
+                        Tree(random, chunk, GetBlockData, SetBlockData, x, h, z);
+                    if (biome is Biome.Plains && MathHelper.RandomChance(random, 0.0085))
+                        Flowers(random, chunk, GetBlockData, SetBlockData, x, h, z);
+                }
+            }
+
+            foreach (var (pos, id) in chunk.World.UnloadedBlockIds)
+                chunk.SetBlockId(pos, id);
+        }
     }
 }

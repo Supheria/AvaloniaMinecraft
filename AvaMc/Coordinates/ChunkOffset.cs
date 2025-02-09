@@ -32,6 +32,16 @@ public readonly struct ChunkOffset : IEquatable<ChunkOffset>
         return (int)Vector3I.Distance(Value, other);
     }
 
+    public Vector3 ToNumerics()
+    {
+        return Value.ToNumerics();
+    }
+
+    public Vector3I ToInernal()
+    {
+        return Value;
+    }
+
     public bool Equals(ChunkOffset other)
     {
         return Value.Equals(other.Value);
@@ -50,15 +60,5 @@ public readonly struct ChunkOffset : IEquatable<ChunkOffset>
     public static bool operator !=(ChunkOffset offset, Vector3I other)
     {
         return offset.Value != other;
-    }
-
-    public Vector3 ToNumerics()
-    {
-        return Value.ToNumerics();
-    }
-
-    public Vector3I ToInernal()
-    {
-        return Value;
     }
 }

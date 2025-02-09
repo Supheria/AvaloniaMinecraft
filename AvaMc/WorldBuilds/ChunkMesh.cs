@@ -212,7 +212,7 @@ public sealed class ChunkMesh
         FinalizeData(gl);
         FinalizeIndices(gl);
 
-        GC.Collect();
+        // GC.Collect();
     }
 
     private void Mesh(BlockChunkPosition position)

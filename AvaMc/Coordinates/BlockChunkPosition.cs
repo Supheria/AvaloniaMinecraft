@@ -6,7 +6,7 @@ using AvaMc.WorldBuilds;
 
 namespace AvaMc.Coordinates;
 
-public readonly struct BlockChunkPosition : IEquatable<BlockChunkPosition>
+public readonly struct BlockChunkPosition
 {
     Vector3I Value { get; }
     Vector3I ChunkPosition { get; }
@@ -19,36 +19,16 @@ public readonly struct BlockChunkPosition : IEquatable<BlockChunkPosition>
         ChunkPosition = chunkPosition;
     }
 
-    public BlockWorldPosition ToNeighbor(Direction direction)
+    public BlockPosition ToNeighbor(Direction direction)
     {
-        var val = ToWorld();
+        var val = IntoWorld();
         return val.ToNeighbor(direction);
     }
 
-    public BlockWorldPosition ToWorld()
+    public BlockPosition IntoWorld()
     {
         var val = Vector3I.Add(Value, ChunkPosition);
         return new(val);
-    }
-
-    public bool Equals(BlockChunkPosition other)
-    {
-        return Value.Equals(other.Value);
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is BlockChunkPosition other && Equals(other);
-    }
-
-    public bool InChunkBounds()
-    {
-        return Value.X >= 0
-            && Value.Y >= 0
-            && Value.Z >= 0
-            && Value.X < ChunkData.ChunkSizeX
-            && Value.Y < ChunkData.ChunkSizeY
-            && Value.Z < ChunkData.ChunkSizeZ;
     }
 
     public Vector3 ToNumerics()

@@ -22,7 +22,7 @@ public sealed class Player
     World World { get; set; }
     public PerspectiveCamera Camera { get; set; }
     bool HasLookBlock { get; set; }
-    BlockWorldPosition LookBlock { get; set; }
+    BlockPosition LookBlock { get; set; }
     Direction LookFace { get; set; }
     public Vector3I ChunkOffset { get; set; }
     Vector3I BlockPosition { get; set; }
@@ -71,8 +71,8 @@ public sealed class Player
                 GlobalState.Game.Pointer.Delta.X / (GlobalState.Game.FrameDelta / (MouseSensitivity * 10000));
         }
 
-        var blockWorldPosition = new BlockWorldPosition(Camera.Position);
-        var blockPosition = blockWorldPosition.ToChunk();
+        var blockWorldPosition = new BlockPosition(Camera.Position);
+        var blockPosition = blockWorldPosition.IntoChunk();
         BlockPositionChanged = BlockPosition != blockPosition;
         if (BlockPositionChanged)
             BlockPosition = blockPosition;
