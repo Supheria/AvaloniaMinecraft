@@ -8,10 +8,10 @@ namespace AvaMc.WorldBuilds;
 
 partial class Chunk
 {
-    private void SetBlockId(Vector3I position, BlockId id)
+    public void SetBlockId(Vector3I position, BlockId id)
     {
-        var data = GetBlockData(position);
-        data.SetId(id, out var prev, out var changed);
+        var service = GetBlockDataService(position);
+        service.SetBlockId(id, out var prev, out var changed);
         OnModify(position, prev, changed);
     }
 
@@ -25,37 +25,27 @@ partial class Chunk
         SetBlockId(new Vector3I(x, y, z), id);
     }
 
-    public void SetBlockId(BlockPosition position, BlockId id)
+    public void SetAllLight(Vector3I position, AllLight allLight)
     {
-        World.SetBlockId(position, id);
-    }
-
-    private void SetAllLight(Vector3I position, LightIbgrs light)
-    {
-        var data = GetBlockData(position);
-        data.SetAllLight(light, out var prev, out var changed);
+        var service = GetBlockDataService(position);
+        service.SetAllLight(allLight, out var prev, out var changed);
         OnModify(position, prev, changed);
     }
 
-    public void SetAllLight(BlockChunkPosition position, LightIbgrs light)
+    public void SetAllLight(BlockChunkPosition position, AllLight allLight)
     {
-        SetAllLight(position.ToInternal(), light);
+        SetAllLight(position.ToInternal(), allLight);
     }
 
-    private void SetSunlight(Vector3I position, int sunlight)
+    public void SetSunlight(Vector3I position, int sunlight)
     {
-        var data = GetBlockData(position);
-        data.SetSunlight(sunlight, out var prev, out var changed);
+        var service = GetBlockDataService(position);
+        service.SetSunlight(sunlight, out var prev, out var changed);
         OnModify(position, prev, changed);
     }
 
     public void SetSunlight(BlockChunkPosition position, int sunlight)
     {
         SetSunlight(position.ToInternal(), sunlight);
-    }
-    
-    public void SetSunlight(BlockPosition position, int sunlight)
-    {
-        World.SetSunlight(position, sunlight);
     }
 }

@@ -42,8 +42,13 @@ public sealed class Atlas
         Texture.Delete(gl);
     }
 
-    public Vector2 Offset(Vector2I pos)
+    public void GetUv(Vector2I pos, out Vector2 uvMin, out Vector2 uvMax)
     {
-        return Vector2.Multiply(new Vector2(pos.X, SpriteSize.Y - pos.Y - 1), SpriteUnit);
+        var pMin = new Vector2(pos.X * SpriteSize.X, (Size.Y - pos.Y - 1) * SpriteSize.Y);
+        uvMin = Vector2.Divide(pMin, Texture.Size.ToNumerics());
+        uvMax = Vector2.Divide(
+            Vector2.Add(pMin, SpriteSize.ToNumerics()),
+            Texture.Size.ToNumerics()
+        );
     }
 }

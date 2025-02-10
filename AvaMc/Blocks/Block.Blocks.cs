@@ -36,5 +36,6 @@ partial class Block
             [BlockId.Clay] = new Clay(),
             [BlockId.Gravel] = new Gravel(),
             [BlockId.Planks] = new Planks(),
+            [BlockId.Torch] = new Torch(),
         };
 }

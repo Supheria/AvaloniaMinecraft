@@ -7,54 +7,55 @@ namespace AvaMc.WorldBuilds;
 
 partial class Chunk
 {
-    private BlockData GetBlockData(Vector3I position)
+    private BlockDataService GetBlockDataService(Vector3I position)
     {
         if (Data.TryGetValue(position, out var data))
             return data;
         Data[position] = new();
         return Data[position];
     }
-
-    public BlockData.Data GetBlockData(BlockChunkPosition position)
-    {
-        var data = GetBlockData(position.ToInternal());
-        return data.GetData();
-    }
     
-    public BlockData.Data GetBlockData(BlockPosition position)
+    public BlockData GetBlockData(Vector3I position)
     {
-        return World.GetBlockData(position);
+        var service = GetBlockDataService(position);
+        return service.Data;
+    }
+
+    public BlockData GetBlockData(BlockChunkPosition position)
+    {
+        return GetBlockData(position.ToInternal());
     }
 
     public BlockId GetBlockId(BlockChunkPosition position)
     {
         return GetBlockId(position.ToInternal());
     }
-    
-    public BlockId GetBlockId(BlockPosition position)
+
+    public BlockId GetBlockId(Vector3I position)
     {
-        return World.GetBlockId(position);
+        var service = GetBlockDataService(position);
+        return service.BlockId;
     }
 
-    private BlockId GetBlockId(Vector3I position)
+    public AllLight GetAllLight(Vector3I position)
     {
-        var data = GetBlockData(position);
-        return data.Id;
+        var service = GetBlockDataService(position);
+        return service.AllLight;
     }
 
-    private LightIbgrs GetAllLight(Vector3I position)
-    {
-        var data = GetBlockData(position);
-        return data.AllLight;
-    }
-
-    public LightIbgrs GetAllLight(BlockChunkPosition position)
+    public AllLight GetAllLight(BlockChunkPosition position)
     {
         return GetAllLight(position.ToInternal());
     }
-    
-    public LightIbgrs GetAllLight(BlockPosition position)
+
+    public TorchLight GetTorchLight(Vector3I position)
     {
-        return World.GetAllLight(position);
+        var service = GetBlockDataService(position);
+        return service.TorchLight;
+    }
+
+    public TorchLight GetTorchLight(BlockChunkPosition position)
+    {
+        return GetTorchLight(position.ToInternal());
     }
 }

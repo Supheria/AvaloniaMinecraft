@@ -56,8 +56,8 @@ partial class World
         var offset = position.ToChunkOffset();
         if (!InBounds(offset))
             throw new ArgumentOutOfRangeException(nameof(position));
-        var yMin = ChunksOrigin.Y * ChunkData.ChunkSizeY;
-        var yMax = (ChunksOrigin.Y + ChunksMagnitude) * ChunkData.ChunkSizeY;
+        var yMin = ChunksOrigin.Y * Chunk.ChunkSizeY;
+        var yMax = (ChunksOrigin.Y + ChunksMagnitude) * Chunk.ChunkSizeY;
         for (var y = yMax; y >= yMin; y--)
         {
             position.Y = y;

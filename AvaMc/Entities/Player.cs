@@ -32,7 +32,7 @@ public sealed class Player
     Dictionary<Key, BlockId> BlockPack { get; } =
         new()
         {
-            [Key.D1] = BlockId.Dirt,
+            [Key.D1] = BlockId.Torch,
             [Key.D2] = BlockId.Stone,
             [Key.D3] = BlockId.Planks,
             [Key.D4] = BlockId.Sand,

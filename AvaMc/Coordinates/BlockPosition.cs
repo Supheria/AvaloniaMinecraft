@@ -41,32 +41,32 @@ public struct BlockPosition : IEquatable<BlockPosition>
     public Vector3I ToChunkOffset()
     {
         return new(
-            (int)MathF.Floor(X / (float)ChunkData.ChunkSizeX),
-            (int)MathF.Floor(Y / (float)ChunkData.ChunkSizeY),
-            (int)MathF.Floor(Z / (float)ChunkData.ChunkSizeZ)
+            (int)MathF.Floor(X / (float)Chunk.ChunkSizeX),
+            (int)MathF.Floor(Y / (float)Chunk.ChunkSizeY),
+            (int)MathF.Floor(Z / (float)Chunk.ChunkSizeZ)
         );
     }
 
     public Vector2I ToChunkOffsetXz()
     {
         return new(
-            (int)MathF.Floor(X / (float)ChunkData.ChunkSizeX),
-            (int)MathF.Floor(Z / (float)ChunkData.ChunkSizeZ)
+            (int)MathF.Floor(X / (float)Chunk.ChunkSizeX),
+            (int)MathF.Floor(Z / (float)Chunk.ChunkSizeZ)
         );
     }
 
     public Vector2I IntoHeightmap()
     {
-        var x = (X % ChunkData.ChunkSizeX + ChunkData.ChunkSizeX) % ChunkData.ChunkSizeX;
-        var z = (Z % ChunkData.ChunkSizeZ + ChunkData.ChunkSizeZ) % ChunkData.ChunkSizeZ;
+        var x = (X % Chunk.ChunkSizeX + Chunk.ChunkSizeX) % Chunk.ChunkSizeX;
+        var z = (Z % Chunk.ChunkSizeZ + Chunk.ChunkSizeZ) % Chunk.ChunkSizeZ;
         return new(x, z);
     }
 
     public Vector3I IntoChunk()
     {
-        var x = (X % ChunkData.ChunkSizeX + ChunkData.ChunkSizeX) % ChunkData.ChunkSizeX;
-        var y = (Y % ChunkData.ChunkSizeY + ChunkData.ChunkSizeY) % ChunkData.ChunkSizeY;
-        var z = (Z % ChunkData.ChunkSizeZ + ChunkData.ChunkSizeZ) % ChunkData.ChunkSizeZ;
+        var x = (X % Chunk.ChunkSizeX + Chunk.ChunkSizeX) % Chunk.ChunkSizeX;
+        var y = (Y % Chunk.ChunkSizeY + Chunk.ChunkSizeY) % Chunk.ChunkSizeY;
+        var z = (Z % Chunk.ChunkSizeZ + Chunk.ChunkSizeZ) % Chunk.ChunkSizeZ;
         return new(x, y, z);
     }
 

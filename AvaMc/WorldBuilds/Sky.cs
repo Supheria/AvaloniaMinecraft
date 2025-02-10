@@ -450,7 +450,7 @@ public sealed class Sky
         gl.Disable(EnableCap.CullFace);
         var pos = new Vector2(
             MathF.IEEERemainder(center.X, cloudsSize) / cloudsSize,
-            (MathF.IEEERemainder(center.Z, cloudsSize) / cloudsSize)
+            (MathF.IEEERemainder(-center.Z, cloudsSize) / cloudsSize)
                 + (World.Ticks % (CycleTicks / 3f)) / (CycleTicks / 3f)
         );
         shader.UniformVector2(gl, "uv_offset", pos);

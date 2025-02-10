@@ -14,10 +14,15 @@ namespace AvaMc.WorldBuilds;
 
 public sealed partial class Chunk
 {
+    public const int ChunkSizeX = 32;
+    public const int ChunkSizeY = 32;
+    public const int ChunkSizeZ = 32;
+    public static Vector2I ChunkSizeXz { get; } = new(ChunkSizeX, ChunkSizeZ);
+    public static Vector3I ChunkSize { get; } = new(ChunkSizeX, ChunkSizeY, ChunkSizeZ);
     public World World { get; set; }
     ChunkOffset Offset { get; set; }
     Vector3I ChunckPosition { get; set; }
-    Dictionary<Vector3I, BlockData> Data { get; set; } = [];
+    Dictionary<Vector3I, BlockDataService> Data { get; set; } = [];
     ChunkMesh Mesh { get; }
     int NoneAirCount { get; set; }
     bool Empty => NoneAirCount is 0;
@@ -83,15 +88,15 @@ public sealed partial class Chunk
         {
             offsets.Add(Offset.ToNeighbor(Direction.North));
         }
-        if (position.X == ChunkData.ChunkSizeX - 1)
+        if (position.X == ChunkSizeX - 1)
         {
             offsets.Add(Offset.ToNeighbor(Direction.East));
         }
-        if (position.Y == ChunkData.ChunkSizeY - 1)
+        if (position.Y == ChunkSizeY - 1)
         {
             offsets.Add(Offset.ToNeighbor(Direction.Up));
         }
-        if (position.Z == ChunkData.ChunkSizeZ - 1)
+        if (position.Z == ChunkSizeZ - 1)
         {
             offsets.Add(Offset.ToNeighbor(Direction.South));
         }
@@ -110,16 +115,22 @@ public sealed partial class Chunk
         return chunks;
     }
 
-    private void OnModify(Vector3I position, BlockData.Data prev, BlockData.Data changed)
+    private void OnModify(Vector3I position, BlockData prev, BlockData changed)
     {
         Mesh.Dirty = true;
 
-        if (prev.Id != changed.Id)
+        if (prev.BlockId != changed.BlockId)
         {
+            var wPos = CreatePosition(position).IntoWorld();
+            if (prev.BlockId.Block().CanEmitLight)
+                Light.RemoveAllLight(World, wPos);
+            var block = changed.BlockId.Block();
+            var torchLight = block.GetTorchLight();
+            if (block.CanEmitLight)
+                Light.AddTorchLight(World, wPos, torchLight);
             if (!Generating)
             {
-                var wPos = CreatePosition(position).IntoWorld();
-                if (changed.Id.Block().Transparent)
+                if (block.Transparent)
                 {
                     World.RecaculateHeightmap(wPos);
                     Light.UpdateAllLight(World, wPos);
@@ -130,11 +141,11 @@ public sealed partial class Chunk
                     Light.RemoveAllLight(World, wPos);
                 }
             }
-            NoneAirCount += changed.Id is BlockId.Air ? -1 : 1;
+            NoneAirCount += changed.BlockId is BlockId.Air ? -1 : 1;
             NoneAirCount = Math.Max(0, NoneAirCount);
         }
 
-        if (prev.Id != changed.Id || prev.AllLight != changed.AllLight)
+        if (prev.BlockId != changed.BlockId || prev.AllLight != changed.AllLight)
         {
             var neighbors = GetBorderingChunks(position);
             foreach (var chunk in neighbors)
@@ -205,23 +216,23 @@ public sealed partial class Chunk
         RecaculateHeightmap();
         Light.ApplyAllLight(this);
     }
-    
+
     private void RecaculateHeightmap()
     {
         var heightmap = GetHeightmap();
-        for (var x = 0; x < ChunkData.ChunkSizeX; x++)
+        for (var x = 0; x < ChunkSizeX; x++)
         {
-            for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
+            for (var z = 0; z < ChunkSizeZ; z++)
             {
                 var h = heightmap.GetHeight(x, z);
-                if (h > ChunckPosition.Y + ChunkData.ChunkSizeY - 1)
+                if (h > ChunckPosition.Y + ChunkSizeY - 1)
                     continue;
-                for (var y = ChunkData.ChunkSizeY - 1; y >= 0; y--)
+                for (var y = ChunkSizeY - 1; y >= 0; y--)
                 {
                     var id = GetBlockId(new Vector3I(x, y, z));
                     if (!id.Block().Transparent)
                     {
-                        var pos = CreatePosition(x, y ,z).IntoWorld();
+                        var pos = CreatePosition(x, y, z).IntoWorld();
                         heightmap.SetHeight(pos);
                     }
                 }

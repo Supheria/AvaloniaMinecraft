@@ -25,20 +25,27 @@ public sealed class Light
         public int Value { get; set; }
     }
 
-    private class LightNode
+    private class TorchLightNode
     {
         public BlockPosition Position { get; set; }
-        public LightIbgrs Light { get; set; }
+        public TorchLight Light { get; set; }
     }
 
     // TODO: for test
-    public static void Add(World world, BlockPosition position, LightIbgrs light)
+    public static void Add(World world, BlockPosition position, TorchLight torchLight)
     {
         var id = world.GetBlockId(position);
         if (!id.Block().Transparent)
             return;
-        for (var i = 0; i < LightIbgrs.SunlightChannel; i++)
-            AddChannel(world, position, light[i], i, PropagateMode.Default);
+        for (var i = 0; i < TorchLight.ChannelCount; i++)
+            AddChannel(world, position, torchLight[i], i, PropagateMode.Default);
+    }
+
+    // TODO: for test
+    public static void Remove(World world, BlockPosition position)
+    {
+        for (var i = 0; i < AllLight.SunlightChannel; i++)
+            RemoveChannel(world, position, i, PropagateMode.Default);
     }
 
     private static void AddChannel(
@@ -58,17 +65,10 @@ public sealed class Light
         AddPropagate(world, queue, channel, mode);
     }
 
-    // TODO: for test
-    public static void Remove(World world, BlockPosition position)
-    {
-        for (var i = 0; i < LightIbgrs.SunlightChannel; i++)
-            RemoveChannel(world, position, i, PropagateMode.Default);
-    }
-
     public static void UpdateAllLight(World world, BlockPosition position)
     {
         var queue = new Queue<LightChannelNode>();
-        for (var i = 0; i < LightIbgrs.ChannelCount; i++)
+        for (var i = 0; i < AllLight.ChannelCount; i++)
         {
             foreach (var direction in Direction.AllDirections)
             {
@@ -109,7 +109,7 @@ public sealed class Light
                 var nData = world.GetBlockData(nPos);
                 var nLight = nData.AllLight;
                 var nValue = nLight[channel];
-                var nBlock = nData.Id.Block();
+                var nBlock = nData.BlockId.Block();
                 if (
                     (nValue != 0 || nBlock.Transparent)
                     && ((sunlightDown && nValue < value) || nValue + 1 < value)
@@ -127,13 +127,13 @@ public sealed class Light
 
     public static void RemoveAllLight(World world, BlockPosition position)
     {
-        RemoveDefaultLight(world, position);
-        RemoveChannel(world, position, LightIbgrs.SunlightChannel, PropagateMode.Sunlight);
+        RemoveTorchLight(world, position);
+        RemoveChannel(world, position, AllLight.SunlightChannel, PropagateMode.Sunlight);
     }
 
-    private static void RemoveDefaultLight(World world, BlockPosition position)
+    private static void RemoveTorchLight(World world, BlockPosition position)
     {
-        for (var i = 0; i < LightIbgrs.SunlightChannel; i++)
+        for (var i = 0; i < TorchLight.ChannelCount; i++)
             RemoveChannel(world, position, i, PropagateMode.Default);
     }
 
@@ -190,19 +190,28 @@ public sealed class Light
             }
         }
     }
+    
+    public static void AddTorchLight(World world, BlockPosition position, TorchLight torchLight)
+    {
+        var block = world.GetBlockId(position).Block();
+        if (!block.Transparent)
+            return;
+        for (var i = 0; i < 4; i++)
+            AddChannel(world, position, torchLight[i], i, PropagateMode.Default);
+    }
 
     public static void ApplyAllLight(Chunk chunk)
     {
         var queue = new Queue<LightChannelNode>();
 
-        for (var x = 0; x < ChunkData.ChunkSizeX; x++)
+        for (var x = 0; x < Chunk.ChunkSizeX; x++)
         {
-            for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
+            for (var z = 0; z < Chunk.ChunkSizeZ; z++)
             {
                 var pos = chunk.CreatePosition(x, 0, z);
                 var h = chunk.GetHighest(pos);
 
-                for (var y = ChunkData.ChunkSizeY - 1; y >= 0; y--)
+                for (var y = Chunk.ChunkSizeY - 1; y >= 0; y--)
                 {
                     pos = chunk.CreatePosition(x, y, z);
                     var wPos = pos.IntoWorld();
@@ -223,73 +232,73 @@ public sealed class Light
             }
         }
 
-        AddPropagate(chunk.World, queue, LightIbgrs.SunlightChannel, PropagateMode.Sunlight);
+        AddPropagate(chunk.World, queue, AllLight.SunlightChannel, PropagateMode.Sunlight);
 
-        var borders = new List<LightNode>();
-        for (var x = 0; x < ChunkData.ChunkSizeX; x++)
+        var borders = new List<TorchLightNode>();
+        for (var x = 0; x < Chunk.ChunkSizeX; x++)
         {
-            for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
+            for (var z = 0; z < Chunk.ChunkSizeZ; z++)
             {
                 var pos = chunk.CreatePosition(x, -1, z).IntoWorld();
-                var light = chunk.GetAllLight(pos);
-                if (light != LightIbgrs.Zero)
+                var light = chunk.World.GetTorchLight(pos);
+                if (light != AllLight.Zero)
                 {
-                    var node = new LightNode() { Position = pos, Light = light };
+                    var node = new TorchLightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
-                pos = chunk.CreatePosition(x, ChunkData.ChunkSizeY, z).IntoWorld();
-                light = chunk.GetAllLight(pos);
-                if (light != LightIbgrs.Zero)
+                pos = chunk.CreatePosition(x, Chunk.ChunkSizeY, z).IntoWorld();
+                light = chunk.World.GetTorchLight(pos);
+                if (light != AllLight.Zero)
                 {
-                    var node = new LightNode() { Position = pos, Light = light };
+                    var node = new TorchLightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
             }
         }
 
-        for (var x = 0; x < ChunkData.ChunkSizeX; x++)
+        for (var x = 0; x < Chunk.ChunkSizeX; x++)
         {
-            for (var y = 0; y < ChunkData.ChunkSizeY; y++)
+            for (var y = 0; y < Chunk.ChunkSizeY; y++)
             {
                 var pos = chunk.CreatePosition(x, y, -1).IntoWorld();
-                var light = chunk.GetAllLight(pos);
-                if (light != LightIbgrs.Zero)
+                var light = chunk.World.GetTorchLight(pos);
+                if (light != AllLight.Zero)
                 {
-                    var node = new LightNode() { Position = pos, Light = light };
+                    var node = new TorchLightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
-                pos = chunk.CreatePosition(x, y, ChunkData.ChunkSizeZ).IntoWorld();
-                light = chunk.GetAllLight(pos);
-                if (light != LightIbgrs.Zero)
+                pos = chunk.CreatePosition(x, y, Chunk.ChunkSizeZ).IntoWorld();
+                light = chunk.World.GetTorchLight(pos);
+                if (light != AllLight.Zero)
                 {
-                    var node = new LightNode() { Position = pos, Light = light };
+                    var node = new TorchLightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
             }
         }
 
-        for (var y = 0; y < ChunkData.ChunkSizeY; y++)
+        for (var y = 0; y < Chunk.ChunkSizeY; y++)
         {
-            for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
+            for (var z = 0; z < Chunk.ChunkSizeZ; z++)
             {
                 var pos = chunk.CreatePosition(-1, y, z).IntoWorld();
-                var light = chunk.GetAllLight(pos);
-                if (light != LightIbgrs.Zero)
+                var light = chunk.World.GetTorchLight(pos);
+                if (light != AllLight.Zero)
                 {
-                    var node = new LightNode() { Position = pos, Light = light };
+                    var node = new TorchLightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
-                pos = chunk.CreatePosition(ChunkData.ChunkSizeX, y, z).IntoWorld();
-                light = chunk.GetAllLight(pos);
-                if (light != LightIbgrs.Zero)
+                pos = chunk.CreatePosition(Chunk.ChunkSizeX, y, z).IntoWorld();
+                light = chunk.World.GetTorchLight(pos);
+                if (light != AllLight.Zero)
                 {
-                    var node = new LightNode() { Position = pos, Light = light };
+                    var node = new TorchLightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
             }
         }
 
-        for (var i = 0; i < LightIbgrs.SunlightChannel; i++)
+        for (var i = 0; i < TorchLight.ChannelCount; i++)
         {
             queue = [];
             foreach (var node in borders)
@@ -303,52 +312,4 @@ public sealed class Light
             AddPropagate(chunk.World, queue, i, PropagateMode.Default);
         }
     }
-
-    //
-    // public void Apply(Chunk chunk)
-    // {
-    //     var heightmap = World.GetHeightmap(chunk);
-    //     var sunlightQueue = new Queue<LightNode>();
-    //     var torchlightQueue = new Queue<LightNode>();
-    //
-    //     // propagate sunlight for this chunk
-    //     for (var x = 0; x < Chunk.ChunkSizeX; x++)
-    //     {
-    //         for (var z = 0; z < Chunk.ChunkSizeZ; z++)
-    //         {
-    //             var h = heightmap.GetData(x, z);
-    //             for (var y = Chunk.ChunkSizeY - 1; y >= 0; y--)
-    //             {
-    //                 var posC = new Vector3(x, y, z);
-    //                 var posW = Vector3.Add(chunk.Position, posC);
-    //                 if (posW.Y > h)
-    //                 {
-    //                     // check if this sunlight needs to be propagated in any
-    //                     // N, E, S, W direction before queueing it
-    //                     for (var d = Direction.North; d <= Direction.West; d++)
-    //                     {
-    //                         var dV = d.GetVector3();
-    //                         var posCn = Vector3.Add(posC, dV);
-    //                         var posWn = Vector3.Add(posW, dV);
-    //                         var height = Chunk.InBounds(posCn)
-    //                             ? heightmap.GetData(posCn.X, posCn.Z)
-    //                             : chunk.World.HeightmapGet(posWn.Xz());
-    //                         if (posW.Y < height)
-    //                         {
-    //                             sunlightQueue.Enqueue(new() { Position = posW });
-    //                         }
-    //                     }
-    //                 }
-    //
-    //                 // enqueue torchlight emitting blocks
-    //                 var block = Block.Blocks[chunk.GetData(posC).BlockId];
-    //                 if (block.CanEmitLight)
-    //                 {
-    //                     var light = block.GetTorchLight(chunk.World, posW);
-    //
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
 }

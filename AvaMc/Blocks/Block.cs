@@ -1,4 +1,5 @@
 using System.Numerics;
+using AvaMc.Gfx;
 using AvaMc.Util;
 using AvaMc.WorldBuilds;
 
@@ -7,15 +8,16 @@ namespace AvaMc.Blocks;
 // TODO: not complete yet
 public abstract partial class Block
 {
-    // public abstract BlockId Id { get; }
+    public abstract BlockId Id { get; }
     public virtual bool Transparent { get; } = false;
     public virtual bool Animated { get; } = false;
-    public virtual bool Sprite { get; } = false;
     public virtual bool Liquid { get; } = false;
 
-    // public bool CanEmitLight { get; set; }
+    public virtual bool CanEmitLight { get; } = false;
+
     // public bool Animated { get; set; }
-    // public BlockMesh.MeshType MeshType { get; set; }
+    public virtual BlockMeshType MeshType { get; } = BlockMeshType.Default;
+
     // public bool Solid { get; set; }
     //
     // // for non-solid blocks
@@ -40,6 +42,11 @@ public abstract partial class Block
     public virtual Vector2I[] GetAnimationFrameOffsets()
     {
         return [];
+    }
+
+    public virtual TorchLight GetTorchLight()
+    {
+        return TorchLight.Zero;
     }
     // public abstract Func<World, Vector3, Direction, MeshInfo> GetMeshInfo { get; set; }
     // public abstract Func<Vector2[]> GetAnimationFrameOffsets { get; set; }

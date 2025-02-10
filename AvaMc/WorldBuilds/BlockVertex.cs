@@ -3,13 +3,13 @@ using AvaMc.Gfx;
 
 namespace AvaMc.WorldBuilds;
 
-public readonly struct ChunkVertex
+public readonly struct BlockVertex
 {
     public Vector3 Position { get; }
     public Vector2 Uv { get; }
     public uint Light {get;}
 
-    public ChunkVertex(Vector3 position, Vector2 uv, uint light)
+    public BlockVertex(Vector3 position, Vector2 uv, uint light)
     {
         Position = position;
         Uv = uv;

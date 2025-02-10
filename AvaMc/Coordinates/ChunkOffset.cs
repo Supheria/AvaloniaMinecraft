@@ -18,7 +18,7 @@ public readonly struct ChunkOffset : IEquatable<ChunkOffset>
 
     public Vector3I ToChunkPosition()
     {
-        return Vector3I.Multiply(Value, ChunkData.ChunkSize);
+        return Vector3I.Multiply(Value, Chunk.ChunkSize);
     }
 
     public ChunkOffset ToNeighbor(Direction direction)

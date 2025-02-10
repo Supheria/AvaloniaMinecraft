@@ -4,7 +4,7 @@ using AvaMc.Util;
 
 namespace AvaMc.Gfx;
 
-public struct LightIbgrs : IEquatable<LightIbgrs>
+public struct AllLight : IEquatable<AllLight>
 {
     public const int ChannelCount = 5;
     public const int SunlightChannel = 4;
@@ -36,14 +36,19 @@ public struct LightIbgrs : IEquatable<LightIbgrs>
     }
     int Channels { get; set; }
 
-    public static LightIbgrs Zero { get; } = new();
+    public static AllLight Zero { get; } = new();
 
-    public LightIbgrs()
+    public AllLight()
     {
         Channels = 0;
     }
 
-    public LightIbgrs(int intensity, int blue, int green, int red, int sunlight)
+    public AllLight(int channels)
+    {
+        Channels = channels;
+    }
+
+    public AllLight(int intensity, int blue, int green, int red, int sunlight)
     {
         Intensity = intensity;
         Green = green;
@@ -68,19 +73,19 @@ public struct LightIbgrs : IEquatable<LightIbgrs>
         return channel * 4;
     }
 
-    public uint GetChannels(Direction direction)
+    public uint MakeFinal(Direction direction)
     {
-        return (uint)(Channels | (int)direction.Value << 20);
+        return (uint)(Channels | ((int)direction.Value << 20));
     }
 
-    public bool Equals(LightIbgrs other)
+    public bool Equals(AllLight other)
     {
         return Channels == other.Channels;
     }
 
     public override bool Equals(object? obj)
     {
-        return obj is LightIbgrs other && Equals(other);
+        return obj is AllLight other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -88,13 +93,23 @@ public struct LightIbgrs : IEquatable<LightIbgrs>
         return Channels;
     }
 
-    public static bool operator ==(LightIbgrs left, LightIbgrs right)
+    public static bool operator ==(AllLight left, AllLight right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(LightIbgrs left, LightIbgrs right)
+    public static bool operator !=(AllLight left, AllLight right)
     {
         return !(left == right);
+    }
+
+    public static implicit operator int(AllLight allLight)
+    {
+        return allLight.Channels;
+    }
+
+    public static explicit operator AllLight(int channels)
+    {
+        return new(channels);
     }
 }

@@ -43,7 +43,7 @@ public sealed class Game
             var r = random.Next() % 16;
             var g = random.Next() % 16;
             var b = random.Next() % 16;
-            Light.Add(GlobalState.World, blockPosition, new(r, g, b, 15, 0));
+            Light.Add(GlobalState.World, blockPosition, new(r, g, b, 15));
         }
         if (GlobalState.Game.Keyboard[Key.V].PressedTick)
         {

@@ -1,6 +1,6 @@
 namespace AvaMc.Blocks;
 
-public enum BlockId
+public enum BlockId : short
 {
     Air = 0,
     Grass = 1,
@@ -19,7 +19,7 @@ public enum BlockId
     Clay = 14,
     Gravel = 15,
     Planks = 16,
-    // Torch = 17,
+    Torch = 17,
     // Cobblestone = 18,
     // Snow = 19,
     // Podzol = 20,

@@ -214,9 +214,9 @@ public sealed class WorldGenerator
             };
             var biomeNoise = new OctaveNoise(6, 0);
             var auxiliaryNoise = new OctaveNoise(6, 1);
-            for (var x = 0; x < ChunkData.ChunkSizeX; x++)
+            for (var x = 0; x < Chunk.ChunkSizeX; x++)
             {
-                for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
+                for (var z = 0; z < Chunk.ChunkSizeZ; z++)
                 {
                     var w = chunk.CreatePosition(x, 0, z).IntoWorld();
                     var wx = w.X;
@@ -247,9 +247,9 @@ public sealed class WorldGenerator
             }
         }
         
-        for (var x = 0; x < ChunkData.ChunkSizeX; x++)
+        for (var x = 0; x < Chunk.ChunkSizeX; x++)
         {
-            for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
+            for (var z = 0; z < Chunk.ChunkSizeZ; z++)
             {
                 var gen = heightmap.GetGenData(x, z);
                 var h = gen.H;
@@ -299,7 +299,7 @@ public sealed class WorldGenerator
                         break;
                 }
                 
-                for (var y = 0; y < ChunkData.ChunkSizeY; y++)
+                for (var y = 0; y < Chunk.ChunkSizeY; y++)
                 {
                     var pos = chunk.CreatePosition(x, y, z);
                     var w = pos.IntoWorld();
@@ -334,11 +334,11 @@ public sealed class WorldGenerator
         // // return;
         //
         // //TODO
-        // for (var x = 0; x < ChunkData.ChunkSizeX; x++)
+        // for (var x = 0; x < Chunk.ChunkSizeX; x++)
         // {
         //     for (var y = 0; y < 1; y++)
         //     {
-        //         for (var z = 0; z < ChunkData.ChunkSizeZ; z++)
+        //         for (var z = 0; z < Chunk.ChunkSizeZ; z++)
         //         {
         //             var p = chunk.CreatePosition(x, y, z);
         //             var w = p.ToWorld();
@@ -496,9 +496,6 @@ public sealed class WorldGenerator
                         Flowers(random, chunk, GetBlockData, SetBlockData, x, h, z);
                 }
             }
-
-            foreach (var (pos, id) in chunk.World.UnloadedBlockIds)
-                chunk.SetBlockId(pos, id);
         }
     }
 }
