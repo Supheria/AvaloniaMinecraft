@@ -26,6 +26,8 @@ public static class Program
         
         dic = GetDic(5);
         dic[5] = "world";
+        
+        var ints = new int[50];
 
         Console.ReadLine();
     }

@@ -191,6 +191,41 @@ public sealed class WorldGenerator
 
     public void Generate(Chunk chunk)
     {
+        // return;
+        // for (var x = 0; x < Chunk.ChunkSizeX; x++)
+        // {
+        //     for (var y = 0; y < 1; y++)
+        //     {
+        //         for (var z = 0; z < Chunk.ChunkSizeZ; z++)
+        //         {
+        //             var p = chunk.CreatePosition(x, y, z);
+        //             var w = p.IntoWorld();
+        //             // if (w.Y > 60 && w.Y < 70)
+        //             BlockId id;
+        //             if (w.Y > 64)
+        //             {
+        //                 continue;
+        //             }
+        //             else if (w.Y > 63)
+        //             {
+        //                 id = BlockId.Grass;
+        //             }
+        //             else if (w.Y > 60)
+        //             {
+        //                 id = BlockId.Dirt;
+        //             }
+        //             else
+        //             {
+        //                 id = BlockId.Stone;
+        //             }
+        //
+        //             chunk.SetBlockId(p, id);
+        //         }
+        //     }
+        // }
+        //
+        // return;
+
         var seed = GetChunkRandomSeed(chunk);
         var random = new Random(seed);
         var heightmap = chunk.GetHeightmap();
@@ -221,7 +256,7 @@ public sealed class WorldGenerator
                     var w = chunk.CreatePosition(x, 0, z).IntoWorld();
                     var wx = w.X;
                     var wz = w.Z;
-                    
+
                     var baseScale = 1.3f;
                     var hl = (int)(
                         (combineds[0].Compute(Seed, wx * baseScale, wz * baseScale) / 6.0f) - 4.0f
@@ -235,7 +270,7 @@ public sealed class WorldGenerator
 
                     var hr = t > 0 ? hl : Math.Max(hl, hh);
                     var h = hr + WaterLevel;
-                    
+
                     var gen = new WorldgenData()
                     {
                         H = h,
@@ -246,7 +281,7 @@ public sealed class WorldGenerator
                 }
             }
         }
-        
+
         for (var x = 0; x < Chunk.ChunkSizeX; x++)
         {
             for (var z = 0; z < Chunk.ChunkSizeZ; z++)
@@ -255,7 +290,7 @@ public sealed class WorldGenerator
                 var h = gen.H;
                 var t = gen.T;
                 var r = gen.R;
-                
+
                 Biome biome;
                 if (h < WaterLevel)
                     biome = Biome.Ocean;
@@ -263,10 +298,10 @@ public sealed class WorldGenerator
                     biome = Biome.Beach;
                 else
                     biome = Biome.Plains;
-                
+
                 // dirt or sand depth
                 var d = r * 1.4f + 5.0f;
-                
+
                 var topBlock = BlockId.Air;
                 switch (biome)
                 {
@@ -298,13 +333,13 @@ public sealed class WorldGenerator
                             topBlock = BlockId.Stone;
                         break;
                 }
-                
+
                 for (var y = 0; y < Chunk.ChunkSizeY; y++)
                 {
                     var pos = chunk.CreatePosition(x, y, z);
                     var w = pos.IntoWorld();
                     var wY = w.Y;
-                    
+
                     var id = BlockId.Air;
                     if (wY > h && wY <= WaterLevel)
                         id = BlockId.Water;
@@ -328,7 +363,7 @@ public sealed class WorldGenerator
         }
 
         return;
-        
+
         // // var temp = chunk.CreatePosition(2, 2, 2);
         // // chunk.SetBlockId(temp,BlockId.Stone);
         // // return;

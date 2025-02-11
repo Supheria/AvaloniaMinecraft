@@ -21,9 +21,9 @@ public sealed partial class Chunk
     public static Vector2I ChunkSizeXz { get; } = new(ChunkSizeX, ChunkSizeZ);
     public static Vector3I ChunkSize { get; } = new(ChunkSizeX, ChunkSizeY, ChunkSizeZ);
     public World World { get; set; }
-    public ChunkOffset Offset { get; private set; }
+    public Vector3I Offset { get; private set; }
     Vector3I ChunckPosition { get; set; }
-    BlockDataService?[] Data { get; } = new BlockDataService?[ChunkVolume];
+    Memory<BlockDataService?> Data { get; } = new BlockDataService?[ChunkVolume];
     ChunkMesh Mesh { get; }
     int NoneAirCount { get; set; }
     bool Empty => NoneAirCount is 0;
@@ -32,8 +32,8 @@ public sealed partial class Chunk
     public Chunk(GL gl, World world, Vector3I offset)
     {
         World = world;
-        Offset = new(offset);
-        ChunckPosition = Offset.ToChunkPosition();
+        Offset = offset;
+        ChunckPosition = Vector3I.Multiply(offset, ChunkSize);
         Mesh = new(gl, this);
     }
 
@@ -74,32 +74,38 @@ public sealed partial class Chunk
         return Matrix4x4.CreateTranslation(ChunckPosition.ToNumerics());
     }
 
-    public ChunkOffset[] GetBorderingChunkOffsets(Vector3I position)
+    public Vector3I[] GetBorderingChunkOffsets(Vector3I position)
     {
-        var offsets = new List<ChunkOffset>(6);
+        var offsets = new List<Vector3I>(6);
         if (position.X is 0)
         {
-            offsets.Add(Offset.ToNeighbor(Direction.West));
+            var offset = Vector3I.Add(Offset, -Vector3I.UnitX);
+            offsets.Add(offset);
         }
         if (position.Y is 0)
         {
-            offsets.Add(Offset.ToNeighbor(Direction.Down));
+            var offset = Vector3I.Add(Offset, -Vector3I.UnitY);
+            offsets.Add(offset);
         }
         if (position.Z is 0)
         {
-            offsets.Add(Offset.ToNeighbor(Direction.North));
+            var offset = Vector3I.Add(Offset, -Vector3I.UnitZ);
+            offsets.Add(offset);
         }
         if (position.X == ChunkSizeX - 1)
         {
-            offsets.Add(Offset.ToNeighbor(Direction.East));
+            var offset = Vector3I.Add(Offset, Vector3I.UnitX);
+            offsets.Add(offset);
         }
         if (position.Y == ChunkSizeY - 1)
         {
-            offsets.Add(Offset.ToNeighbor(Direction.Up));
+            var offset = Vector3I.Add(Offset, Vector3I.UnitY);
+            offsets.Add(offset);
         }
         if (position.Z == ChunkSizeZ - 1)
         {
-            offsets.Add(Offset.ToNeighbor(Direction.South));
+            var offset = Vector3I.Add(Offset, Vector3I.UnitZ);
+            offsets.Add(offset);
         }
         return offsets.ToArray();
     }
@@ -119,7 +125,10 @@ public sealed partial class Chunk
 
     private void OnModify(Vector3I position, BlockData prev, BlockData changed)
     {
-        Mesh.Dirty = true;
+        if (!Generating)
+            Mesh.Dirty = true;
+        else
+            Mesh.Dirty = false;
 
         if (prev.BlockId != changed.BlockId)
         {
@@ -144,20 +153,23 @@ public sealed partial class Chunk
                 }
             }
             NoneAirCount += changed.BlockId is BlockId.Air ? -1 : 1;
-            NoneAirCount = Math.Max(0, NoneAirCount);
         }
 
-        if (prev.BlockId != changed.BlockId || prev.AllLight != changed.AllLight)
-        {
-            var neighbors = GetBorderingChunks(position);
-            foreach (var chunk in neighbors)
-                chunk.Mesh.Dirty = true;
-        }
+        // if (prev.BlockId != changed.BlockId || prev.AllLight != changed.AllLight)
+        // {
+        //     var neighbors = GetBorderingChunks(position);
+        //     foreach (var chunk in neighbors)
+        //         chunk.Mesh.Dirty = true;
+        // }
     }
+
+    private void RefreshNeighbors() { }
 
     public int GetHighest(BlockChunkPosition position)
     {
         var heightMap = World.GetHeightmap(Offset);
+        if (heightMap is null)
+            throw new ArgumentNullException();
         return heightMap.GetHeight(position);
     }
 
@@ -168,14 +180,13 @@ public sealed partial class Chunk
 
     public Heightmap GetHeightmap()
     {
-        return World.GetHeightmap(Offset);
+        return World.GetHeightmap(Offset) ?? throw new ArgumentNullException();
     }
 
     public void PrepareRender(GL gl)
     {
-        if (Empty)
-            return;
-        Mesh.PrepareRender(gl);
+        if (!Empty)
+            Mesh.PrepareRender(gl);
     }
 
     public void RenderTransparent(GL gl)
@@ -193,7 +204,7 @@ public sealed partial class Chunk
     public void Update()
     {
         var player = World.Player;
-        var withinDistance = Offset.Distance(player.ChunkOffset) < 4;
+        var withinDistance = Vector3I.Distance(Offset, player.ChunkOffset) < 4;
         var blockchanged = Offset == player.ChunkOffset && player.BlockPositionChanged;
         var chunkChanged = player.ChunkOffsetChanged && withinDistance;
         Mesh.DepthSort = blockchanged || chunkChanged;
@@ -207,6 +218,7 @@ public sealed partial class Chunk
     {
         RecaculateHeightmap();
         Light.ApplyAllLight(this);
+        Mesh.Dirty = true;
     }
 
     private void RecaculateHeightmap()

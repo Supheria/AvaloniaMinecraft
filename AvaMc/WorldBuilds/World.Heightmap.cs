@@ -8,53 +8,50 @@ namespace AvaMc.WorldBuilds;
 
 partial class World
 {
-    Dictionary<Vector2I, Heightmap> Heightmaps { get; } = [];
-
-    private Heightmap GetHeightmap(Vector2I offset)
+    private Heightmap? GetHeightmap(Vector2I offset)
     {
-        if (Heightmaps.TryGetValue(offset, out var heightmap))
-            return heightmap;
-        Heightmaps[offset] = new();
-        return Heightmaps[offset];
+        if (!HeightmapInBounds(offset))
+            return null;
+        var index = HeightmapOffsetToIndex(offset);
+        var heightmaps = Heightmaps.Span;
+        return heightmaps[index] ?? (heightmaps[index] = new(offset));
     }
-    
-    public Heightmap GetHeightmap(ChunkOffset chunkOffset)
+
+    public Heightmap? GetHeightmap(Vector3I chunkOffset)
     {
-        var offset = chunkOffset.ToInernal().Xz();
+        var offset = chunkOffset.Xz();
         return GetHeightmap(offset);
     }
 
     private void SetHeightmap(BlockPosition position)
     {
-        var offset = position.ToChunkOffsetXz();
+        var offset = position.ToChunkOffset().Xz();
         var heightmap = GetHeightmap(offset);
-        heightmap.SetHeight(position);
+        heightmap?.SetHeight(position);
     }
 
     public int GetHighest(BlockPosition position)
     {
         var offset = position.ToChunkOffset().Xz();
-        if (!InBounds(offset))
-            return Heightmap.UnknownHeight;
         var heightmap = GetHeightmap(offset);
-        return heightmap.GetHeight(position);
+        return heightmap?.GetHeight(position) ?? Heightmap.UnknownHeight;
     }
 
-    public bool UpdateHeightmap(BlockPosition position)
+    public void UpdateHeightmap(BlockPosition position)
     {
-        var offset = position.ToChunkOffsetXz();
+        var offset = position.ToChunkOffset().Xz();
         var heightmap = GetHeightmap(offset);
+        if (heightmap is null)
+            return;
         var height = heightmap.GetHeight(position);
-        if (position.Y <= height)
-            return false;
-        heightmap.SetHeight(position);
-        return true;
+        if (position.Y > height)
+            heightmap.SetHeight(position);
     }
 
     public void RecaculateHeightmap(BlockPosition position)
     {
         var offset = position.ToChunkOffset();
-        if (!InBounds(offset))
+        if (!ChunkInBounds(offset))
             throw new ArgumentOutOfRangeException(nameof(position));
         var yMin = ChunksOrigin.Y * Chunk.ChunkSizeY;
         var yMax = (ChunksOrigin.Y + ChunksMagnitude) * Chunk.ChunkSizeY;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using AvaMc.Coordinates;
@@ -8,22 +9,43 @@ namespace AvaMc.WorldBuilds;
 public sealed class Heightmap
 {
     public const int UnknownHeight = int.MinValue;
-    Dictionary<Vector2I, int> HeightData { get; } = [];
-    Dictionary<Vector2, WorldgenData> WorldgenData { get; } = [];
+    const int Volume = Chunk.ChunkSizeX * Chunk.ChunkSizeZ;
+    public Vector2I Offset { get; }
+    Memory<int> HeightData { get; }
+    Memory<WorldgenData?> WorldgenData { get; }
     public bool Generated { get; set; }
+
+    public Heightmap(Vector2I offset)
+    {
+        Offset = offset;
+        HeightData = new int[Volume];
+        var heightData = HeightData.Span;
+        for (var i = 0; i < Volume; i++)
+            heightData[i] = UnknownHeight;
+        WorldgenData = new WorldgenData?[Volume];
+    }
+
+    private int PositionToIndex(Vector2I position)
+    {
+        return position.X * Chunk.ChunkSizeX + position.Y;
+    }
+
+    private int PositionToIndex(int x, int z)
+    {
+        return x * Chunk.ChunkSizeX + z;
+    }
 
     public void SetHeight(BlockPosition position)
     {
         var pos = position.IntoHeightmap();
-        HeightData[pos] = position.Height;
+        var index = PositionToIndex(pos);
+        HeightData.Span[index] = position.Height;
     }
 
     private int GetHeight(Vector2I position)
     {
-        if (HeightData.TryGetValue(position, out var height))
-            return height;
-        HeightData[position] = UnknownHeight;
-        return HeightData[position];
+        var index = PositionToIndex(position);
+        return HeightData.Span[index];
     }
 
     public int GetHeight(BlockPosition position)
@@ -37,7 +59,7 @@ public sealed class Heightmap
         var pos = position.Xz();
         return GetHeight(pos);
     }
-    
+
     public int GetHeight(int x, int z)
     {
         return GetHeight(new Vector2I(x, z));
@@ -46,12 +68,14 @@ public sealed class Heightmap
     // TODO: split gen-data from heightmap
     public void SetGenData(int x, int z, WorldgenData gen)
     {
-        WorldgenData[new(x, z)] = gen;
+        var index = PositionToIndex(x, z);
+        WorldgenData.Span[index] = gen;
     }
-    
-    public WorldgenData GetGenData(int x, int z)
+
+    public WorldgenData? GetGenData(int x, int z)
     {
-        return WorldgenData[new(x, z)];
+        var index = PositionToIndex(x, z);
+        return WorldgenData.Span[index];
     }
 
     // int[,] Data { get; set; }

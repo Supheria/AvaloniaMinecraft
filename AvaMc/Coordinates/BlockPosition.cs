@@ -47,14 +47,6 @@ public struct BlockPosition : IEquatable<BlockPosition>
         );
     }
 
-    public Vector2I ToChunkOffsetXz()
-    {
-        return new(
-            (int)MathF.Floor(X / (float)Chunk.ChunkSizeX),
-            (int)MathF.Floor(Z / (float)Chunk.ChunkSizeZ)
-        );
-    }
-
     public Vector2I IntoHeightmap()
     {
         var x = (X % Chunk.ChunkSizeX + Chunk.ChunkSizeX) % Chunk.ChunkSizeX;

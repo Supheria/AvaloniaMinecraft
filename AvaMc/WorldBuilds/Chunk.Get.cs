@@ -15,8 +15,8 @@ partial class Chunk
     private BlockDataService GetBlockDataService(Vector3I position)
     {
         var index = PositionToIndex(position);
-        var service = Data[index] ?? (Data[index] = new());
-        return service;
+        var data = Data.Span;
+        return data[index] ?? (data[index] = new());
     }
 
     public BlockData GetBlockData(Vector3I position)

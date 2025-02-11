@@ -17,17 +17,17 @@ partial class World
         var offsets = new Vector3I[ChunksVolume].AsSpan();
         for (var i = 0; i < ChunksVolume; i++)
         {
-            var offset = IndexToOffset(i);
+            var offset = ChunkIndexToOffset(i);
             offsets[i] = offset;
         }
         var comparer = new ChunkDepthComparer(CenterChunkOffset, DepthOrder.Nearer);
         offsets.Sort(comparer);
 
-        var chunks = Chunks.AsSpan();
+        var chunks = Chunks.Span;
         for (var i = 0; i < ChunksVolume; i++)
         {
             var offset = offsets[i];
-            var index = OffsetToIndex(offset);
+            var index = ChunkOffsetToIndex(offset);
             if (chunks[index] is null && Meshing.UnderThreshold())
             {
                 chunks[index] = LoadChunk(gl, offset);
@@ -38,7 +38,7 @@ partial class World
 
     private Chunk LoadChunk(GL gl, Vector3I offset)
     {
-        if (!InBounds(offset))
+        if (!ChunkInBounds(offset))
             throw new ArgumentOutOfRangeException(nameof(offset), offset, null);
         var chunk = new Chunk(gl, this, offset);
         chunk.Generating = true;
@@ -51,22 +51,17 @@ partial class World
             chunk.SetBlockId(cPos, blockId);
             UnloadedBlockIds.Remove(position);
         }
-        chunk.Generating = false;
         chunk.AfterGenerate();
+        chunk.Generating = false;
         return chunk;
     }
 
-    public Chunk? GetChunk(ChunkOffset offset)
+    public Chunk? GetChunk(Vector3I offset)
     {
-        return GetChunk(offset.ToInernal());
-    }
-
-    private Chunk? GetChunk(Vector3I offset)
-    {
-        if (!InBounds(offset))
+        if (!ChunkInBounds(offset))
             return null;
-        var chunks = Chunks.AsSpan();
-        var index = OffsetToIndex(offset);
+        var chunks = Chunks.Span;
+        var index = ChunkOffsetToIndex(offset);
         return chunks[index];
     }
 

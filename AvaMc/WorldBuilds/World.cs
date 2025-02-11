@@ -19,9 +19,11 @@ public sealed partial class World
     // const int ChunksMagnitude = 10;
     int ChunksMagnitude { get; set; } = 4;
     int ChunksVolume => ChunksMagnitude * ChunksMagnitude * ChunksMagnitude;
+    int HeightmapsVolume => ChunksMagnitude * ChunksMagnitude;
     Sky Sky { get; }
     public Player Player { get; set; }
-    Chunk?[] Chunks { get; set; }
+    Memory<Chunk?> Chunks { get; set; }
+    Memory<Heightmap?> Heightmaps { get; set; }
     Vector3I ChunksOrigin { get; set; }
     Vector3I CenterChunkOffset { get; set; }
     public Threshold Loading { get; } = new(1);
@@ -40,25 +42,26 @@ public sealed partial class World
         Seed = new Random().Next();
         Generator = new(Seed);
         Chunks = new Chunk?[ChunksVolume];
-        SetCenter(gl, BlockPosition.Zero);
+        Heightmaps = new Heightmap[HeightmapsVolume];
+        // SetCenter(gl, BlockPosition.Zero);
     }
 
     public void Delete(GL gl)
     {
         Sky.Delete(gl);
         Player.Delete(gl);
-        foreach (var chunk in Chunks)
+        foreach (var chunk in Chunks.Span)
             chunk?.Delete(gl);
-        Chunks = [];
+        Chunks = Array.Empty<Chunk?>();
     }
 
-    private int OffsetToIndex(Vector3I offset)
+    private int ChunkOffsetToIndex(Vector3I offset)
     {
         var p = Vector3I.Subtract(offset, ChunksOrigin);
         return p.X * ChunksMagnitude * ChunksMagnitude + p.Z * ChunksMagnitude + p.Y;
     }
 
-    private Vector3I IndexToOffset(int index)
+    private Vector3I ChunkIndexToOffset(int index)
     {
         var p = new Vector3I(
             index / (ChunksMagnitude * ChunksMagnitude),
@@ -68,7 +71,19 @@ public sealed partial class World
         return Vector3I.Add(ChunksOrigin, p);
     }
 
-    private bool InBounds(Vector3I offset)
+    private int HeightmapOffsetToIndex(Vector2I offset)
+    {
+        var p = Vector2I.Subtract(offset, ChunksOrigin.Xz());
+        return p.X * ChunksMagnitude + p.Y;
+    }
+
+    private Vector2I HeightmapIndexToOffset(int index)
+    {
+        var p = new Vector2I(index / ChunksMagnitude, index % ChunksMagnitude);
+        return Vector2I.Add(ChunksOrigin.Xz(), p);
+    }
+
+    private bool ChunkInBounds(Vector3I offset)
     {
         var modified = Vector3I.Subtract(offset, ChunksOrigin);
         return modified.X >= 0
@@ -79,7 +94,7 @@ public sealed partial class World
             && modified.Z < ChunksMagnitude;
     }
 
-    private bool InBounds(Vector2I offset)
+    private bool HeightmapInBounds(Vector2I offset)
     {
         var modified = Vector2I.Subtract(offset, ChunksOrigin.Xz());
         return modified.X >= 0
@@ -98,27 +113,38 @@ public sealed partial class World
         CenterChunkOffset = newOffset;
         ChunksOrigin = newOrigin;
 
-        var volume = ChunksVolume;
-        var newChunks = new Chunk?[volume];
-        for (var i = 0; i < volume; i++)
+        var newChunks = new Chunk?[ChunksVolume];
+        var cSpan = newChunks.AsSpan();
+        var cSpanOld = Chunks.Span;
+        for (var i = 0; i < ChunksVolume; i++)
         {
-            var chunk = Chunks[i];
+            var chunk = cSpanOld[i];
             if (chunk is null)
                 continue;
-            var offset = chunk.Offset.ToInernal();
-            var index = OffsetToIndex(offset);
-            if (InBounds(offset))
-                newChunks[index] = chunk;
+            if (ChunkInBounds(chunk.Offset))
+            {
+                var index = ChunkOffsetToIndex(chunk.Offset);
+                cSpan[index] = chunk;
+            }
             else
                 chunk.Delete(gl);
         }
         Chunks = newChunks;
 
-        foreach (var offset in Heightmaps.Keys)
+        var newHeightmaps = new Heightmap?[HeightmapsVolume];
+        var hSpan = newHeightmaps.AsSpan();
+        var hSpanOld = Heightmaps.Span;
+        for (var i = 0; i < HeightmapsVolume; i++)
         {
-            if (!InBounds(offset))
-                Heightmaps.Remove(offset);
+            var heightmap = hSpanOld[i];
+            if (heightmap is null)
+                continue;
+            if (!HeightmapInBounds(heightmap.Offset))
+                continue;
+            var index = HeightmapOffsetToIndex(heightmap.Offset);
+            hSpan[index] = heightmap;
         }
+        Heightmaps = newHeightmaps;
 
         //TODO: may remove
         // LoadEmptyChunks(gl);
@@ -152,7 +178,7 @@ public sealed partial class World
         shader.UniformFloat(gl, "fog_near", ChunksMagnitude / 2f * 32 - 12);
         shader.UniformFloat(gl, "fog_far", ChunksMagnitude / 2f * 32 - 4);
 
-        foreach (var chunk in Chunks)
+        foreach (var chunk in Chunks.Span)
             chunk?.RenderSolid(gl);
         foreach (var offset in SortChunksByOffset(DepthOrder.Farther))
         {
@@ -169,7 +195,7 @@ public sealed partial class World
         Loading.Reset();
         Meshing.Reset();
         LoadEmptyChunks(gl);
-        foreach (var chunk in Chunks)
+        foreach (var chunk in Chunks.Span)
             chunk?.Update();
         Player.Update();
     }
@@ -177,18 +203,21 @@ public sealed partial class World
     public void Tick()
     {
         Ticks++;
-        foreach (var chunk in Chunks)
+        foreach (var chunk in Chunks.Span)
             chunk?.Tick();
         Player.Tick();
     }
 
-    private List<Vector3I> SortChunksByOffset(DepthOrder order)
+    private Span<Vector3I> SortChunksByOffset(DepthOrder order)
     {
-        var offsets = new List<Vector3I>();
-        foreach (var chunk in Chunks)
+        var length = Chunks.Length;
+        var offsets = new Vector3I[length].AsSpan();
+        var cSpan = Chunks.Span;
+        for (var i = 0; i < length; i++)
         {
+            var chunk = cSpan[i];
             if (chunk is not null)
-                offsets.Add(chunk.Offset.ToInernal());
+                offsets[i] = chunk.Offset;
         }
         var comparer = new ChunkDepthComparer(CenterChunkOffset, order);
         offsets.Sort(comparer);
