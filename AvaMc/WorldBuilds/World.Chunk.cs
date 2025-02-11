@@ -14,37 +14,33 @@ partial class World
 {
     private void LoadEmptyChunks(GL gl)
     {
-        var offsets = new List<Vector3I>();
-        for (var x = 0; x < ChunksMagnitude; x++)
+        var offsets = new Vector3I[ChunksVolume].AsSpan();
+        for (var i = 0; i < ChunksVolume; i++)
         {
-            for (var y = 0; y < ChunksMagnitude; y++)
-            {
-                for (var z = 0; z < ChunksMagnitude; z++)
-                {
-                    var offset = Vector3I.Add(ChunksOrigin, new(x, y, z));
-                    offsets.Add(offset);
-                }
-            }
+            var offset = IndexToOffset(i);
+            offsets[i] = offset;
         }
         var comparer = new ChunkDepthComparer(CenterChunkOffset, DepthOrder.Nearer);
         offsets.Sort(comparer);
 
-        foreach (var offset in offsets)
+        var chunks = Chunks.AsSpan();
+        for (var i = 0; i < ChunksVolume; i++)
         {
-            if (!Chunks.ContainsKey(offset) && Meshing.UnderThreshold())
+            var offset = offsets[i];
+            var index = OffsetToIndex(offset);
+            if (chunks[index] is null && Meshing.UnderThreshold())
             {
-                LoadChunk(gl, offset);
+                chunks[index] = LoadChunk(gl, offset);
                 Meshing.AddOne();
             }
         }
     }
 
-    private void LoadChunk(GL gl, Vector3I offset)
+    private Chunk LoadChunk(GL gl, Vector3I offset)
     {
         if (!InBounds(offset))
             throw new ArgumentOutOfRangeException(nameof(offset), offset, null);
         var chunk = new Chunk(gl, this, offset);
-        Chunks[offset] = chunk;
         chunk.Generating = true;
         Generator.Generate(chunk);
         foreach (var (position, blockId) in UnloadedBlockIds)
@@ -57,28 +53,28 @@ partial class World
         }
         chunk.Generating = false;
         chunk.AfterGenerate();
+        return chunk;
     }
 
-    public bool GetChunk(ChunkOffset offset, [NotNullWhen(true)] out Chunk? chunk)
+    public Chunk? GetChunk(ChunkOffset offset)
     {
-        return GetChunk(offset.ToInernal(), out chunk);
+        return GetChunk(offset.ToInernal());
     }
 
-    private bool GetChunk(Vector3I offset, [NotNullWhen(true)] out Chunk? chunk)
+    private Chunk? GetChunk(Vector3I offset)
     {
-        chunk = null;
         if (!InBounds(offset))
-            return false;
-        return Chunks.TryGetValue(offset, out chunk);
+            return null;
+        var chunks = Chunks.AsSpan();
+        var index = OffsetToIndex(offset);
+        return chunks[index];
     }
 
     // TODO: cache unloaded chunks' blocks
     private Chunk? GetChunk(BlockPosition position)
     {
         var offset = position.ToChunkOffset();
-        if (GetChunk(offset, out var chunk))
-            return chunk;
-        return null;
+        return GetChunk(offset);
     }
 
     public BlockId GetBlockId(BlockPosition position)
@@ -96,7 +92,7 @@ partial class World
             return new();
         return chunk.GetAllLight(position.IntoChunk());
     }
-    
+
     public TorchLight GetTorchLight(BlockPosition position)
     {
         var chunk = GetChunk(position);

@@ -7,14 +7,18 @@ namespace AvaMc.WorldBuilds;
 
 partial class Chunk
 {
+    private static int PositionToIndex(Vector3I position)
+    {
+        return position.X * ChunkSizeX * ChunkSizeZ + position.Z * ChunkSizeZ + position.Y;
+    }
+
     private BlockDataService GetBlockDataService(Vector3I position)
     {
-        if (Data.TryGetValue(position, out var data))
-            return data;
-        Data[position] = new();
-        return Data[position];
+        var index = PositionToIndex(position);
+        var service = Data[index] ?? (Data[index] = new());
+        return service;
     }
-    
+
     public BlockData GetBlockData(Vector3I position)
     {
         var service = GetBlockDataService(position);

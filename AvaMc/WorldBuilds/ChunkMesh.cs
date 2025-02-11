@@ -130,25 +130,31 @@ public sealed class ChunkMesh
     public void Mesh(GL gl)
     {
         MeshPrepare();
-
-        foreach (var position in Chunk.GetBlockPositions())
+        for (var x = 0; x < Chunk.ChunkSizeX; x++)
         {
-            var data = Chunk.GetBlockData(position);
-            if (data.BlockId is BlockId.Air)
-                continue;
-            var block = data.BlockId.Block();
-            switch (block.MeshType)
+            for (var z = 0; z < Chunk.ChunkSizeZ; z++)
             {
-                case BlockMeshType.Sprite:
-                case BlockMeshType.Torch:
+                for (var y = 0; y < Chunk.ChunkSizeY; y++)
                 {
-                    MeshSprite(position, block, data.AllLight);
-                    break;
+                    var position = Chunk.CreatePosition(x, y, z);
+                    var data = Chunk.GetBlockData(position);
+                    if (data.BlockId is BlockId.Air)
+                        continue;
+                    var block = data.BlockId.Block();
+                    switch (block.MeshType)
+                    {
+                        case BlockMeshType.Sprite:
+                        case BlockMeshType.Torch:
+                        {
+                            MeshSprite(position, block, data.AllLight);
+                            break;
+                        }
+                        case BlockMeshType.Default:
+                        case BlockMeshType.Liquid:
+                            MeshDefault(position, block);
+                            break;
+                    }
                 }
-                case BlockMeshType.Default:
-                case BlockMeshType.Liquid:
-                    MeshDefault(position, block);
-                    break;
             }
         }
 
@@ -183,6 +189,7 @@ public sealed class ChunkMesh
         {
             var nPos = position.ToNeighbor(direction);
             var nData = Chunk.World.GetBlockData(nPos);
+            // continue;
             var nBlock = nData.BlockId.Block();
             if (
                 (nBlock.Transparent && !block.Transparent)

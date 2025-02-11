@@ -17,10 +17,11 @@ namespace AvaMc.WorldBuilds;
 public sealed partial class World
 {
     // const int ChunksMagnitude = 10;
-    const int ChunksMagnitude = 4;
+    int ChunksMagnitude { get; set; } = 4;
+    int ChunksVolume => ChunksMagnitude * ChunksMagnitude * ChunksMagnitude;
     Sky Sky { get; }
     public Player Player { get; set; }
-    Dictionary<Vector3I, Chunk> Chunks { get; set; } = [];
+    Chunk?[] Chunks { get; set; }
     Vector3I ChunksOrigin { get; set; }
     Vector3I CenterChunkOffset { get; set; }
     public Threshold Loading { get; } = new(1);
@@ -38,6 +39,7 @@ public sealed partial class World
         Player = new(this);
         Seed = new Random().Next();
         Generator = new(Seed);
+        Chunks = new Chunk?[ChunksVolume];
         SetCenter(gl, BlockPosition.Zero);
     }
 
@@ -45,9 +47,25 @@ public sealed partial class World
     {
         Sky.Delete(gl);
         Player.Delete(gl);
-        foreach (var chunk in Chunks.Values)
-            chunk.Delete(gl);
-        Chunks.Clear();
+        foreach (var chunk in Chunks)
+            chunk?.Delete(gl);
+        Chunks = [];
+    }
+
+    private int OffsetToIndex(Vector3I offset)
+    {
+        var p = Vector3I.Subtract(offset, ChunksOrigin);
+        return p.X * ChunksMagnitude * ChunksMagnitude + p.Z * ChunksMagnitude + p.Y;
+    }
+
+    private Vector3I IndexToOffset(int index)
+    {
+        var p = new Vector3I(
+            index / (ChunksMagnitude * ChunksMagnitude),
+            index % ChunksMagnitude,
+            index / ChunksMagnitude % ChunksMagnitude
+        );
+        return Vector3I.Add(ChunksOrigin, p);
     }
 
     private bool InBounds(Vector3I offset)
@@ -79,13 +97,22 @@ public sealed partial class World
             return;
         CenterChunkOffset = newOffset;
         ChunksOrigin = newOrigin;
-        foreach (var (offset, chunk) in Chunks)
+
+        var volume = ChunksVolume;
+        var newChunks = new Chunk?[volume];
+        for (var i = 0; i < volume; i++)
         {
-            if (InBounds(offset))
+            var chunk = Chunks[i];
+            if (chunk is null)
                 continue;
-            chunk.Delete(gl);
-            Chunks.Remove(offset);
+            var offset = chunk.Offset.ToInernal();
+            var index = OffsetToIndex(offset);
+            if (InBounds(offset))
+                newChunks[index] = chunk;
+            else
+                chunk.Delete(gl);
         }
+        Chunks = newChunks;
 
         foreach (var offset in Heightmaps.Keys)
         {
@@ -106,8 +133,8 @@ public sealed partial class World
 
         foreach (var offset in SortChunksByOffset(DepthOrder.Nearer))
         {
-            if (GetChunk(offset, out var chunk))
-                chunk.PrepareRender(gl);
+            var chunk = GetChunk(offset);
+            chunk?.PrepareRender(gl);
         }
 
         var renderer = GlobalState.Renderer;
@@ -125,12 +152,12 @@ public sealed partial class World
         shader.UniformFloat(gl, "fog_near", ChunksMagnitude / 2f * 32 - 12);
         shader.UniformFloat(gl, "fog_far", ChunksMagnitude / 2f * 32 - 4);
 
-        foreach (var chunk in Chunks.Values)
-            chunk.RenderSolid(gl);
+        foreach (var chunk in Chunks)
+            chunk?.RenderSolid(gl);
         foreach (var offset in SortChunksByOffset(DepthOrder.Farther))
         {
-            if (GetChunk(offset, out var chunk))
-                chunk.RenderTransparent(gl);
+            var chunk = GetChunk(offset);
+            chunk?.RenderTransparent(gl);
         }
 
         Player.Render(gl);
@@ -142,22 +169,27 @@ public sealed partial class World
         Loading.Reset();
         Meshing.Reset();
         LoadEmptyChunks(gl);
-        foreach (var chunk in Chunks.Values)
-            chunk.Update();
+        foreach (var chunk in Chunks)
+            chunk?.Update();
         Player.Update();
     }
 
     public void Tick()
     {
         Ticks++;
-        foreach (var chunk in Chunks.Values)
-            chunk.Tick();
+        foreach (var chunk in Chunks)
+            chunk?.Tick();
         Player.Tick();
     }
 
     private List<Vector3I> SortChunksByOffset(DepthOrder order)
     {
-        var offsets = Chunks.Keys.ToList();
+        var offsets = new List<Vector3I>();
+        foreach (var chunk in Chunks)
+        {
+            if (chunk is not null)
+                offsets.Add(chunk.Offset.ToInernal());
+        }
         var comparer = new ChunkDepthComparer(CenterChunkOffset, order);
         offsets.Sort(comparer);
         return offsets;

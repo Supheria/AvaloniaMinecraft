@@ -34,6 +34,7 @@ public sealed class Game
         GlobalState.Ticks++;
         GlobalState.World.Tick();
         var blockPosition = new BlockPosition(GlobalState.World.Player.Camera.Position);
+        // var blockPosition = new BlockPosition(0, 80, 0);
         GlobalState.World.SetCenter(gl, blockPosition);
 
         // TODO: for test

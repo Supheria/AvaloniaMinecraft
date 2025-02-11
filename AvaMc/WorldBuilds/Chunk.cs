@@ -17,12 +17,13 @@ public sealed partial class Chunk
     public const int ChunkSizeX = 32;
     public const int ChunkSizeY = 32;
     public const int ChunkSizeZ = 32;
+    const int ChunkVolume = ChunkSizeX * ChunkSizeY * ChunkSizeZ;
     public static Vector2I ChunkSizeXz { get; } = new(ChunkSizeX, ChunkSizeZ);
     public static Vector3I ChunkSize { get; } = new(ChunkSizeX, ChunkSizeY, ChunkSizeZ);
     public World World { get; set; }
-    ChunkOffset Offset { get; set; }
+    public ChunkOffset Offset { get; private set; }
     Vector3I ChunckPosition { get; set; }
-    Dictionary<Vector3I, BlockDataService> Data { get; set; } = [];
+    BlockDataService?[] Data { get; } = new BlockDataService?[ChunkVolume];
     ChunkMesh Mesh { get; }
     int NoneAirCount { get; set; }
     bool Empty => NoneAirCount is 0;
@@ -38,7 +39,7 @@ public sealed partial class Chunk
 
     public void Delete(GL gl)
     {
-        Data = [];
+        // Data = [];
         Mesh.Delete(gl);
     }
 
@@ -109,7 +110,8 @@ public sealed partial class Chunk
         var chunks = new List<Chunk>(offsets.Length);
         foreach (var offset in offsets)
         {
-            if (World.GetChunk(offset, out var chunk))
+            var chunk = World.GetChunk(offset);
+            if (chunk is not null)
                 chunks.Add(chunk);
         }
         return chunks;
@@ -151,16 +153,6 @@ public sealed partial class Chunk
             foreach (var chunk in neighbors)
                 chunk.Mesh.Dirty = true;
         }
-    }
-
-    public List<BlockChunkPosition> GetBlockPositions()
-    {
-        var result = new List<BlockChunkPosition>(Data.Count);
-        foreach (var pos in Data.Keys)
-        {
-            result.Add(new(pos, ChunckPosition));
-        }
-        return result;
     }
 
     public int GetHighest(BlockChunkPosition position)
