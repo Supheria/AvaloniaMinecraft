@@ -22,8 +22,8 @@ public sealed partial class World
     int HeightmapsVolume => ChunksMagnitude * ChunksMagnitude;
     Sky Sky { get; }
     public Player Player { get; set; }
-    Memory<Chunk?> Chunks { get; set; }
-    Memory<Heightmap?> Heightmaps { get; set; }
+    Chunk?[] Chunks { get; set; }
+    Heightmap?[] Heightmaps { get; set; }
     Vector3I ChunksOrigin { get; set; }
     Vector3I CenterChunkOffset { get; set; }
     public Threshold Loading { get; } = new(1);
@@ -50,9 +50,9 @@ public sealed partial class World
     {
         Sky.Delete(gl);
         Player.Delete(gl);
-        foreach (var chunk in Chunks.Span)
+        foreach (var chunk in Chunks.AsSpan())
             chunk?.Delete(gl);
-        Chunks = Array.Empty<Chunk?>();
+        Chunks = [];
     }
 
     private int ChunkOffsetToIndex(Vector3I offset)
@@ -115,7 +115,7 @@ public sealed partial class World
 
         var newChunks = new Chunk?[ChunksVolume];
         var cSpan = newChunks.AsSpan();
-        var cSpanOld = Chunks.Span;
+        var cSpanOld = Chunks.AsSpan();
         for (var i = 0; i < ChunksVolume; i++)
         {
             var chunk = cSpanOld[i];
@@ -133,7 +133,7 @@ public sealed partial class World
 
         var newHeightmaps = new Heightmap?[HeightmapsVolume];
         var hSpan = newHeightmaps.AsSpan();
-        var hSpanOld = Heightmaps.Span;
+        var hSpanOld = Heightmaps.AsSpan();
         for (var i = 0; i < HeightmapsVolume; i++)
         {
             var heightmap = hSpanOld[i];
@@ -178,7 +178,7 @@ public sealed partial class World
         shader.UniformFloat(gl, "fog_near", ChunksMagnitude / 2f * 32 - 12);
         shader.UniformFloat(gl, "fog_far", ChunksMagnitude / 2f * 32 - 4);
 
-        foreach (var chunk in Chunks.Span)
+        foreach (var chunk in Chunks.AsSpan())
             chunk?.RenderSolid(gl);
         foreach (var offset in SortChunksByOffset(DepthOrder.Farther))
         {
@@ -195,7 +195,7 @@ public sealed partial class World
         Loading.Reset();
         Meshing.Reset();
         LoadEmptyChunks(gl);
-        foreach (var chunk in Chunks.Span)
+        foreach (var chunk in Chunks.AsSpan())
             chunk?.Update();
         Player.Update();
     }
@@ -203,7 +203,7 @@ public sealed partial class World
     public void Tick()
     {
         Ticks++;
-        foreach (var chunk in Chunks.Span)
+        foreach (var chunk in Chunks.AsSpan())
             chunk?.Tick();
         Player.Tick();
     }
@@ -212,7 +212,7 @@ public sealed partial class World
     {
         var length = Chunks.Length;
         var offsets = new Vector3I[length].AsSpan();
-        var cSpan = Chunks.Span;
+        var cSpan = Chunks.AsSpan();
         for (var i = 0; i < length; i++)
         {
             var chunk = cSpan[i];

@@ -23,7 +23,7 @@ public sealed partial class Chunk
     public World World { get; set; }
     public Vector3I Offset { get; private set; }
     Vector3I ChunckPosition { get; set; }
-    Memory<BlockDataService?> Data { get; } = new BlockDataService?[ChunkVolume];
+    BlockDataService?[] Data { get; } = new BlockDataService?[ChunkVolume];
     ChunkMesh Mesh { get; }
     int NoneAirCount { get; set; }
     bool Empty => NoneAirCount is 0;

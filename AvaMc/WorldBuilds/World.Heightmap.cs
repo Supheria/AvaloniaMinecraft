@@ -13,8 +13,8 @@ partial class World
         if (!HeightmapInBounds(offset))
             return null;
         var index = HeightmapOffsetToIndex(offset);
-        var heightmaps = Heightmaps.Span;
-        return heightmaps[index] ?? (heightmaps[index] = new(offset));
+        // var heightmaps = Heightmaps.AsSpan();
+        return Heightmaps[index] ?? (Heightmaps[index] = new(offset));
     }
 
     public Heightmap? GetHeightmap(Vector3I chunkOffset)

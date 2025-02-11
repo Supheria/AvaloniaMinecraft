@@ -23,7 +23,7 @@ partial class World
         var comparer = new ChunkDepthComparer(CenterChunkOffset, DepthOrder.Nearer);
         offsets.Sort(comparer);
 
-        var chunks = Chunks.Span;
+        var chunks = Chunks.AsSpan();
         for (var i = 0; i < ChunksVolume; i++)
         {
             var offset = offsets[i];
@@ -60,9 +60,9 @@ partial class World
     {
         if (!ChunkInBounds(offset))
             return null;
-        var chunks = Chunks.Span;
+        // var chunks = Chunks.AsSpan();
         var index = ChunkOffsetToIndex(offset);
-        return chunks[index];
+        return Chunks[index];
     }
 
     // TODO: cache unloaded chunks' blocks

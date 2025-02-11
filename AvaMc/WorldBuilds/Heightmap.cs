@@ -11,15 +11,15 @@ public sealed class Heightmap
     public const int UnknownHeight = int.MinValue;
     const int Volume = Chunk.ChunkSizeX * Chunk.ChunkSizeZ;
     public Vector2I Offset { get; }
-    Memory<int> HeightData { get; }
-    Memory<WorldgenData?> WorldgenData { get; }
+    int[] HeightData { get; }
+    WorldgenData?[] WorldgenData { get; } = [];
     public bool Generated { get; set; }
 
     public Heightmap(Vector2I offset)
     {
         Offset = offset;
         HeightData = new int[Volume];
-        var heightData = HeightData.Span;
+        var heightData = HeightData.AsSpan();
         for (var i = 0; i < Volume; i++)
             heightData[i] = UnknownHeight;
         WorldgenData = new WorldgenData?[Volume];
@@ -39,13 +39,13 @@ public sealed class Heightmap
     {
         var pos = position.IntoHeightmap();
         var index = PositionToIndex(pos);
-        HeightData.Span[index] = position.Height;
+        HeightData[index] = position.Height;
     }
 
     private int GetHeight(Vector2I position)
     {
         var index = PositionToIndex(position);
-        return HeightData.Span[index];
+        return HeightData[index];
     }
 
     public int GetHeight(BlockPosition position)
@@ -69,13 +69,13 @@ public sealed class Heightmap
     public void SetGenData(int x, int z, WorldgenData gen)
     {
         var index = PositionToIndex(x, z);
-        WorldgenData.Span[index] = gen;
+        WorldgenData[index] = gen;
     }
 
     public WorldgenData? GetGenData(int x, int z)
     {
         var index = PositionToIndex(x, z);
-        return WorldgenData.Span[index];
+        return WorldgenData[index];
     }
 
     // int[,] Data { get; set; }

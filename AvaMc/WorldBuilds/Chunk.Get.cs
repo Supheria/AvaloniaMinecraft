@@ -1,3 +1,4 @@
+using System;
 using AvaMc.Blocks;
 using AvaMc.Coordinates;
 using AvaMc.Gfx;
@@ -15,8 +16,8 @@ partial class Chunk
     private BlockDataService GetBlockDataService(Vector3I position)
     {
         var index = PositionToIndex(position);
-        var data = Data.Span;
-        return data[index] ?? (data[index] = new());
+        // var data = Data.AsSpan();
+        return Data[index] ?? (Data[index] = new());
     }
 
     public BlockData GetBlockData(Vector3I position)
