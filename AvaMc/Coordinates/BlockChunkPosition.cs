@@ -21,14 +21,18 @@ public readonly struct BlockChunkPosition
 
     public BlockPosition ToNeighbor(Direction direction)
     {
-        var val = IntoWorld();
-        return val.ToNeighbor(direction);
+        var x = Value.X + direction.X + ChunkPosition.X;
+        var y = Value.Y + direction.Y + ChunkPosition.Y;
+        var z = Value.Z + direction.Z + ChunkPosition.Z;
+        return new(x, y, z);
     }
 
     public BlockPosition IntoWorld()
     {
-        var val = Vector3I.Add(Value, ChunkPosition);
-        return new(val);
+        var x = Value.X + ChunkPosition.X;
+        var y = Value.Y + ChunkPosition.Y;
+        var z = Value.Z + ChunkPosition.Z;
+        return new(x, y, z);
     }
 
     public Vector3 ToNumerics()

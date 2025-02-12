@@ -17,9 +17,12 @@ public sealed class Direction
     }
 
     public Type Value { get; }
-    public Vector3 Vector3F { get; }
+    // public Vector3 Vector3F { get; }
     public Vector3I Vector3I { get; }
     public Vector3I Sign => Vector3I;
+    public int X => Vector3I.X;
+    public int Y => Vector3I.Y;
+    public int Z => Vector3I.Z;
 
     private Direction(Type value)
     {
@@ -27,27 +30,27 @@ public sealed class Direction
         switch (value)
         {
             case Type.North:
-                Vector3F = new(0, 0, -1);
+                // Vector3F = new(0, 0, -1);
                 Vector3I = new(0, 0, -1);
                 break;
             case Type.South:
-                Vector3F = new(0, 0, 1);
+                // Vector3F = new(0, 0, 1);
                 Vector3I = new(0, 0, 1);
                 break;
             case Type.East:
-                Vector3F = new(1, 0, 0);
+                // Vector3F = new(1, 0, 0);
                 Vector3I = new(1, 0, 0);
                 break;
             case Type.West:
-                Vector3F = new(-1, 0, 0);
+                // Vector3F = new(-1, 0, 0);
                 Vector3I = new(-1, 0, 0);
                 break;
             case Type.Up:
-                Vector3F = new(0, 1, 0);
+                // Vector3F = new(0, 1, 0);
                 Vector3I = new(0, 1, 0);
                 break;
             case Type.Down:
-                Vector3F = new(0, -1, 0);
+                // Vector3F = new(0, -1, 0);
                 Vector3I = new(0, -1, 0);
                 break;
             default:
@@ -105,7 +108,7 @@ public sealed class Direction
 
     public override string ToString()
     {
-        return $"{Vector3F}({Value})";
+        return $"{Vector3I}({Value})";
     }
 
     public static implicit operator int(Direction d)

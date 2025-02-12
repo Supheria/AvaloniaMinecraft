@@ -62,7 +62,7 @@ public sealed class Player
     public void Update()
     {
         Camera.Update();
-        Debug.WriteLine(Camera);
+        // Debug.WriteLine(Camera);
         if (GlobalState.Game.Pointer[PointerButton.Left].Down)
         {
             Camera.Pitch -=

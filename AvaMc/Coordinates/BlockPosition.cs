@@ -36,6 +36,9 @@ public struct BlockPosition : IEquatable<BlockPosition>
             (int)MathF.Floor(position.X),
             (int)MathF.Floor(position.Y),
             (int)MathF.Floor(position.Z)
+            // (int)(position.X),
+            // (int)(position.Y),
+            // (int)(position.Z)
         ) { }
 
     public Vector3I ToChunkOffset()
@@ -44,6 +47,11 @@ public struct BlockPosition : IEquatable<BlockPosition>
             (int)MathF.Floor(X / (float)Chunk.ChunkSizeX),
             (int)MathF.Floor(Y / (float)Chunk.ChunkSizeY),
             (int)MathF.Floor(Z / (float)Chunk.ChunkSizeZ)
+        );
+        return new(
+            (int)(X / (float)Chunk.ChunkSizeX),
+            (int)(Y / (float)Chunk.ChunkSizeY),
+            (int)(Z / (float)Chunk.ChunkSizeZ)
         );
     }
 
@@ -64,10 +72,9 @@ public struct BlockPosition : IEquatable<BlockPosition>
 
     public BlockPosition ToNeighbor(Direction direction)
     {
-        var dir = direction.Vector3I;
-        var x = X + dir.X;
-        var y = Y + dir.Y;
-        var z = Z + dir.Z;
+        var x = X + direction.X;
+        var y = Y + direction.Y;
+        var z = Z + direction.Z;
         return new(x, y, z);
     }
 

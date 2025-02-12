@@ -188,9 +188,8 @@ public sealed class ChunkMesh
         foreach (var direction in Direction.AllDirections)
         {
             var nPos = position.ToNeighbor(direction);
+            continue;
             var nData = Chunk.World.GetBlockData(nPos);
-            // var nData = new BlockData();
-            // continue;
             var nBlock = nData.BlockId.Block();
             if (
                 (nBlock.Transparent && !block.Transparent)
