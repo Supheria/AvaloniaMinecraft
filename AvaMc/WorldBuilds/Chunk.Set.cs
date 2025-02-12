@@ -8,27 +8,36 @@ namespace AvaMc.WorldBuilds;
 
 partial class Chunk
 {
-    public void SetBlockId(Vector3I position, BlockId id)
+    private void SetBlockData(Vector3I position, BlockData data)
     {
-        var service = GetBlockDataService(position);
-        service.SetBlockId(id, out var prev, out var changed);
+        var index = PositionToIndex(position);
+        Data[index] = data;
+    }
+    public void SetBlockId(Vector3I position, BlockId blockId)
+    {
+        var prev = GetBlockDataService(position);
+        var changed = prev;
+        changed.BlockId = blockId;
+        SetBlockData(position, changed);
         OnModify(position, prev, changed);
     }
 
-    public void SetBlockId(BlockChunkPosition position, BlockId id)
+    public void SetBlockId(BlockChunkPosition position, BlockId blockId)
     {
-        SetBlockId(position.ToInternal(), id);
+        SetBlockId(position.ToInternal(), blockId);
     }
 
-    public void SetBlockId(int x, int y, int z, BlockId id)
+    public void SetBlockId(int x, int y, int z, BlockId blockId)
     {
-        SetBlockId(new Vector3I(x, y, z), id);
+        SetBlockId(new Vector3I(x, y, z), blockId);
     }
 
     public void SetAllLight(Vector3I position, AllLight allLight)
     {
-        var service = GetBlockDataService(position);
-        service.SetAllLight(allLight, out var prev, out var changed);
+        var prev = GetBlockDataService(position);
+        var changed = prev;
+        changed.AllLight = allLight;
+        SetBlockData(position, changed);
         OnModify(position, prev, changed);
     }
 
@@ -39,8 +48,10 @@ partial class Chunk
 
     public void SetSunlight(Vector3I position, int sunlight)
     {
-        var service = GetBlockDataService(position);
-        service.SetSunlight(sunlight, out var prev, out var changed);
+        var prev = GetBlockDataService(position);
+        var changed = prev;
+        changed.Sunlight = sunlight;
+        SetBlockData(position, changed);
         OnModify(position, prev, changed);
     }
 

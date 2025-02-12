@@ -13,17 +13,17 @@ partial class Chunk
         return position.X * ChunkSizeX * ChunkSizeZ + position.Z * ChunkSizeZ + position.Y;
     }
 
-    private BlockDataService GetBlockDataService(Vector3I position)
+    private BlockData GetBlockDataService(Vector3I position)
     {
         var index = PositionToIndex(position);
         // var data = Data.AsSpan();
-        return Data[index] ?? (Data[index] = new());
+        return Data[index];
     }
 
     public BlockData GetBlockData(Vector3I position)
     {
-        var service = GetBlockDataService(position);
-        return service.Data;
+        var data = GetBlockDataService(position);
+        return data;
     }
 
     public BlockData GetBlockData(BlockChunkPosition position)
@@ -38,14 +38,14 @@ partial class Chunk
 
     public BlockId GetBlockId(Vector3I position)
     {
-        var service = GetBlockDataService(position);
-        return service.BlockId;
+        var data = GetBlockDataService(position);
+        return data.BlockId;
     }
 
     public AllLight GetAllLight(Vector3I position)
     {
-        var service = GetBlockDataService(position);
-        return service.AllLight;
+        var data = GetBlockDataService(position);
+        return data.AllLight;
     }
 
     public AllLight GetAllLight(BlockChunkPosition position)
@@ -55,8 +55,8 @@ partial class Chunk
 
     public TorchLight GetTorchLight(Vector3I position)
     {
-        var service = GetBlockDataService(position);
-        return service.TorchLight;
+        var data = GetBlockDataService(position);
+        return data.TorchLight;
     }
 
     public TorchLight GetTorchLight(BlockChunkPosition position)

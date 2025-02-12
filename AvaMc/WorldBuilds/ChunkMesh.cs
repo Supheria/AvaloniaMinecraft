@@ -189,6 +189,7 @@ public sealed class ChunkMesh
         {
             var nPos = position.ToNeighbor(direction);
             var nData = Chunk.World.GetBlockData(nPos);
+            // var nData = new BlockData();
             // continue;
             var nBlock = nData.BlockId.Block();
             if (
