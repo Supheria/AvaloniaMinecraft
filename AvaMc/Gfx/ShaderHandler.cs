@@ -6,10 +6,13 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;
 
-public sealed unsafe class ShaderHandler : Resource
+public readonly struct ShaderHandler
 {
+    uint Handle { get; }
     private ShaderHandler(uint handle)
-        : base(handle) { }
+    {
+        Handle = handle;
+    }
 
     public static ShaderHandler Create(GL gl, string shaderName)
     {

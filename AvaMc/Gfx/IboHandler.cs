@@ -5,14 +5,15 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;
 
-public sealed unsafe class IboHandler : Resource
+public struct IboHandler
 {
+    uint Handle { get; }
     bool Dynamic { get; }
     uint ElementCount { get; set; }
 
     private IboHandler(uint handle, bool dynamic)
-        : base(handle)
     {
+        Handle = handle;
         Dynamic = dynamic;
     }
 
@@ -50,7 +51,7 @@ public sealed unsafe class IboHandler : Resource
         gl.DeleteBuffer(Handle);
     }
 
-    public void DrawElements(GL gl, bool wireframe)
+    public unsafe void DrawElements(GL gl, bool wireframe)
     {
         Bind(gl);
         gl.DrawElements(

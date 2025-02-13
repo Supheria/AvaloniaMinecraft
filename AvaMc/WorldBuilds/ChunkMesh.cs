@@ -13,7 +13,7 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
 
-public sealed class ChunkMesh
+public sealed unsafe class ChunkMesh
 {
     public enum Part : byte
     {
@@ -36,30 +36,30 @@ public sealed class ChunkMesh
     public bool DepthSort { get; set; } = true;
     public bool Destroy { get; set; } = true;
     public bool Persist { get; set; } = true;
-    VaoHandler Vao { get; }
-    VboHandler Vbo { get; }
-    IboHandler IboTransparent { get; }
-    IboHandler IboSolid { get; }
+    readonly VaoHandler _vao;
+    VboHandler* Vbo { get; }
+    IboHandler _iboTransparent;
+    IboHandler _iboSolid;
 
     public ChunkMesh(GL gl, Chunk chunk)
     {
         Chunk = chunk;
-        Vao = VaoHandler.Create(gl);
-        Vbo = VboHandler.Create(gl, false);
-        IboTransparent = IboHandler.Create(gl, false);
-        IboSolid = IboHandler.Create(gl, false);
+        _vao = VaoHandler.Create(gl);
+        Vbo = VboHandler.CreatePointer(gl, false);
+        _iboTransparent = IboHandler.Create(gl, false);
+        _iboSolid = IboHandler.Create(gl, false);
     }
 
-    public unsafe void Delete(GL gl)
+    public void Delete(GL gl)
     {
         _vertices.Release();
         _transparentIndices.Release();
         _transparentFaces.Release();
         _solidIndices.Release();
-        Vao.Delete(gl);
-        Vbo.Delete(gl);
-        IboTransparent.Delete(gl);
-        IboSolid.Delete(gl);
+        _vao.Delete(gl);
+        VboHandler.Release(gl, Vbo);
+        _iboTransparent.Delete(gl);
+        _iboSolid.Delete(gl);
     }
 
     public void MeshPrepare()
@@ -77,15 +77,15 @@ public sealed class ChunkMesh
         if (_vertices.Count is 0)
             // throw new ArgumentNullException(nameof(Vertices));
             return;
-        Vbo.Buffer<BlockVertex>(gl, _vertices.AsSpan());
+        Vbo->Buffer<BlockVertex>(gl, _vertices.AsSpan());
         // _vertices.Release();
     }
 
     // MUST be called immediately after meshing AND sorting (before rendering)
     private void FinalizeIndices(GL gl)
     {
-        IboTransparent.Buffer(gl, _transparentIndices.AsSpan());
-        IboSolid.Buffer(gl, _solidIndices.AsSpan());
+        _iboTransparent.Buffer(gl, _transparentIndices.AsSpan());
+        _iboSolid.Buffer(gl, _solidIndices.AsSpan());
         // _solidIndices.Release();
         if (Persist)
             return;
@@ -100,7 +100,7 @@ public sealed class ChunkMesh
         var center = Chunk.World.Player.Camera.Position;
         var comparer = new FaceDepthComparer(center, DepthOrder.Farther);
         _transparentFaces.AsSpan().Sort(comparer);
-        
+
         var len = _transparentIndices.Count;
         var old = new UnsafeList<uint>(len);
         Utils.Memcpy(_transparentIndices.Data, old.Data, len * sizeof(uint));
@@ -249,13 +249,13 @@ public sealed class ChunkMesh
     public void RederTransparent(GL gl)
     {
         // if (HasTransparent)
-            Render(gl, IboTransparent);
+        Render(gl, _iboTransparent);
     }
 
     public void RenderSolid(GL gl)
     {
         // if (HasSolid)
-            Render(gl, IboSolid);
+        Render(gl, _iboSolid);
     }
 
     private void Render(GL gl, IboHandler ibo)
@@ -265,9 +265,9 @@ public sealed class ChunkMesh
         var model = Chunk.CreateModel();
         shader.UniformMatrix4(gl, "m", model);
 
-        Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
-        Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
-        Vao.Link(gl, Vbo, 2, 1, VertexAttribIType.UnsignedInt, sizeof(float) * 5);
+        _vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
+        _vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
+        _vao.Link(gl, Vbo, 2, 1, VertexAttribIType.UnsignedInt, sizeof(float) * 5);
 
         ibo.DrawElements(gl, GlobalState.Renderer.Wireframe);
     }

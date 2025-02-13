@@ -3,10 +3,14 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;
 
-public sealed class VaoHandler : Resource
+public readonly struct VaoHandler
 {
+    uint Handle { get; }
+
     private VaoHandler(uint handle)
-        : base(handle) { }
+    {
+        Handle = handle;
+    }
 
     public static VaoHandler Create(GL gl)
     {
@@ -28,6 +32,23 @@ public sealed class VaoHandler : Resource
         if (type is not VertexAttribPointerType.Float)
             throw new ArgumentOutOfRangeException($"unsupported vertex attribute type");
         gl.VertexAttribPointer(slot, count, type, false, vbo.Stride, offset);
+        gl.EnableVertexAttribArray(slot);
+    }
+
+    public unsafe void Link(
+        GL gl,
+        VboHandler* vbo,
+        uint slot,
+        int count,
+        VertexAttribPointerType type,
+        int offset
+    )
+    {
+        Bind(gl);
+        vbo->Bind(gl);
+        if (type is not VertexAttribPointerType.Float)
+            throw new ArgumentOutOfRangeException($"unsupported vertex attribute type");
+        gl.VertexAttribPointer(slot, count, type, false, vbo->Stride, offset);
         gl.EnableVertexAttribArray(slot);
     }
 
@@ -63,6 +84,23 @@ public sealed class VaoHandler : Resource
         if (type is not VertexAttribIType.UnsignedInt)
             throw new ArgumentOutOfRangeException($"unsupported vertex attribute type");
         gl.VertexAttribIPointer(slot, count, type, vbo.Stride, offset);
+        gl.EnableVertexAttribArray(slot);
+    }
+
+    public unsafe void Link(
+        GL gl,
+        VboHandler* vbo,
+        uint slot,
+        int count,
+        VertexAttribIType type,
+        int offset
+    )
+    {
+        Bind(gl);
+        vbo->Bind(gl);
+        if (type is not VertexAttribIType.UnsignedInt)
+            throw new ArgumentOutOfRangeException($"unsupported vertex attribute type");
+        gl.VertexAttribIPointer(slot, count, type, vbo->Stride, offset);
         gl.EnableVertexAttribArray(slot);
     }
 

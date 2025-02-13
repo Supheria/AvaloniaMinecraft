@@ -42,6 +42,10 @@ public static class Program
         *pIc = new(7, 7);
         pIc->Value1 = 9;
         var ic = *pIc;
+        
+        var s = new S();
+        s.SetFx(11);
+        var pS = &s;
 
         Console.ReadLine();
     }
@@ -52,6 +56,11 @@ public static class Program
             return dic;
         Dics[index] = [];
         return Dics[index];
+    }
+    
+    private static unsafe void GetPointer(void* p)
+    {
+        
     }
 }
 

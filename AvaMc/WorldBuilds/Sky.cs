@@ -80,16 +80,16 @@ public sealed class Sky
     SkyState StateDayNight { get; set; }
     float StateProgress { get; set; }
     float DayNightProgress { get; set; }
-    VaoHandler Vao { get; }
-    VboHandler Vbo { get; }
-    IboHandler Ibo { get; }
+    readonly VaoHandler _vao;
+    VboHandler _vbo;
+    IboHandler _ibo;
 
     public Sky(GL gl, World world)
     {
         World = world;
-        Vao = VaoHandler.Create(gl);
-        Vbo = VboHandler.Create(gl, false);
-        Ibo = IboHandler.Create(gl, false);
+        _vao = VaoHandler.Create(gl);
+        _vbo = VboHandler.Create(gl, false);
+        _ibo = IboHandler.Create(gl, false);
 
         GlobalState.Renderer.ClearColor = SkyColors[(SkyState.Day, Plane.Fog)];
         var vertices = new Vertex[]
@@ -100,8 +100,8 @@ public sealed class Sky
             new(+0.5f, -0.5f, 0.0f, 1.0f, 0.0f),
         };
         var indices = new uint[] { 3, 0, 1, 3, 1, 2 };
-        Vbo.Buffer<Vertex>(gl, vertices);
-        Ibo.Buffer(gl, indices);
+        _vbo.Buffer<Vertex>(gl, vertices);
+        _ibo.Buffer(gl, indices);
     }
 
     public static Vector4 Rgba(uint value)
@@ -115,9 +115,9 @@ public sealed class Sky
 
     public void Delete(GL gl)
     {
-        Vao.Delete(gl);
-        Vbo.Delete(gl);
-        Ibo.Delete(gl);
+        _vao.Delete(gl);
+        _vbo.Delete(gl);
+        _ibo.Delete(gl);
     }
 
     private SkyState GetState()
@@ -163,7 +163,7 @@ public sealed class Sky
                 ? 0.5f + ticks / HalfSunChangeTicks * 0.5f
                 : (ticks - (CycleTicks - HalfSunChangeTicks)) / HalfSunChangeTicks * 0.5f,
             SkyState.SunSet => (ticks - (DayTicks - HalfSunChangeTicks)) / SunChangeTicks,
-            _ => throw new ArgumentOutOfRangeException()
+            _ => throw new ArgumentOutOfRangeException(),
         };
     }
 
@@ -230,12 +230,12 @@ public sealed class Sky
         else
         {
             shader.UniformInt(gl, "use_tex", 1);
-            shader.UniformTexture(gl, "tex", texture);
+            shader.UniformTexture(gl, "tex", texture.Value);
         }
 
-        Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
-        Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
-        Ibo.DrawElements(gl, GlobalState.Renderer.Wireframe);
+        _vao.Link(gl, _vbo, 0, 3, VertexAttribPointerType.Float, 0);
+        _vao.Link(gl, _vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
+        _ibo.DrawElements(gl, GlobalState.Renderer.Wireframe);
     }
 
     private void RenderStars(GL gl, Vector3 center, Texture2D texture)

@@ -1,18 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Hexa.NET.Utilities;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;
 
-public sealed unsafe class VboHandler : Resource
+public struct VboHandler
 {
+    uint Handle { get; }
     bool Dynamic { get; }
     public uint Stride { get; private set; }
 
     private VboHandler(uint handle, bool dynamic)
-        : base(handle)
     {
+        Handle = handle;
         Dynamic = dynamic;
     }
 
@@ -22,8 +24,16 @@ public sealed unsafe class VboHandler : Resource
         var vbo = new VboHandler(handle, dynamic);
         return vbo;
     }
+    
+    public static unsafe VboHandler* CreatePointer(GL gl, bool dynamic)
+    {
+        var p = Utils.AllocT<VboHandler>(1);
+        var handle = gl.GenBuffer();
+        *p = new VboHandler(handle, dynamic);
+        return p;
+    }
 
-    public void Buffer<T>(GL gl, ReadOnlySpan<T> data)
+    public unsafe void Buffer<T>(GL gl, ReadOnlySpan<T> data)
         where T : unmanaged
     {
         Bind(gl);
@@ -50,5 +60,11 @@ public sealed unsafe class VboHandler : Resource
     public void Delete(GL gl)
     {
         gl.DeleteBuffer(Handle);
+    }
+    
+    public static unsafe void Release(GL gl, VboHandler* p)
+    {
+        p->Delete(gl);
+        Utils.Free(p);
     }
 }

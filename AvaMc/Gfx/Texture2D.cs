@@ -8,16 +8,17 @@ using StbImageSharp;
 
 namespace AvaMc.Gfx;
 
-public sealed unsafe class Texture2D : Resource
+public readonly struct Texture2D
 {
+    uint Handle { get; }
     public int Plot { get; }
     public Vector2I Size { get; }
 
     public record struct ImageInfo(byte[] Pixels, int Width, int Height, int ColumnNumber);
 
     private Texture2D(uint handle, int plot, int width, int height)
-        : base(handle)
     {
+        Handle = handle;
         Plot = plot;
         Size = new(width, height);
     }
@@ -47,7 +48,7 @@ public sealed unsafe class Texture2D : Resource
         return new(handle, plot, width, height);
     }
 
-    public static ImageInfo LoadImage(Stream stream)
+    public static unsafe ImageInfo LoadImage(Stream stream)
     {
         var ptr = (void*)null;
         try
