@@ -8,55 +8,42 @@ namespace AvaMc.WorldBuilds;
 
 partial class Chunk
 {
-    private void SetBlockData(Vector3I position, BlockData data)
+    private void SetBlockData(int x, int y, int z, BlockData data)
     {
-        var index = PositionToIndex(position);
+        var index = PositionToIndex(x, y, z);
+        var prev = Data[index];
         Data[index] = data;
-    }
-    public void SetBlockId(Vector3I position, BlockId blockId)
-    {
-        var prev = GetBlockDataService(position);
-        var changed = prev;
-        changed.BlockId = blockId;
-        SetBlockData(position, changed);
-        OnModify(position, prev, changed);
-    }
-
-    public void SetBlockId(BlockChunkPosition position, BlockId blockId)
-    {
-        SetBlockId(position.ToInternal(), blockId);
+        OnModify(x, y, z, prev, data);
     }
 
     public void SetBlockId(int x, int y, int z, BlockId blockId)
     {
-        SetBlockId(new Vector3I(x, y, z), blockId);
+        var data = GetBlockData(x, y, z);
+        data.BlockId = blockId;
+        SetBlockData(x, y, z, data);
     }
 
-    public void SetAllLight(Vector3I position, AllLight allLight)
+    public void SetBlockId(BlockChunkPosition position, BlockId blockId)
     {
-        var prev = GetBlockDataService(position);
-        var changed = prev;
-        changed.AllLight = allLight;
-        SetBlockData(position, changed);
-        OnModify(position, prev, changed);
+        SetBlockId(position.X, position.Y, position.Z, blockId);
     }
 
-    public void SetAllLight(BlockChunkPosition position, AllLight allLight)
+    public void SetAllLight(int x, int y, int z, AllLight allLight)
     {
-        SetAllLight(position.ToInternal(), allLight);
+        var data = GetBlockData(x, y, z);
+        data.AllLight = allLight;
+        SetBlockData(x, y, z, data);
     }
 
-    public void SetSunlight(Vector3I position, int sunlight)
+    public void SetSunlight(int x, int y, int z, int sunlight)
     {
-        var prev = GetBlockDataService(position);
-        var changed = prev;
-        changed.Sunlight = sunlight;
-        SetBlockData(position, changed);
-        OnModify(position, prev, changed);
+        var data = GetBlockData(x, y, z);
+        data.Sunlight = sunlight;
+        SetBlockData(x, y, z, data);
     }
 
     public void SetSunlight(BlockChunkPosition position, int sunlight)
     {
-        SetSunlight(position.ToInternal(), sunlight);
+        SetSunlight(position.X, position.Y, position.Z, sunlight);
     }
 }

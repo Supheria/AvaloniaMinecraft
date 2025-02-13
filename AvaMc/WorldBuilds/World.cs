@@ -39,7 +39,8 @@ public sealed partial class World
     {
         Sky = new(gl, this);
         Player = new(this);
-        Seed = new Random().Next();
+        // Seed = new Random().Next();
+        Seed = 10;
         Generator = new(Seed);
         Chunks = new Chunk?[ChunksVolume];
         Heightmaps = new Heightmap[HeightmapsVolume];

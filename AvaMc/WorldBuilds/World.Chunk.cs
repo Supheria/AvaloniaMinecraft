@@ -47,8 +47,8 @@ partial class World
         {
             if (position.ToChunkOffset() != offset)
                 continue;
-            var cPos = chunk.CreatePosition(position);
-            chunk.SetBlockId(cPos, blockId);
+            var pos = position.IntoChunk();
+            chunk.SetBlockId(pos.X, pos.Y, pos.Z, blockId);
             UnloadedBlockIds.Remove(position);
         }
         chunk.AfterGenerate();
@@ -77,7 +77,8 @@ partial class World
         var chunk = GetChunk(position);
         if (chunk is null)
             return BlockId.Air;
-        return chunk.GetBlockId(position.IntoChunk());
+        var pos = position.IntoChunk();
+        return chunk.GetBlockId(pos.X, pos.Y, pos.Z);
     }
 
     public AllLight GetAllLight(BlockPosition position)
@@ -85,7 +86,8 @@ partial class World
         var chunk = GetChunk(position);
         if (chunk is null)
             return new();
-        return chunk.GetAllLight(position.IntoChunk());
+        var pos = position.IntoChunk();
+        return chunk.GetAllLight(pos.X, pos.Y, pos.Z);
     }
 
     public TorchLight GetTorchLight(BlockPosition position)
@@ -93,7 +95,8 @@ partial class World
         var chunk = GetChunk(position);
         if (chunk is null)
             return new();
-        return chunk.GetTorchLight(position.IntoChunk());
+        var pos = position.IntoChunk();
+        return chunk.GetTorchLight(pos.X, pos.Y, pos.Z);
     }
 
     public BlockData GetBlockData(BlockPosition position)
@@ -101,7 +104,8 @@ partial class World
         var chunk = GetChunk(position);
         if (chunk is null)
             return new();
-        return chunk.GetBlockData(position.IntoChunk());
+        var pos = position.IntoChunk();
+        return chunk.GetBlockData(pos.X, pos.Y, pos.Z);
     }
 
     public void SetBlockId(BlockPosition position, BlockId id)
@@ -110,18 +114,23 @@ partial class World
         if (chunk is null)
             UnloadedBlockIds[position] = id;
         else
-            chunk.SetBlockId(position.IntoChunk(), id);
+        {
+            var pos = position.IntoChunk();
+            chunk.SetBlockId(pos.X, pos.Y, pos.Z, id);
+        }
     }
 
     public void SetAllLight(BlockPosition position, AllLight allLight)
     {
         var chunk = GetChunk(position);
-        chunk?.SetAllLight(position.IntoChunk(), allLight);
+        var pos = position.IntoChunk();
+        chunk?.SetAllLight(pos.X, pos.Y, pos.Z, allLight);
     }
 
     public void SetSunlight(BlockPosition position, int sunlight)
     {
         var chunk = GetChunk(position);
-        chunk?.SetSunlight(position.IntoChunk(), sunlight);
+        var pos = position.IntoChunk();
+        chunk?.SetSunlight(pos.X, pos.Y, pos.Z, sunlight);
     }
 }

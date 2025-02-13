@@ -136,8 +136,7 @@ public sealed class ChunkMesh
             {
                 for (var y = 0; y < Chunk.ChunkSizeY; y++)
                 {
-                    var position = Chunk.CreatePosition(x, y, z);
-                    var data = Chunk.GetBlockData(position);
+                    var data = Chunk.GetBlockData(x, y, z);
                     if (data.BlockId is BlockId.Air)
                         continue;
                     var block = data.BlockId.Block();
@@ -146,12 +145,12 @@ public sealed class ChunkMesh
                         case BlockMeshType.Sprite:
                         case BlockMeshType.Torch:
                         {
-                            MeshSprite(position, block, data.AllLight);
+                            MeshSprite(x, y, z, block, data.AllLight);
                             break;
                         }
                         case BlockMeshType.Default:
                         case BlockMeshType.Liquid:
-                            MeshDefault(position, block);
+                            MeshDefault(x, y, z, block);
                             break;
                     }
                 }
@@ -165,10 +164,10 @@ public sealed class ChunkMesh
         // GC.Collect();
     }
 
-    private void MeshSprite(BlockChunkPosition position, Block block, AllLight allLight)
+    private void MeshSprite(int x, int y, int z, Block block, AllLight allLight)
     {
         GlobalState.Renderer.BlockAtlas.Atlas.GetUv(
-            block.GetTextureLocation(Direction.North),
+            block.TextureLocation[Direction.North],
             out var uvMin,
             out var uvMax
         );
@@ -176,19 +175,18 @@ public sealed class ChunkMesh
             ref _vertices,
             ref _transparentFaces,
             ref _vertexCount,
-            position.ToNumerics(),
+            new(x, y, z),
             allLight,
             uvMin,
             uvMax
         );
     }
 
-    private void MeshDefault(BlockChunkPosition position, Block block)
+    private void MeshDefault(int x, int y, int z, Block block)
     {
         foreach (var direction in Direction.AllDirections)
         {
-            var nPos = position.ToNeighbor(direction);
-            continue;
+            var nPos = Chunk.CreatePosition(x, y, z).ToNeighbor(direction);
             var nData = Chunk.World.GetBlockData(nPos);
             var nBlock = nData.BlockId.Block();
             if (
@@ -197,7 +195,7 @@ public sealed class ChunkMesh
             )
             {
                 GlobalState.Renderer.BlockAtlas.Atlas.GetUv(
-                    block.GetTextureLocation(direction),
+                    block.TextureLocation[direction],
                     out var uvMin,
                     out var uvMax
                 );
@@ -207,7 +205,7 @@ public sealed class ChunkMesh
                         ref _vertices,
                         ref _transparentFaces,
                         ref _vertexCount,
-                        position.ToNumerics(),
+                        new(x, y, z),
                         allLight,
                         uvMin,
                         uvMax,
@@ -218,7 +216,7 @@ public sealed class ChunkMesh
                         ref _vertices,
                         ref _solidFaces,
                         ref _vertexCount,
-                        position.ToNumerics(),
+                        new(x, y, z),
                         allLight,
                         uvMin,
                         uvMax,

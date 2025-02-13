@@ -22,7 +22,9 @@ public sealed partial class Chunk
     public static Vector3I ChunkSize { get; } = new(ChunkSizeX, ChunkSizeY, ChunkSizeZ);
     public World World { get; set; }
     public Vector3I Offset { get; private set; }
-    Vector3I ChunckPosition { get; set; }
+    int ChunkX { get; }
+    int ChunkY { get; }
+    int ChunkZ { get; }
     BlockData[] Data { get; } = new BlockData[ChunkVolume];
     ChunkMesh Mesh { get; }
     int NoneAirCount { get; set; }
@@ -33,7 +35,10 @@ public sealed partial class Chunk
     {
         World = world;
         Offset = offset;
-        ChunckPosition = Vector3I.Multiply(offset, ChunkSize);
+        var pos = Vector3I.Multiply(offset, ChunkSize);
+        ChunkX = pos.X;
+        ChunkY = pos.Y;
+        ChunkZ = pos.Z;
         Mesh = new(gl, this);
     }
 
@@ -54,55 +59,51 @@ public sealed partial class Chunk
         return h;
     }
 
-    private BlockChunkPosition CreatePosition(Vector3I position)
+    private static int PositionToIndex(int x, int y, int z)
     {
-        return new(position, ChunckPosition);
+        var index = x * ChunkSizeX * ChunkSizeZ + z * ChunkSizeZ + y;
+        return index;
     }
 
     public BlockChunkPosition CreatePosition(int x, int y, int z)
     {
-        return CreatePosition(new Vector3I(x, y, z));
-    }
-
-    public BlockChunkPosition CreatePosition(BlockPosition position)
-    {
-        return CreatePosition(position.IntoChunk());
+        return new(x, y, z, ChunkX, ChunkY, ChunkZ);
     }
 
     public Matrix4x4 CreateModel()
     {
-        return Matrix4x4.CreateTranslation(ChunckPosition.ToNumerics());
+        return Matrix4x4.CreateTranslation(new(ChunkX, ChunkY, ChunkZ));
     }
 
-    public Vector3I[] GetBorderingChunkOffsets(Vector3I position)
+    public Vector3I[] GetBorderingChunkOffsets(int x, int y, int z)
     {
         var offsets = new List<Vector3I>(6);
-        if (position.X is 0)
+        if (ChunkX is 0)
         {
             var offset = Vector3I.Add(Offset, -Vector3I.UnitX);
             offsets.Add(offset);
         }
-        if (position.Y is 0)
+        if (ChunkY is 0)
         {
             var offset = Vector3I.Add(Offset, -Vector3I.UnitY);
             offsets.Add(offset);
         }
-        if (position.Z is 0)
+        if (ChunkZ is 0)
         {
             var offset = Vector3I.Add(Offset, -Vector3I.UnitZ);
             offsets.Add(offset);
         }
-        if (position.X == ChunkSizeX - 1)
+        if (ChunkX == ChunkSizeX - 1)
         {
             var offset = Vector3I.Add(Offset, Vector3I.UnitX);
             offsets.Add(offset);
         }
-        if (position.Y == ChunkSizeY - 1)
+        if (ChunkY == ChunkSizeY - 1)
         {
             var offset = Vector3I.Add(Offset, Vector3I.UnitY);
             offsets.Add(offset);
         }
-        if (position.Z == ChunkSizeZ - 1)
+        if (ChunkZ == ChunkSizeZ - 1)
         {
             var offset = Vector3I.Add(Offset, Vector3I.UnitZ);
             offsets.Add(offset);
@@ -110,9 +111,9 @@ public sealed partial class Chunk
         return offsets.ToArray();
     }
 
-    private List<Chunk> GetBorderingChunks(Vector3I position)
+    private List<Chunk> GetBorderingChunks(int x, int y, int z)
     {
-        var offsets = GetBorderingChunkOffsets(position);
+        var offsets = GetBorderingChunkOffsets(x, y, z);
         var chunks = new List<Chunk>(offsets.Length);
         foreach (var offset in offsets)
         {
@@ -123,22 +124,18 @@ public sealed partial class Chunk
         return chunks;
     }
 
-    private void OnModify(Vector3I position, BlockData prev, BlockData changed)
+    private void OnModify(int x, int y, int z, BlockData prev, BlockData changed)
     {
-        if (!Generating)
-            Mesh.Dirty = true;
-        else
-            Mesh.Dirty = false;
+        Mesh.Dirty = true;
 
         if (prev.BlockId != changed.BlockId)
         {
-            var wPos = CreatePosition(position).IntoWorld();
+            var wPos = CreatePosition(x, y, z).IntoWorld();
             if (prev.BlockId.Block().CanEmitLight)
                 Light.RemoveAllLight(World, wPos);
             var block = changed.BlockId.Block();
-            var torchLight = block.GetTorchLight();
             if (block.CanEmitLight)
-                Light.AddTorchLight(World, wPos, torchLight);
+                Light.AddTorchLight(World, wPos, block.TorchLight);
             if (!Generating)
             {
                 if (block.Transparent)
@@ -155,11 +152,9 @@ public sealed partial class Chunk
             NoneAirCount += changed.BlockId is BlockId.Air ? -1 : 1;
         }
 
-        if (Generating)
-            return;
         if (prev.BlockId != changed.BlockId || prev.AllLight != changed.AllLight)
         {
-            var neighbors = GetBorderingChunks(position);
+            var neighbors = GetBorderingChunks(x, y, z);
             foreach (var chunk in neighbors)
                 chunk.Mesh.Dirty = true;
         }
@@ -218,11 +213,11 @@ public sealed partial class Chunk
     // MUST be run once a chunk has completed generating
     public void AfterGenerate()
     {
-        // RecaculateHeightmap();
-        // Light.ApplyAllLight(this);
-        Mesh.Dirty = true;
-        foreach (var chunk in GetAllBorderingChunks())
-            chunk.Mesh.Dirty = true;
+        RecaculateHeightmap();
+        Light.ApplyAllLight(this);
+        // Mesh.Dirty = true;
+        // foreach (var chunk in GetAllBorderingChunks())
+        //     chunk.Mesh.Dirty = true;
     }
 
     public List<Chunk> GetAllBorderingChunks()
@@ -254,11 +249,11 @@ public sealed partial class Chunk
             for (var z = 0; z < ChunkSizeZ; z++)
             {
                 var h = heightmap.GetHeight(x, z);
-                if (h > ChunckPosition.Y + ChunkSizeY - 1)
+                if (h > ChunkY + ChunkSizeY - 1)
                     continue;
                 for (var y = ChunkSizeY - 1; y >= 0; y--)
                 {
-                    var id = GetBlockId(new Vector3I(x, y, z));
+                    var id = GetBlockId(x, y, z);
                     if (!id.Block().Transparent)
                     {
                         var pos = CreatePosition(x, y, z).IntoWorld();

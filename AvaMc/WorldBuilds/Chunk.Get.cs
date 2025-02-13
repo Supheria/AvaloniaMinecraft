@@ -8,59 +8,33 @@ namespace AvaMc.WorldBuilds;
 
 partial class Chunk
 {
-    private static int PositionToIndex(Vector3I position)
+    public BlockData GetBlockData(int x, int y, int z)
     {
-        return position.X * ChunkSizeX * ChunkSizeZ + position.Z * ChunkSizeZ + position.Y;
-    }
-
-    private BlockData GetBlockDataService(Vector3I position)
-    {
-        var index = PositionToIndex(position);
+        var index = PositionToIndex(x, y, z);
         // var data = Data.AsSpan();
         return Data[index];
     }
 
-    public BlockData GetBlockData(Vector3I position)
+    public BlockId GetBlockId(int x, int y, int z)
     {
-        var data = GetBlockDataService(position);
-        return data;
-    }
-
-    public BlockData GetBlockData(BlockChunkPosition position)
-    {
-        return GetBlockData(position.ToInternal());
+        var data = GetBlockData(x, y, z);
+        return data.BlockId;
     }
 
     public BlockId GetBlockId(BlockChunkPosition position)
     {
-        return GetBlockId(position.ToInternal());
+        return GetBlockId(position.X, position.Y, position.Z);
     }
 
-    public BlockId GetBlockId(Vector3I position)
+    public AllLight GetAllLight(int x, int y, int z)
     {
-        var data = GetBlockDataService(position);
-        return data.BlockId;
-    }
-
-    public AllLight GetAllLight(Vector3I position)
-    {
-        var data = GetBlockDataService(position);
+        var data = GetBlockData(x, y, z);
         return data.AllLight;
     }
 
-    public AllLight GetAllLight(BlockChunkPosition position)
+    public TorchLight GetTorchLight(int x, int y, int z)
     {
-        return GetAllLight(position.ToInternal());
-    }
-
-    public TorchLight GetTorchLight(Vector3I position)
-    {
-        var data = GetBlockDataService(position);
+        var data = GetBlockData(x, y, z);
         return data.TorchLight;
-    }
-
-    public TorchLight GetTorchLight(BlockChunkPosition position)
-    {
-        return GetTorchLight(position.ToInternal());
     }
 }

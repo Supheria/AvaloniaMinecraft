@@ -25,11 +25,6 @@ public sealed class Heightmap
         WorldgenData = new WorldgenData?[Volume];
     }
 
-    private int PositionToIndex(Vector2I position)
-    {
-        return position.X * Chunk.ChunkSizeX + position.Y;
-    }
-
     private int PositionToIndex(int x, int z)
     {
         return x * Chunk.ChunkSizeX + z;
@@ -38,31 +33,25 @@ public sealed class Heightmap
     public void SetHeight(BlockPosition position)
     {
         var pos = position.IntoHeightmap();
-        var index = PositionToIndex(pos);
+        var index = PositionToIndex(pos.X, pos.Z);
         HeightData[index] = position.Height;
     }
 
-    private int GetHeight(Vector2I position)
+    public int GetHeight(int x, int z)
     {
-        var index = PositionToIndex(position);
+        var index = PositionToIndex(x, z);
         return HeightData[index];
     }
 
     public int GetHeight(BlockPosition position)
     {
         var pos = position.IntoHeightmap();
-        return GetHeight(pos);
+        return GetHeight(pos.X, pos.Z);
     }
 
     public int GetHeight(BlockChunkPosition position)
     {
-        var pos = position.Xz();
-        return GetHeight(pos);
-    }
-
-    public int GetHeight(int x, int z)
-    {
-        return GetHeight(new Vector2I(x, z));
+        return GetHeight(position.X, position.Z);
     }
 
     // TODO: split gen-data from heightmap

@@ -8,45 +8,36 @@ namespace AvaMc.Coordinates;
 
 public readonly struct BlockChunkPosition
 {
-    Vector3I Value { get; }
-    Vector3I ChunkPosition { get; }
+    public int X { get; }
+    public int Y { get; }
+    public int Z { get; }
+    int ChunkX { get; }
+    int ChunkY { get; }
+    int ChunkZ { get; }
 
-    public override int GetHashCode() => Value.GetHashCode();
-
-    public BlockChunkPosition(Vector3I value, Vector3I chunkPosition)
+    public BlockChunkPosition(int x, int y, int z, int chunkX, int chunkY, int chunkZ)
     {
-        Value = value;
-        ChunkPosition = chunkPosition;
+        X = x;
+        Y = y;
+        Z = z;
+        ChunkX = chunkX;
+        ChunkY = chunkY;
+        ChunkZ = chunkZ;
     }
 
     public BlockPosition ToNeighbor(Direction direction)
     {
-        var x = Value.X + direction.X + ChunkPosition.X;
-        var y = Value.Y + direction.Y + ChunkPosition.Y;
-        var z = Value.Z + direction.Z + ChunkPosition.Z;
+        var x = X + ChunkX + direction.X;
+        var y = Y + ChunkY + direction.Y;
+        var z = Z + ChunkZ + direction.Z;
         return new(x, y, z);
     }
 
     public BlockPosition IntoWorld()
     {
-        var x = Value.X + ChunkPosition.X;
-        var y = Value.Y + ChunkPosition.Y;
-        var z = Value.Z + ChunkPosition.Z;
+        var x = X + ChunkX;
+        var y = Y + ChunkY;
+        var z = Z + ChunkZ;
         return new(x, y, z);
-    }
-
-    public Vector3 ToNumerics()
-    {
-        return Value.ToNumerics();
-    }
-
-    public Vector3I ToInternal()
-    {
-        return Value;
-    }
-
-    public Vector2I Xz()
-    {
-        return new(Value.X, Value.Z);
     }
 }
