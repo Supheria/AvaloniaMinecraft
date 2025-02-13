@@ -41,7 +41,7 @@ public sealed class BlockAtlas
         return Create(gl, stream, spriteSize);
     }
 
-    public static BlockAtlas Create(GL gl, Stream stream, Vector2I spriteSize)
+    private static unsafe BlockAtlas Create(GL gl, Stream stream, Vector2I spriteSize)
     {
         var image = Texture2D.LoadImage(stream);
         var pixelsSize = image.Width * image.Height * image.ColumnNumber;
@@ -53,12 +53,12 @@ public sealed class BlockAtlas
         {
             var newPixels = new byte[pixelsSize];
             Array.Copy(image.Pixels, newPixels, pixelsSize);
-            foreach (var block in Block.AllBlocks())
+            foreach (var block in BlockCollection.AllBlocks())
             {
                 if (!block.Animated)
                     continue;
 
-                var offsets = block.GetAnimationFrameOffsets();
+                var offsets = block.FrameOffsets;
                 CopyOffset(newPixels, size, spriteSize, sizeSprites, offsets[i], offsets[0], image.ColumnNumber);
             }
             frames[i] = Texture2D.Create(

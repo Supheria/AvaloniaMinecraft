@@ -4,7 +4,7 @@ using AvaMc.Util;
 
 namespace AvaMc.Util;
 
-public sealed class Direction
+public readonly struct Direction
 {
     public enum Type : byte
     {
@@ -17,12 +17,9 @@ public sealed class Direction
     }
 
     public Type Value { get; }
-    // public Vector3 Vector3F { get; }
-    public Vector3I Vector3I { get; }
-    public Vector3I Sign => Vector3I;
-    public int X => Vector3I.X;
-    public int Y => Vector3I.Y;
-    public int Z => Vector3I.Z;
+    public int X { get; }
+    public int Y { get; }
+    public int Z { get; }
 
     private Direction(Type value)
     {
@@ -31,32 +28,40 @@ public sealed class Direction
         {
             case Type.North:
                 // Vector3F = new(0, 0, -1);
-                Vector3I = new(0, 0, -1);
+                // Value3 = new(0, 0, -1);
+                Z = -1;
                 break;
             case Type.South:
                 // Vector3F = new(0, 0, 1);
-                Vector3I = new(0, 0, 1);
+                // Value3 = new(0, 0, 1);
+                Z = 1;
                 break;
             case Type.East:
                 // Vector3F = new(1, 0, 0);
-                Vector3I = new(1, 0, 0);
+                // Value3 = new(1, 0, 0);
+                X = 1;
                 break;
             case Type.West:
                 // Vector3F = new(-1, 0, 0);
-                Vector3I = new(-1, 0, 0);
+                // Value3 = new(-1, 0, 0);
+                X = -1;
                 break;
             case Type.Up:
                 // Vector3F = new(0, 1, 0);
-                Vector3I = new(0, 1, 0);
+                // Value3 = new(0, 1, 0);
+                Y = 1;
                 break;
             case Type.Down:
                 // Vector3F = new(0, -1, 0);
-                Vector3I = new(0, -1, 0);
+                // Value3 = new(0, -1, 0);
+                Y = -1;
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(value), value, null);
         }
     }
+
+    public static Direction Default => North;
 
     /// <summary>
     /// 0, 0, -1
@@ -91,14 +96,14 @@ public sealed class Direction
     public static Direction[] AllDirectionsRevers { get; } = [Down, Up, West, East, South, North];
     public static Direction[] DirectionsXz { get; } = [North, South, East, West];
 
-    public static Direction? ToDirection(Vector3I v)
+    public static Direction ToDirection(Vector3I v)
     {
         foreach (var direction in AllDirections)
         {
-            if (direction.Vector3I == v)
+            if (direction.X == v.X && direction.Y == v.Y && direction.Z == v.Z)
                 return direction;
         }
-        return null;
+        throw new ArgumentException();
     }
 
     public static int operator *(Direction dir, int value)
@@ -108,7 +113,7 @@ public sealed class Direction
 
     public override string ToString()
     {
-        return $"{Vector3I}({Value})";
+        return $"{Value}({X},{Y},{Z})";
     }
 
     public static implicit operator int(Direction d)

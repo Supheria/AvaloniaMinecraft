@@ -1,22 +1,45 @@
+using System;
 using System.Numerics;
 using AvaMc.Gfx;
 using AvaMc.Util;
 using AvaMc.WorldBuilds;
+using Hexa.NET.Utilities;
 
 namespace AvaMc.Blocks;
 
 // TODO: not complete yet
-public abstract partial class Block
+public unsafe struct Block
 {
-    public abstract BlockId Id { get; }
-    public virtual bool Transparent { get; } = false;
-    public virtual bool Animated { get; } = false;
-    public virtual bool Liquid { get; } = false;
+    public BlockId Id { get; set; }
+    public bool Transparent { get; set; }
+    public bool Animated { get; set; }
+    public bool Liquid { get; set; }
+    public bool CanEmitLight { get; set; }
+    public TorchLight TorchLight { get; set; }
+    public BlockMeshType MeshType { get; set; }
+    public UnsafeDictionary<Direction, Vector2I> TextureLocation { get; set; }
+    public Vector2I* FrameOffsets { get; set; }
 
-    public virtual bool CanEmitLight { get; } = false;
-
-    // public bool Animated { get; set; }
-    public virtual BlockMeshType MeshType { get; } = BlockMeshType.Default;
+    public Block()
+    {
+        Id = BlockId.Air;
+        Transparent = false;
+        Animated = false;
+        Liquid = false;
+        CanEmitLight = false;
+        TorchLight = TorchLight.Zero;
+        MeshType = BlockMeshType.Default;
+        TextureLocation = new()
+        {
+            [Direction.North] = Vector2I.Zero,
+            [Direction.South] = Vector2I.Zero,
+            [Direction.East] = Vector2I.Zero,
+            [Direction.West] = Vector2I.Zero,
+            [Direction.Up] = Vector2I.Zero,
+            [Direction.Down] = Vector2I.Zero,
+        };
+        FrameOffsets = null;
+    }
 
     // public bool Solid { get; set; }
     //
@@ -37,17 +60,9 @@ public abstract partial class Block
     //     Vector2 UvSize
     // );
     //
-    public abstract Vector2I GetTextureLocation(Direction direction);
-
-    public virtual Vector2I[] GetAnimationFrameOffsets()
-    {
-        return [];
-    }
-
-    public virtual TorchLight GetTorchLight()
-    {
-        return TorchLight.Zero;
-    }
+    // public Func<Direction, Vector2> GetTextureLocation { get; set; }
+    // public Func<Vector2[]> GetAnimationFrameOffsets { get; set; }
+    // public Func<TorchLight> GetTorchLight { get; set; }
     // public abstract Func<World, Vector3, Direction, MeshInfo> GetMeshInfo { get; set; }
     // public abstract Func<Vector2[]> GetAnimationFrameOffsets { get; set; }
     // public abstract Func<World, Vector3, TorchLight> GetTorchLight { get; set; }

@@ -78,32 +78,32 @@ public sealed partial class Chunk
     public Vector3I[] GetBorderingChunkOffsets(int x, int y, int z)
     {
         var offsets = new List<Vector3I>(6);
-        if (ChunkX is 0)
+        if (x is 0)
         {
             var offset = Vector3I.Add(Offset, -Vector3I.UnitX);
             offsets.Add(offset);
         }
-        if (ChunkY is 0)
+        if (y is 0)
         {
             var offset = Vector3I.Add(Offset, -Vector3I.UnitY);
             offsets.Add(offset);
         }
-        if (ChunkZ is 0)
+        if (z is 0)
         {
             var offset = Vector3I.Add(Offset, -Vector3I.UnitZ);
             offsets.Add(offset);
         }
-        if (ChunkX == ChunkSizeX - 1)
+        if (x == ChunkSizeX - 1)
         {
             var offset = Vector3I.Add(Offset, Vector3I.UnitX);
             offsets.Add(offset);
         }
-        if (ChunkY == ChunkSizeY - 1)
+        if (y == ChunkSizeY - 1)
         {
             var offset = Vector3I.Add(Offset, Vector3I.UnitY);
             offsets.Add(offset);
         }
-        if (ChunkZ == ChunkSizeZ - 1)
+        if (z == ChunkSizeZ - 1)
         {
             var offset = Vector3I.Add(Offset, Vector3I.UnitZ);
             offsets.Add(offset);

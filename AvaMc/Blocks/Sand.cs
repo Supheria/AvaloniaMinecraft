@@ -1,13 +1,24 @@
+using System.Numerics;
 using AvaMc.Util;
 
 namespace AvaMc.Blocks;
 
-public sealed class Sand : Block
+public sealed class Sand : BlockGen
 {
-    public override BlockId Id { get; } = BlockId.Sand;
-
-    public override Vector2I GetTextureLocation(Direction direction)
+    public override Block Get()
     {
-        return new(0, 1);
+        return new()
+        {
+            Id = BlockId.Sand,
+            TextureLocation = new()
+            {
+                [Direction.North] = new(0, 1),
+                [Direction.South] = new(0, 1),
+                [Direction.East] = new(0, 1),
+                [Direction.West] = new(0, 1),
+                [Direction.Up] = new(0, 1),
+                [Direction.Down] = new(0, 1),
+            },
+        };
     }
 }

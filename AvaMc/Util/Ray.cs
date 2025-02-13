@@ -32,10 +32,10 @@ public readonly struct Ray
         return v;
     }
 
-    public bool RayBlock(float maxDistance, out BlockPosition blockPos, out Direction? direction)
+    public bool RayBlock(float maxDistance, out BlockPosition blockPos, out Direction direction)
     {
         blockPos = BlockPosition.Zero;
-        direction = null;
+        direction = Util.Direction.Default;
 
         var p = new BlockPosition(
             MathHelper.FloorI(Origin.X),

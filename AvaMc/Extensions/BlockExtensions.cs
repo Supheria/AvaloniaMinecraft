@@ -7,6 +7,6 @@ public static class BlockExtensions
 {
     public static Block Block(this BlockId id)
     {
-        return Blocks.Block.Get(id);
+        return BlockCollection.GetBlock(id);
     }
 }
