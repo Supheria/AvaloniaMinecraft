@@ -20,11 +20,10 @@ public sealed class ChunkDepthComparer : IComparer<Vector3I>
     {
         var d1 = Vector3I.DistanceSquared(Center, v1);
         var d2 = Vector3I.DistanceSquared(Center, v2);
-        var sign = Math.Sign(d1 - d2);
         return Order switch
         {
-            DepthOrder.Nearer => sign,
-            DepthOrder.Farther => -sign,
+            DepthOrder.Nearer => Math.Sign(d1 - d2),
+            DepthOrder.Farther => Math.Sign(d2 - d1),
             _ => throw new ArgumentOutOfRangeException(),
         };
     }

@@ -8,6 +8,7 @@ using AvaMc.Coordinates;
 using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
+using Hexa.NET.Utilities;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
@@ -20,9 +21,10 @@ public sealed class ChunkMesh
         Transparent,
     }
 
-    List<BlockVertex> _vertices = [];
-    List<Face> _transparentFaces = [];
-    List<Face> _solidFaces = [];
+    UnsafeList<BlockVertex> _vertices = [];
+    UnsafeList<Face> _transparentFaces = [];
+    UnsafeList<uint> _transparentIndices = [];
+    UnsafeList<uint> _solidIndices = [];
     uint _vertexCount = 0;
     Chunk Chunk { get; set; }
     bool HasTransparent { get; set; }
@@ -34,24 +36,6 @@ public sealed class ChunkMesh
     public bool DepthSort { get; set; } = true;
     public bool Destroy { get; set; } = true;
     public bool Persist { get; set; } = true;
-
-    // List<Face> Faces { get; } = [];
-    // int IndexCount { get; set; }
-
-    // // if true, this mesh needs to be finalized (uploaded)
-    // public bool Finalize { get; set; } = true;
-    //
-    // // if true, this mesh will be rebuilt next time it is rendered
-    // public bool Dirty { get; set; } = true;
-    //
-    // // if true, this mesh will be depth sorted next time it is rendered
-    // public bool DepthSort { get; set; } = true;
-    //
-    // // if true, this mesh will be destroyed when its data is next accessible
-    // public bool Destroy { get; set; } = true;
-    //
-    // // if true, index and face buffers are kept in memory after building
-    // public bool Persist { get; set; } = true;
     VaoHandler Vao { get; }
     VboHandler Vbo { get; }
     IboHandler IboTransparent { get; }
@@ -66,8 +50,12 @@ public sealed class ChunkMesh
         IboSolid = IboHandler.Create(gl, false);
     }
 
-    public void Delete(GL gl)
+    public unsafe void Delete(GL gl)
     {
+        _vertices.Release();
+        _transparentIndices.Release();
+        _transparentFaces.Release();
+        _solidIndices.Release();
         Vao.Delete(gl);
         Vbo.Delete(gl);
         IboTransparent.Delete(gl);
@@ -76,9 +64,10 @@ public sealed class ChunkMesh
 
     public void MeshPrepare()
     {
-        _vertices = [];
-        _transparentFaces = [];
-        _solidFaces = [];
+        _vertices.Release();
+        _transparentIndices.Release();
+        _transparentFaces.Release();
+        _solidIndices.Release();
         _vertexCount = 0;
     }
 
@@ -88,46 +77,50 @@ public sealed class ChunkMesh
         if (_vertices.Count is 0)
             // throw new ArgumentNullException(nameof(Vertices));
             return;
-        Vbo.Buffer(gl, _vertices);
-        _vertices = [];
+        Vbo.Buffer<BlockVertex>(gl, _vertices.AsSpan());
+        // _vertices.Release();
     }
 
     // MUST be called immediately after meshing AND sorting (before rendering)
     private void FinalizeIndices(GL gl)
     {
-        HasTransparent = _transparentFaces.Count is not 0;
-        if (HasTransparent)
-        {
-            var indices = new List<uint>();
-            _transparentFaces.ForEach(f => indices.AddRange(f.Indices));
-            IboTransparent.Buffer(gl, indices);
-        }
-        HasSolid = _solidFaces.Count is not 0;
-        if (HasSolid)
-        {
-            var indices = new List<uint>();
-            _solidFaces.ForEach(f => indices.AddRange(f.Indices));
-            IboSolid.Buffer(gl, indices);
-        }
+        IboTransparent.Buffer(gl, _transparentIndices.AsSpan());
+        IboSolid.Buffer(gl, _solidIndices.AsSpan());
+        // _solidIndices.Release();
         if (Persist)
             return;
-        _transparentFaces = [];
-        _solidFaces = [];
+        // _transparentIndices.Release();
+        // _transparentFaces.Release();
     }
 
-    private void SortTransparentFaces()
+    private unsafe void SortTransparentFaces()
     {
         if (_transparentFaces.Count is 0)
             return;
-        // TODO: too complex
         var center = Chunk.World.Player.Camera.Position;
-        foreach (var face in _transparentFaces)
-            face.SetDistance(center);
-        var comparer = new FaceDepthComparer(DepthOrder.Farther);
-        _transparentFaces.Sort(comparer);
+        var comparer = new FaceDepthComparer(center, DepthOrder.Farther);
+        _transparentFaces.AsSpan().Sort(comparer);
+        
+        var len = _transparentIndices.Count;
+        var old = new UnsafeList<uint>(len);
+        Utils.Memcpy(_transparentIndices.Data, old.Data, len * sizeof(uint));
+        for (var i = 0; i < _transparentFaces.Count; i++)
+        {
+            var face = &_transparentFaces.Data[i];
+            if (face->IndicesBase != i * 6)
+            {
+                Utils.Memcpy(
+                    &old.Data[face->IndicesBase],
+                    &_transparentIndices.Data[i * 6],
+                    6 * sizeof(uint)
+                );
+            }
+            face->IndicesBase = i * 6;
+        }
+        // old.Release();
     }
 
-    public void Mesh(GL gl)
+    private void Mesh(GL gl)
     {
         MeshPrepare();
         for (var x = 0; x < Chunk.ChunkSizeX; x++)
@@ -173,6 +166,7 @@ public sealed class ChunkMesh
         );
         BlockMesh.MeshSprite(
             ref _vertices,
+            ref _transparentIndices,
             ref _transparentFaces,
             ref _vertexCount,
             new(x, y, z),
@@ -201,8 +195,9 @@ public sealed class ChunkMesh
                 );
                 var allLight = nData.AllLight;
                 if (block.Transparent)
-                    BlockMesh.MeshFace(
+                    BlockMesh.MeshTransparentFace(
                         ref _vertices,
+                        ref _transparentIndices,
                         ref _transparentFaces,
                         ref _vertexCount,
                         new(x, y, z),
@@ -212,9 +207,9 @@ public sealed class ChunkMesh
                         direction
                     );
                 else
-                    BlockMesh.MeshFace(
+                    BlockMesh.MeshSolidFace(
                         ref _vertices,
-                        ref _solidFaces,
+                        ref _solidIndices,
                         ref _vertexCount,
                         new(x, y, z),
                         allLight,
@@ -253,13 +248,13 @@ public sealed class ChunkMesh
 
     public void RederTransparent(GL gl)
     {
-        if (HasTransparent)
+        // if (HasTransparent)
             Render(gl, IboTransparent);
     }
 
     public void RenderSolid(GL gl)
     {
-        if (HasSolid)
+        // if (HasSolid)
             Render(gl, IboSolid);
     }
 
@@ -284,8 +279,8 @@ public sealed class ChunkMesh
         Persist = persist;
         if (!persist)
         {
-            _transparentFaces = [];
-            _solidFaces = [];
+            // _transparentIndices.Release();
+            // _transparentFaces.Release();
         }
     }
 }

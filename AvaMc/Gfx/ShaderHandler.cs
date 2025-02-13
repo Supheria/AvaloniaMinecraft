@@ -11,10 +11,7 @@ public sealed unsafe class ShaderHandler : Resource
     private ShaderHandler(uint handle)
         : base(handle) { }
 
-    public static ShaderHandler Create(
-        GL gl,
-        string shaderName
-    )
+    public static ShaderHandler Create(GL gl, string shaderName)
     {
         var vertexCode = AssetsRead.ReadVertex(shaderName);
         var fragmentCode = AssetsRead.ReadFragment(shaderName);
@@ -22,11 +19,7 @@ public sealed unsafe class ShaderHandler : Resource
         return new(handle);
     }
 
-    private static uint GetHandle(
-        GL gl,
-        string vertexCode,
-        string fragmentCode
-    )
+    private static uint GetHandle(GL gl, string vertexCode, string fragmentCode)
     {
         var vs = gl.CreateShader(ShaderType.VertexShader);
         gl.ShaderSource(vs, vertexCode);
@@ -75,20 +68,10 @@ public sealed unsafe class ShaderHandler : Resource
         gl.DeleteProgram(Handle);
     }
 
-    public void UniformMatrix4(GL gl, string uniformName, Matrix4x4 matrix)
+    public unsafe void UniformMatrix4(GL gl, string uniformName, Matrix4x4 matrix)
     {
         var location = gl.GetUniformLocation(Handle, uniformName);
-        // csharpier-ignore
-        var values = new[]{
-            matrix.M11, matrix.M12, matrix.M13, matrix.M14,
-            matrix.M21, matrix.M22, matrix.M23, matrix.M24,
-            matrix.M31, matrix.M32, matrix.M33, matrix.M34,
-            matrix.M41, matrix.M42, matrix.M43, matrix.M44
-        };
-        fixed (float* ptr = values)
-        {
-            gl.UniformMatrix4(location, 1, false, ptr);
-        }
+        gl.UniformMatrix4(location, 1, false, (float*)&matrix);
     }
 
     public void UniformCamera(GL gl, Camera camera)
@@ -116,6 +99,7 @@ public sealed unsafe class ShaderHandler : Resource
         var location = gl.GetUniformLocation(Handle, uniformName);
         gl.Uniform1(location, value);
     }
+
     //
     // public void UniformUnsignedInt(GL gl, string uniformName, uint value)
     // {

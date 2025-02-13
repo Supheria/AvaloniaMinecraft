@@ -229,7 +229,7 @@ public sealed class Renderer
             color.X, color.Y, color.Z, color.W
         ];
         uint[] indices = [3, 0, 1, 3, 1, 2];
-        Vbo.Buffer(gl, data);
+        Vbo.Buffer<float>(gl, data);
         Ibo.Buffer(gl, indices);
 
         // TODO: shit here, will use Vertex

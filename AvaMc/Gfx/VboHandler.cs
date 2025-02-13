@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Silk.NET.OpenGLES;
@@ -22,16 +23,15 @@ public sealed unsafe class VboHandler : Resource
         return vbo;
     }
 
-    public void Buffer<T>(GL gl, ICollection<T> data)
+    public void Buffer<T>(GL gl, ReadOnlySpan<T> data)
         where T : unmanaged
     {
         Bind(gl);
-        var array = data.ToArray();
         var stride = sizeof(T);
-        gl.BufferData<T>(
+        gl.BufferData(
             BufferTargetARB.ArrayBuffer,
-            (uint)(stride * array.Length),
-            data.ToArray(),
+            (uint)(stride * data.Length),
+            data,
             Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StaticDraw
         );
         Stride = (uint)stride;

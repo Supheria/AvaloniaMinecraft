@@ -100,7 +100,7 @@ public sealed class Sky
             new(+0.5f, -0.5f, 0.0f, 1.0f, 0.0f),
         };
         var indices = new uint[] { 3, 0, 1, 3, 1, 2 };
-        Vbo.Buffer(gl, vertices);
+        Vbo.Buffer<Vertex>(gl, vertices);
         Ibo.Buffer(gl, indices);
     }
 

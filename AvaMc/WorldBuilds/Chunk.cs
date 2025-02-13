@@ -8,6 +8,7 @@ using AvaMc.Coordinates;
 using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
+using Hexa.NET.Utilities;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
@@ -17,7 +18,7 @@ public sealed partial class Chunk
     public const int ChunkSizeX = 32;
     public const int ChunkSizeY = 32;
     public const int ChunkSizeZ = 32;
-    const int ChunkVolume = ChunkSizeX * ChunkSizeY * ChunkSizeZ;
+    public const int ChunkVolume = ChunkSizeX * ChunkSizeY * ChunkSizeZ;
     public static Vector2I ChunkSizeXz { get; } = new(ChunkSizeX, ChunkSizeZ);
     public static Vector3I ChunkSize { get; } = new(ChunkSizeX, ChunkSizeY, ChunkSizeZ);
     public World World { get; set; }
@@ -25,7 +26,7 @@ public sealed partial class Chunk
     int ChunkX { get; }
     int ChunkY { get; }
     int ChunkZ { get; }
-    BlockData[] Data { get; } = new BlockData[ChunkVolume];
+    UnsafeList<BlockData> _data = new(ChunkVolume);
     ChunkMesh Mesh { get; }
     int NoneAirCount { get; set; }
     bool Empty => NoneAirCount is 0;
@@ -45,6 +46,7 @@ public sealed partial class Chunk
     public void Delete(GL gl)
     {
         // Data = [];
+        _data.Release();
         Mesh.Delete(gl);
     }
 
@@ -75,9 +77,8 @@ public sealed partial class Chunk
         return Matrix4x4.CreateTranslation(new(ChunkX, ChunkY, ChunkZ));
     }
 
-    public Vector3I[] GetBorderingChunkOffsets(int x, int y, int z)
+    private void GetBorderingChunkOffsets(int x, int y, int z, ref UnsafeList<Vector3I> offsets)
     {
-        var offsets = new List<Vector3I>(6);
         if (x is 0)
         {
             var offset = Vector3I.Add(Offset, -Vector3I.UnitX);
@@ -108,19 +109,20 @@ public sealed partial class Chunk
             var offset = Vector3I.Add(Offset, Vector3I.UnitZ);
             offsets.Add(offset);
         }
-        return offsets.ToArray();
     }
 
     private List<Chunk> GetBorderingChunks(int x, int y, int z)
     {
-        var offsets = GetBorderingChunkOffsets(x, y, z);
-        var chunks = new List<Chunk>(offsets.Length);
+        var offsets = new UnsafeList<Vector3I>(6);
+        GetBorderingChunkOffsets(x, y, z, ref offsets);
+        var chunks = new List<Chunk>(offsets.Count);
         foreach (var offset in offsets)
         {
             var chunk = World.GetChunk(offset);
             if (chunk is not null)
                 chunks.Add(chunk);
         }
+        offsets.Release();
         return chunks;
     }
 

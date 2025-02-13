@@ -30,12 +30,12 @@ partial class BlockMesh
     ];
 
     // csharpier-ignore
-    static uint[][] SpriteIndices { get; } =
+    static uint[] SpriteIndices { get; } =
     [
-        [3, 5, 0, 3, 6, 5],
-        [2, 1, 4, 2, 4, 7],
-        [3, 0, 5, 3, 5, 6],
-        [2, 4, 1, 2, 7, 4],
+        3, 5, 0, 3, 6, 5,
+        2, 1, 4, 2, 4, 7,
+        3, 0, 5, 3, 5, 6,
+        2, 4, 1, 2, 7, 4,
     ];
 
     // csharpier-ignore

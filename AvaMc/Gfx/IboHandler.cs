@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Silk.NET.OpenGLES;
@@ -22,15 +23,14 @@ public sealed unsafe class IboHandler : Resource
         return ibo;
     }
 
-    public void Buffer(GL gl, ICollection<uint> data)
+    public void Buffer(GL gl, ReadOnlySpan<uint> data)
     {
         Bind(gl);
-        var array = data.ToArray();
-        ElementCount = (uint)array.Length;
-        gl.BufferData<uint>(
+        ElementCount = (uint)data.Length;
+        gl.BufferData(
             BufferTargetARB.ElementArrayBuffer,
-            (uint)(sizeof(uint) * array.Length),
-            data.ToArray(),
+            (uint)(sizeof(uint) * data.Length),
+            data,
             Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StaticDraw
         );
     }

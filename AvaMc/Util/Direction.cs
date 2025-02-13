@@ -4,7 +4,7 @@ using AvaMc.Util;
 
 namespace AvaMc.Util;
 
-public readonly struct Direction
+public readonly struct Direction : IEquatable<Direction>
 {
     public enum Type : byte
     {
@@ -136,4 +136,18 @@ public readonly struct Direction
     //     dir.Value++;
     //     return dir;
     // }
+    public bool Equals(Direction other)
+    {
+        return Value == other.Value;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Direction other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return (int)Value;
+    }
 }

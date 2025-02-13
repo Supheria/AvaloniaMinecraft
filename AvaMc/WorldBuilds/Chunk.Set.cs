@@ -11,8 +11,8 @@ partial class Chunk
     private void SetBlockData(int x, int y, int z, BlockData data)
     {
         var index = PositionToIndex(x, y, z);
-        var prev = Data[index];
-        Data[index] = data;
+        var prev = _data[index];
+        _data[index] = data;
         OnModify(x, y, z, prev, data);
     }
 

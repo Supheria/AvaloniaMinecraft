@@ -12,7 +12,7 @@ partial class Chunk
     {
         var index = PositionToIndex(x, y, z);
         // var data = Data.AsSpan();
-        return Data[index];
+        return _data[index];
     }
 
     public BlockId GetBlockId(int x, int y, int z)

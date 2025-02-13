@@ -3,19 +3,14 @@ using AvaMc.Coordinates;
 
 namespace AvaMc.WorldBuilds;
 
-public sealed class Face
+public struct Face
 {
-    public uint[] Indices { get; }
+    public int IndicesBase { get; set; }
     public Vector3 Position { get; }
-    public float DistanceSquared { get; private set; }
 
-    public Face(uint[] indices, Vector3 position)
+    public Face(int indicesBase, Vector3 position)
     {
-        Indices = indices;
+        IndicesBase = indicesBase;
         Position = position;
-    }
-    public void SetDistance(Vector3 center)
-    {
-        DistanceSquared = Vector3.DistanceSquared(center, Position);
     }
 }
