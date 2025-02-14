@@ -6,9 +6,9 @@ using AvaMc.Util;
 
 namespace AvaMc.WorldBuilds;
 
-partial class Chunk
+partial struct Chunk
 {
-    public BlockData GetBlockData(int x, int y, int z)
+    public unsafe BlockData GetBlockData(int x, int y, int z)
     {
         var index = PositionToIndex(x, y, z);
         // var data = Data.AsSpan();

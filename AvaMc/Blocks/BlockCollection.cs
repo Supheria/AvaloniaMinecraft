@@ -9,6 +9,7 @@ public class BlockCollection
 {
     public static Block GetBlock(BlockId id)
     {
+        // TODO: temp
         return Blocks[id];
     }
 

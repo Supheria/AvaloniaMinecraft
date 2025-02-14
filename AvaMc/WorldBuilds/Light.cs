@@ -232,7 +232,7 @@ public sealed class Light
             }
         }
 
-        AddPropagate(chunk.World, queue, AllLight.SunlightChannel, PropagateMode.Sunlight);
+        AddPropagate(Chunk.World, queue, AllLight.SunlightChannel, PropagateMode.Sunlight);
 
         var borders = new List<TorchLightNode>();
         for (var x = 0; x < Chunk.ChunkSizeX; x++)
@@ -240,14 +240,14 @@ public sealed class Light
             for (var z = 0; z < Chunk.ChunkSizeZ; z++)
             {
                 var pos = chunk.CreatePosition(x, -1, z).IntoWorld();
-                var light = chunk.World.GetTorchLight(pos);
+                var light = Chunk.World.GetTorchLight(pos);
                 if (light != AllLight.Zero)
                 {
                     var node = new TorchLightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
                 pos = chunk.CreatePosition(x, Chunk.ChunkSizeY, z).IntoWorld();
-                light = chunk.World.GetTorchLight(pos);
+                light = Chunk.World.GetTorchLight(pos);
                 if (light != AllLight.Zero)
                 {
                     var node = new TorchLightNode() { Position = pos, Light = light };
@@ -261,14 +261,14 @@ public sealed class Light
             for (var y = 0; y < Chunk.ChunkSizeY; y++)
             {
                 var pos = chunk.CreatePosition(x, y, -1).IntoWorld();
-                var light = chunk.World.GetTorchLight(pos);
+                var light = Chunk.World.GetTorchLight(pos);
                 if (light != AllLight.Zero)
                 {
                     var node = new TorchLightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
                 pos = chunk.CreatePosition(x, y, Chunk.ChunkSizeZ).IntoWorld();
-                light = chunk.World.GetTorchLight(pos);
+                light = Chunk.World.GetTorchLight(pos);
                 if (light != AllLight.Zero)
                 {
                     var node = new TorchLightNode() { Position = pos, Light = light };
@@ -282,14 +282,14 @@ public sealed class Light
             for (var z = 0; z < Chunk.ChunkSizeZ; z++)
             {
                 var pos = chunk.CreatePosition(-1, y, z).IntoWorld();
-                var light = chunk.World.GetTorchLight(pos);
+                var light = Chunk.World.GetTorchLight(pos);
                 if (light != AllLight.Zero)
                 {
                     var node = new TorchLightNode() { Position = pos, Light = light };
                     borders.Add(node);
                 }
                 pos = chunk.CreatePosition(Chunk.ChunkSizeX, y, z).IntoWorld();
-                light = chunk.World.GetTorchLight(pos);
+                light = Chunk.World.GetTorchLight(pos);
                 if (light != AllLight.Zero)
                 {
                     var node = new TorchLightNode() { Position = pos, Light = light };
@@ -309,7 +309,7 @@ public sealed class Light
                     queue.Enqueue(cNode);
                 }
             }
-            AddPropagate(chunk.World, queue, i, PropagateMode.Default);
+            AddPropagate(Chunk.World, queue, i, PropagateMode.Default);
         }
     }
 }

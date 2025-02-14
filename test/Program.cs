@@ -33,19 +33,30 @@ public static class Program
 
         var p1 = new UnsafeList<I2>() { new(1, 2), new(3, 4), new(5, 6) };
         var p2 = new UnsafeList<I2>(p1.Count);
-        
+
         Utils.Memcpy(&p1.Data[1], &p2.Data[2], 1 * sizeof(I2));
-        
+
         var ia = p2[0];
         var ib = p2[1];
         var pIc = &p2.Data[2];
         *pIc = new(7, 7);
         pIc->Value1 = 9;
         var ic = *pIc;
-        
+
         var s = new S();
         s.SetFx(11);
         var pS = &s;
+
+        var pSs = new UnsafeList<IntPtr>(5);
+        var p = Utils.AllocT<S>(1);
+        *p = new S().SetValue(10);
+        pSs[2] = (IntPtr)p;
+        var ts = (S*)(pSs[2]);
+        var zero = (S*)(pSs[0]);
+        if (zero == null) { }
+
+        var iS = new UnsafeList<int>() { 2, 1, 5, 6 };
+        iS.AsSpan().Sort();
 
         Console.ReadLine();
     }
@@ -57,11 +68,8 @@ public static class Program
         Dics[index] = [];
         return Dics[index];
     }
-    
-    private static unsafe void GetPointer(void* p)
-    {
-        
-    }
+
+    private static unsafe void GetPointer(void* p) { }
 }
 
 class A

@@ -6,9 +6,9 @@ using AvaMc.Util;
 
 namespace AvaMc.WorldBuilds;
 
-partial class Chunk
+partial struct Chunk
 {
-    private void SetBlockData(int x, int y, int z, BlockData data)
+    private unsafe void SetBlockData(int x, int y, int z, BlockData data)
     {
         var index = PositionToIndex(x, y, z);
         var prev = _data[index];

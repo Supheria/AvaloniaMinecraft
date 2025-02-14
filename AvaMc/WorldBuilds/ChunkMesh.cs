@@ -13,7 +13,7 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
 
-public sealed unsafe class ChunkMesh
+public unsafe struct ChunkMesh
 {
     public enum Part : byte
     {
@@ -26,7 +26,8 @@ public sealed unsafe class ChunkMesh
     UnsafeList<uint> _transparentIndices = [];
     UnsafeList<uint> _solidIndices = [];
     uint _vertexCount = 0;
-    Chunk Chunk { get; set; }
+
+    // Chunk* PChunk { get; }
     bool HasTransparent { get; set; }
     bool HasSolid { get; set; }
 
@@ -41,9 +42,9 @@ public sealed unsafe class ChunkMesh
     IboHandler _iboTransparent;
     IboHandler _iboSolid;
 
-    public ChunkMesh(GL gl, Chunk chunk)
+    public ChunkMesh(GL gl)
     {
-        Chunk = chunk;
+        // PChunk = pChunk;-
         _vao = VaoHandler.Create(gl);
         Vbo = VboHandler.CreatePointer(gl, false);
         _iboTransparent = IboHandler.Create(gl, false);
@@ -93,7 +94,7 @@ public sealed unsafe class ChunkMesh
         // _transparentFaces.Release();
     }
 
-    private unsafe void SortTransparentFaces()
+    private void SortTransparentFaces()
     {
         if (_transparentFaces.Count is 0)
             return;
@@ -103,24 +104,27 @@ public sealed unsafe class ChunkMesh
 
         var len = _transparentIndices.Count;
         var old = new UnsafeList<uint>(len);
-        Utils.Memcpy(_transparentIndices.Data, old.Data, len * sizeof(uint));
-        for (var i = 0; i < _transparentFaces.Count; i++)
         {
-            var face = &_transparentFaces.Data[i];
-            if (face->IndicesBase != i * 6)
+            Utils.Memcpy(_transparentIndices.Data, old.Data, len * sizeof(uint));
+            for (var i = 0; i < _transparentFaces.Count; i++)
             {
-                Utils.Memcpy(
-                    &old.Data[face->IndicesBase],
-                    &_transparentIndices.Data[i * 6],
-                    6 * sizeof(uint)
-                );
+                var face = &_transparentFaces.Data[i];
+                if (face->IndicesBase != i * 6)
+                {
+                    Utils.Memcpy(
+                        &old.Data[face->IndicesBase],
+                        &_transparentIndices.Data[i * 6],
+                        6 * sizeof(uint)
+                    );
+                }
+
+                face->IndicesBase = i * 6;
             }
-            face->IndicesBase = i * 6;
         }
-        // old.Release();
+        old.Release();
     }
 
-    private void Mesh(GL gl)
+    private void Mesh(GL gl, ref Chunk chunk)
     {
         MeshPrepare();
         for (var x = 0; x < Chunk.ChunkSizeX; x++)
@@ -129,7 +133,7 @@ public sealed unsafe class ChunkMesh
             {
                 for (var y = 0; y < Chunk.ChunkSizeY; y++)
                 {
-                    var data = Chunk.GetBlockData(x, y, z);
+                    var data = chunk.GetBlockData(x, y, z);
                     if (data.BlockId is BlockId.Air)
                         continue;
                     var block = data.BlockId.Block();
@@ -143,7 +147,7 @@ public sealed unsafe class ChunkMesh
                         }
                         case BlockMeshType.Default:
                         case BlockMeshType.Liquid:
-                            MeshDefault(x, y, z, block);
+                            MeshDefault(ref chunk, x, y, z, block);
                             break;
                     }
                 }
@@ -176,11 +180,11 @@ public sealed unsafe class ChunkMesh
         );
     }
 
-    private void MeshDefault(int x, int y, int z, Block block)
+    private void MeshDefault(ref Chunk chunk, int x, int y, int z, Block block)
     {
         foreach (var direction in Direction.AllDirections)
         {
-            var nPos = Chunk.CreatePosition(x, y, z).ToNeighbor(direction);
+            var nPos = chunk.CreatePosition(x, y, z).ToNeighbor(direction);
             var nData = Chunk.World.GetBlockData(nPos);
             var nBlock = nData.BlockId.Block();
             if (
@@ -221,13 +225,13 @@ public sealed unsafe class ChunkMesh
         }
     }
 
-    public void PrepareRender(GL gl)
+    public void PrepareRender(GL gl, ref Chunk chunk)
     {
         if (!Chunk.World.Meshing.UnderThreshold())
             return;
         if (Dirty)
         {
-            Mesh(gl);
+            Mesh(gl, ref chunk);
             Dirty = false;
             DepthSort = false;
             Chunk.World.Meshing.AddOne();
@@ -240,29 +244,29 @@ public sealed unsafe class ChunkMesh
                 FinalizeIndices(gl);
             }
             else
-                Mesh(gl);
+                Mesh(gl, ref chunk);
             DepthSort = false;
             Chunk.World.Meshing.AddOne();
         }
     }
 
-    public void RederTransparent(GL gl)
+    public void RederTransparent(GL gl, ref Chunk chunk)
     {
         // if (HasTransparent)
-        Render(gl, _iboTransparent);
+        Render(gl, ref chunk, _iboTransparent);
     }
 
-    public void RenderSolid(GL gl)
+    public void RenderSolid(GL gl, ref Chunk chunk)
     {
         // if (HasSolid)
-        Render(gl, _iboSolid);
+        Render(gl, ref chunk, _iboSolid);
     }
 
-    private void Render(GL gl, IboHandler ibo)
+    private void Render(GL gl, ref Chunk chunk, IboHandler ibo)
     {
         // TODO: shit here
         var shader = GlobalState.Renderer.Shaders[Renderer.ShaderType.Chunk];
-        var model = Chunk.CreateModel();
+        var model = chunk.CreateModel();
         shader.UniformMatrix4(gl, "m", model);
 
         _vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);

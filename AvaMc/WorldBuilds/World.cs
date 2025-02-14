@@ -9,12 +9,13 @@ using AvaMc.Entities;
 using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
+using Hexa.NET.Utilities;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
 
 // TODO
-public sealed partial class World
+public sealed unsafe partial class World
 {
     // const int ChunksMagnitude = 10;
     int ChunksMagnitude { get; set; } = 4;
@@ -22,7 +23,7 @@ public sealed partial class World
     int HeightmapsVolume => ChunksMagnitude * ChunksMagnitude;
     Sky Sky { get; }
     public Player Player { get; set; }
-    Chunk?[] Chunks { get; set; }
+    IntPtr* _chunkPointers;
     Heightmap?[] Heightmaps { get; set; }
     Vector3I ChunksOrigin { get; set; }
     Vector3I CenterChunkOffset { get; set; }
@@ -42,18 +43,25 @@ public sealed partial class World
         // Seed = new Random().Next();
         Seed = 10;
         Generator = new(Seed);
-        Chunks = new Chunk?[ChunksVolume];
+
+        _chunkPointers = Utils.AllocT<IntPtr>(ChunksVolume);
+        Utils.ZeroMemoryT(_chunkPointers, ChunksVolume);
+
         Heightmaps = new Heightmap[HeightmapsVolume];
         // SetCenter(gl, BlockPosition.Zero);
     }
 
-    public void Delete(GL gl)
+    public unsafe void Delete(GL gl)
     {
         Sky.Delete(gl);
         Player.Delete(gl);
-        foreach (var chunk in Chunks.AsSpan())
-            chunk?.Delete(gl);
-        Chunks = [];
+        for (var i = 0; i < ChunksVolume; i++)
+        {
+            var pChunk = (Chunk*)_chunkPointers[i];
+            if (pChunk != null)
+                pChunk->Delete(gl);
+        }
+        Utils.Free(_chunkPointers);
     }
 
     private int ChunkOffsetToIndex(Vector3I offset)
@@ -104,7 +112,7 @@ public sealed partial class World
             && modified.Y < ChunksMagnitude;
     }
 
-    public void SetCenter(GL gl, BlockPosition position)
+    public unsafe void SetCenter(GL gl, BlockPosition position)
     {
         var newOffset = position.ToChunkOffset();
         var magnitude = new Vector3I(ChunksMagnitude / 2, ChunksMagnitude / 2, ChunksMagnitude / 2);
@@ -114,23 +122,25 @@ public sealed partial class World
         CenterChunkOffset = newOffset;
         ChunksOrigin = newOrigin;
 
-        var newChunks = new Chunk?[ChunksVolume];
-        var cSpan = newChunks.AsSpan();
-        var cSpanOld = Chunks.AsSpan();
-        for (var i = 0; i < ChunksVolume; i++)
+        var old = Utils.AllocT<IntPtr>(ChunksVolume);
         {
-            var chunk = cSpanOld[i];
-            if (chunk is null)
-                continue;
-            if (ChunkInBounds(chunk.Offset))
+            Utils.MemcpyT(_chunkPointers, old, ChunksVolume);
+            Utils.ZeroMemoryT(_chunkPointers, ChunksVolume);
+            for (var i = 0; i < ChunksVolume; i++)
             {
-                var index = ChunkOffsetToIndex(chunk.Offset);
-                cSpan[index] = chunk;
+                var pChunk = (Chunk*)old[i];
+                if (pChunk == null)
+                    continue;
+                if (ChunkInBounds(pChunk->Offset))
+                {
+                    var index = ChunkOffsetToIndex(pChunk->Offset);
+                    _chunkPointers[index] = (IntPtr)pChunk;
+                }
+                else
+                    pChunk->Delete(gl);
             }
-            else
-                chunk.Delete(gl);
         }
-        Chunks = newChunks;
+        Utils.Free(old);
 
         var newHeightmaps = new Heightmap?[HeightmapsVolume];
         var hSpan = newHeightmaps.AsSpan();
@@ -158,11 +168,17 @@ public sealed partial class World
         Sky.Render(gl);
         GlobalState.Renderer.ClearColor = Sky.ClearColor;
 
-        foreach (var offset in SortChunksByOffset(DepthOrder.Nearer))
+        var offsets = new UnsafeList<Vector3I>();
         {
-            var chunk = GetChunk(offset);
-            chunk?.PrepareRender(gl);
+            SortChunksByOffset(DepthOrder.Nearer, ref offsets);
+            // TODO: use pointer of offset
+            for (var i = 0; i < offsets.Count; i++)
+            {
+                if (GetChunk(offsets[i], out var ptr))
+                    ptr->PrepareRender(gl);
+            }
         }
+        offsets.Release();
 
         var renderer = GlobalState.Renderer;
         renderer.UseShader(gl, Renderer.ShaderType.Chunk);
@@ -179,13 +195,23 @@ public sealed partial class World
         shader.UniformFloat(gl, "fog_near", ChunksMagnitude / 2f * 32 - 12);
         shader.UniformFloat(gl, "fog_far", ChunksMagnitude / 2f * 32 - 4);
 
-        foreach (var chunk in Chunks.AsSpan())
-            chunk?.RenderSolid(gl);
-        foreach (var offset in SortChunksByOffset(DepthOrder.Farther))
+        for (var i = 0; i < ChunksVolume; i++)
         {
-            var chunk = GetChunk(offset);
-            chunk?.RenderTransparent(gl);
+            var pChunk = (Chunk*)_chunkPointers[i];
+            if (pChunk != null)
+                pChunk->RenderSolid(gl);
         }
+
+        offsets = new UnsafeList<Vector3I>();
+        {
+            SortChunksByOffset(DepthOrder.Nearer, ref offsets);
+            for (var i = 0; i < offsets.Count; i++)
+            {
+                if (GetChunk(offsets[i], out var ptr))
+                    ptr->RenderTransparent(gl);
+            }
+        }
+        offsets.Release();
 
         Player.Render(gl);
         renderer.PopCamera();
@@ -196,32 +222,36 @@ public sealed partial class World
         Loading.Reset();
         Meshing.Reset();
         LoadEmptyChunks(gl);
-        foreach (var chunk in Chunks.AsSpan())
-            chunk?.Update();
+        for (var i = 0; i < ChunksVolume; i++)
+        {
+            var pChunk = (Chunk*)_chunkPointers[i];
+            if (pChunk != null)
+                pChunk->Update();
+        }
         Player.Update();
     }
 
     public void Tick()
     {
         Ticks++;
-        foreach (var chunk in Chunks.AsSpan())
-            chunk?.Tick();
+        for (var i = 0; i < ChunksVolume; i++)
+        {
+            var pChunk = (Chunk*)_chunkPointers[i];
+            if (pChunk != null)
+                pChunk->Tick();
+        }
         Player.Tick();
     }
 
-    private Span<Vector3I> SortChunksByOffset(DepthOrder order)
+    private void SortChunksByOffset(DepthOrder order, ref UnsafeList<Vector3I> offsets)
     {
-        var length = Chunks.Length;
-        var offsets = new Vector3I[length].AsSpan();
-        var cSpan = Chunks.AsSpan();
-        for (var i = 0; i < length; i++)
+        for (var i = 0; i < ChunksVolume; i++)
         {
-            var chunk = cSpan[i];
-            if (chunk is not null)
-                offsets[i] = chunk.Offset;
+            var pChunk = (Chunk*)_chunkPointers[i];
+            if (pChunk is not null)
+                offsets.Add(pChunk->Offset);
         }
         var comparer = new ChunkDepthComparer(CenterChunkOffset, order);
-        offsets.Sort(comparer);
-        return offsets;
+        offsets.AsSpan().Sort(comparer);
     }
 }

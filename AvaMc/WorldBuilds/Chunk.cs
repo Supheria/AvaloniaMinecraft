@@ -13,7 +13,7 @@ using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
 
-public sealed partial class Chunk
+public unsafe partial struct Chunk
 {
     public const int ChunkSizeX = 32;
     public const int ChunkSizeY = 32;
@@ -21,33 +21,39 @@ public sealed partial class Chunk
     public const int ChunkVolume = ChunkSizeX * ChunkSizeY * ChunkSizeZ;
     public static Vector2I ChunkSizeXz { get; } = new(ChunkSizeX, ChunkSizeZ);
     public static Vector3I ChunkSize { get; } = new(ChunkSizeX, ChunkSizeY, ChunkSizeZ);
-    public World World { get; set; }
+
+    public static World World => GlobalState.World;
+    public static Chunk Default => new();
     public Vector3I Offset { get; private set; }
     int ChunkX { get; }
     int ChunkY { get; }
     int ChunkZ { get; }
-    UnsafeList<BlockData> _data = new(ChunkVolume);
-    ChunkMesh Mesh { get; }
+    BlockData* _data;
+    ChunkMesh _mesh;
     int NoneAirCount { get; set; }
     bool Empty => NoneAirCount is 0;
-    public bool Generating { get; set; } = true;
+    public bool Generating { get; set; }
 
-    public Chunk(GL gl, World world, Vector3I offset)
+    // public bool Generated { get; set; }
+
+    public unsafe Chunk(GL gl, Vector3I offset)
     {
-        World = world;
+        // World = world;
         Offset = offset;
         var pos = Vector3I.Multiply(offset, ChunkSize);
         ChunkX = pos.X;
         ChunkY = pos.Y;
         ChunkZ = pos.Z;
-        Mesh = new(gl, this);
+        _data = Utils.AllocT<BlockData>(ChunkVolume);
+        Utils.ZeroMemoryT(_data, ChunkVolume);
+        _mesh = new(gl);
     }
 
     public void Delete(GL gl)
     {
         // Data = [];
-        _data.Release();
-        Mesh.Delete(gl);
+        Utils.Free(_data);
+        _mesh.Delete(gl);
     }
 
     public long GetOffsetHashCode()
@@ -111,24 +117,9 @@ public sealed partial class Chunk
         }
     }
 
-    private List<Chunk> GetBorderingChunks(int x, int y, int z)
+    private unsafe void OnModify(int x, int y, int z, BlockData prev, BlockData changed)
     {
-        var offsets = new UnsafeList<Vector3I>(6);
-        GetBorderingChunkOffsets(x, y, z, ref offsets);
-        var chunks = new List<Chunk>(offsets.Count);
-        foreach (var offset in offsets)
-        {
-            var chunk = World.GetChunk(offset);
-            if (chunk is not null)
-                chunks.Add(chunk);
-        }
-        offsets.Release();
-        return chunks;
-    }
-
-    private void OnModify(int x, int y, int z, BlockData prev, BlockData changed)
-    {
-        Mesh.Dirty = true;
+        _mesh.Dirty = true;
 
         if (prev.BlockId != changed.BlockId)
         {
@@ -156,13 +147,18 @@ public sealed partial class Chunk
 
         if (prev.BlockId != changed.BlockId || prev.AllLight != changed.AllLight)
         {
-            var neighbors = GetBorderingChunks(x, y, z);
-            foreach (var chunk in neighbors)
-                chunk.Mesh.Dirty = true;
+            var offsets = new UnsafeList<Vector3I>(6);
+            {
+                GetBorderingChunkOffsets(x, y, z, ref offsets);
+                for (var i = 0; i < offsets.Count; i++)
+                {
+                    if (World.GetChunk(offsets[i], out var pChunk))
+                        pChunk->_mesh.Dirty = true;
+                }
+            }
+            offsets.Release();
         }
     }
-
-    private void RefreshNeighbors() { }
 
     public int GetHighest(BlockChunkPosition position)
     {
@@ -185,19 +181,19 @@ public sealed partial class Chunk
     public void PrepareRender(GL gl)
     {
         if (!Empty)
-            Mesh.PrepareRender(gl);
+            _mesh.PrepareRender(gl, ref this);
     }
 
     public void RenderTransparent(GL gl)
     {
         if (!Empty)
-            Mesh.RederTransparent(gl);
+            _mesh.RederTransparent(gl, ref this);
     }
 
     public void RenderSolid(GL gl)
     {
         if (!Empty)
-            Mesh.RenderSolid(gl);
+            _mesh.RenderSolid(gl, ref this);
     }
 
     public void Update()
@@ -206,8 +202,8 @@ public sealed partial class Chunk
         var withinDistance = Vector3I.Distance(Offset, player.ChunkOffset) < 4;
         var blockchanged = Offset == player.ChunkOffset && player.BlockPositionChanged;
         var chunkChanged = player.ChunkOffsetChanged && withinDistance;
-        Mesh.DepthSort = blockchanged || chunkChanged;
-        Mesh.SetPersist(withinDistance);
+        _mesh.DepthSort = blockchanged || chunkChanged;
+        _mesh.SetPersist(withinDistance);
     }
 
     public void Tick() { }
@@ -222,26 +218,26 @@ public sealed partial class Chunk
         //     chunk.Mesh.Dirty = true;
     }
 
-    public List<Chunk> GetAllBorderingChunks()
-    {
-        var offsets = new[]
-        {
-            Vector3I.Add(Offset, -Vector3I.UnitX),
-            Vector3I.Add(Offset, -Vector3I.UnitY),
-            Vector3I.Add(Offset, -Vector3I.UnitZ),
-            Vector3I.Add(Offset, Vector3I.UnitX),
-            Vector3I.Add(Offset, Vector3I.UnitY),
-            Vector3I.Add(Offset, Vector3I.UnitZ),
-        };
-        var chunks = new List<Chunk>(offsets.Length);
-        foreach (var offset in offsets)
-        {
-            var chunk = World.GetChunk(offset);
-            if (chunk is not null)
-                chunks.Add(chunk);
-        }
-        return chunks;
-    }
+    // public List<Chunk> GetAllBorderingChunks()
+    // {
+    //     var offsets = new[]
+    //     {
+    //         Vector3I.Add(Offset, -Vector3I.UnitX),
+    //         Vector3I.Add(Offset, -Vector3I.UnitY),
+    //         Vector3I.Add(Offset, -Vector3I.UnitZ),
+    //         Vector3I.Add(Offset, Vector3I.UnitX),
+    //         Vector3I.Add(Offset, Vector3I.UnitY),
+    //         Vector3I.Add(Offset, Vector3I.UnitZ),
+    //     };
+    //     var chunks = new List<Chunk>(offsets.Length);
+    //     foreach (var offset in offsets)
+    //     {
+    //         var chunk = World.GetChunk(offset);
+    //         if (chunk is not null)
+    //             chunks.Add(chunk);
+    //     }
+    //     return chunks;
+    // }
 
     private void RecaculateHeightmap()
     {
