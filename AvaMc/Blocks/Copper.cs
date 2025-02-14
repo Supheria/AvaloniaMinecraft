@@ -5,7 +5,12 @@ namespace AvaMc.Blocks;
 
 public sealed class Copper : BlockGen
 {
-    public override Block Get()
+    public override Block GetBlock()
+    {
+        return Get();
+    }
+
+    public static Block Get()
     {
         return new()
         {

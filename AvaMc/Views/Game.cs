@@ -19,6 +19,7 @@ public sealed class Game
         GlobalState.World = new(gl);
         // TODO: not good here
         GlobalState.Renderer.PerspectiveCamera.Position = new(0, 80, 0);
+        // GlobalState.Renderer.PerspectiveCamera.Position = new(369, 82, 242);
     }
 
     public void Delete(GL gl)
@@ -54,18 +55,18 @@ public sealed class Game
             GlobalState.World.Ticks += 30;
         if (GlobalState.Game.Keyboard[Key.P].PressedTick)
             GlobalState.World.Ticks += Sky.CycleTicks / 3;
-        // if (State.Game.Keyboard[Key.C].PressedTick)
-        // {
-        //     for (var x = 0; x < 32; x++)
-        //     {
-        //         for (var y = 64; y < 80; y++)
-        //         {
-        //             State.World.SetBlockData(new(x, y, 4), new() { Id = BlockId.Glass });
-        //             State.World.SetBlockData(new(x, y, 8), new() { Id = BlockId.Lava });
-        //         }
-        //         State.World.SetBlockData(new(40, 80, 4), new() { Id = BlockId.Rose });
-        //     }
-        // }
+        if (GlobalState.Game.Keyboard[Key.C].PressedTick)
+        {
+            for (var x = 0; x < 32; x++)
+            {
+                for (var y = 64; y < 80; y++)
+                {
+                    GlobalState.World.SetBlockId(new(x, y, 4), BlockId.Glass);
+                    GlobalState.World.SetBlockId(new(x, y, 8), BlockId.Dirt );
+                }
+                GlobalState.World.SetBlockId(new(40, 80, 4), BlockId.Rose);
+            }
+        }
     }
 
     public void Update(GL gl)

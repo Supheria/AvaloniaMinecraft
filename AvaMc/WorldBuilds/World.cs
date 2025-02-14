@@ -28,7 +28,7 @@ public sealed unsafe partial class World
     Vector3I ChunksOrigin { get; set; }
     Vector3I CenterChunkOffset { get; set; }
     public Threshold Loading { get; } = new(1);
-    public Threshold Meshing { get; } = new(8);
+    public Threshold Meshing { get; } = new(4);
 
     // TODO: use dictionary
     public Dictionary<BlockPosition, BlockId> UnloadedBlockIds { get; } = [];

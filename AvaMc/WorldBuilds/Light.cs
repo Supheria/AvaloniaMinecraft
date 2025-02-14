@@ -9,7 +9,7 @@ using AvaMc.Util;
 
 namespace AvaMc.WorldBuilds;
 
-public sealed class Light
+public sealed unsafe class Light
 {
     const int LightMax = 15;
 
@@ -35,7 +35,7 @@ public sealed class Light
     public static void Add(World world, BlockPosition position, TorchLight torchLight)
     {
         var id = world.GetBlockId(position);
-        if (!id.Block().Transparent)
+        if (!id.Block()->Transparent)
             return;
         for (var i = 0; i < TorchLight.ChannelCount; i++)
             AddChannel(world, position, torchLight[i], i, PropagateMode.Default);
@@ -73,7 +73,7 @@ public sealed class Light
             foreach (var direction in Direction.AllDirections)
             {
                 var block = world.GetBlockId(position).Block();
-                if (!block.Transparent)
+                if (!block->Transparent)
                     return;
                 var node = new LightChannelNode() { Position = position.ToNeighbor(direction) };
                 queue.Enqueue(node);
@@ -111,7 +111,7 @@ public sealed class Light
                 var nValue = nLight[channel];
                 var nBlock = nData.BlockId.Block();
                 if (
-                    (nValue != 0 || nBlock.Transparent)
+                    (nValue != 0 || nBlock->Transparent)
                     && ((sunlightDown && nValue < value) || nValue + 1 < value)
                 )
                 {
@@ -190,11 +190,11 @@ public sealed class Light
             }
         }
     }
-    
+
     public static void AddTorchLight(World world, BlockPosition position, TorchLight torchLight)
     {
         var block = world.GetBlockId(position).Block();
-        if (!block.Transparent)
+        if (!block->Transparent)
             return;
         for (var i = 0; i < 4; i++)
             AddChannel(world, position, torchLight[i], i, PropagateMode.Default);

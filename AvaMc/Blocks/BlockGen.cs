@@ -2,5 +2,5 @@ namespace AvaMc.Blocks;
 
 public abstract class BlockGen
 {
-    public abstract Block Get();
+    public abstract Block GetBlock();
 }

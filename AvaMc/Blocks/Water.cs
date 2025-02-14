@@ -8,7 +8,11 @@ namespace AvaMc.Blocks;
 
 public sealed unsafe class Water : BlockGen
 {
-    public override Block Get()
+    public override Block GetBlock()
+    {
+        return Get();
+    }
+    public static Block Get()
     {
         return new()
         {

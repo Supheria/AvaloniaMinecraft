@@ -55,9 +55,31 @@ public static class Program
         var zero = (S*)(pSs[0]);
         if (zero == null) { }
 
-        var iS = new UnsafeList<int>() { 2, 1, 5, 6 };
-        iS.AsSpan().Sort();
-
+        var iS = Utils.AllocT<int>(3);
+        iS[1] = 2;
+        iS[2] = 3;
+        // iS.AsSpan().Sort();
+        // var ps1 = iS.GetPointer(2);
+        var ps2 = iS + 1;
+        var ps3 = iS + 2;
+        var m1 = (IntPtr)ps3 - (IntPtr)ps2;
+        var z1 = sizeof(int);
+        if (z1 == m1)
+        {
+            
+        }
+        
+        var pss = Utils.AllocT<I2>(3);
+        pss[1] = new(2, 22);
+        pss[2] = new(3, 33);
+        var pss2 = pss + 1;
+        var pss3 = pss + 2;
+        var m2 = (IntPtr)pss3 - (IntPtr)pss2;
+        var z2 = sizeof(I2);
+        if (m2 == z2)
+        {
+            
+        }
         Console.ReadLine();
     }
 

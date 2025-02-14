@@ -8,7 +8,7 @@ using AvaMc.Util;
 
 namespace AvaMc.WorldBuilds;
 
-public sealed class WorldGenerator
+public sealed unsafe class WorldGenerator
 {
     const int WaterLevel = 64;
     private delegate BlockId Get(Chunk chunk, int x, int y, int z);
@@ -174,7 +174,7 @@ public sealed class WorldGenerator
                     for (var j = -1; j <= 1; j++)
                     {
                         var id = get(chunk, xx + i, h, zz + j);
-                        if (id is BlockId.Lava || !id.Block().Transparent)
+                        if (id is BlockId.Lava || !id.Block()->Transparent)
                             continue;
                         allow = false;
                         break;

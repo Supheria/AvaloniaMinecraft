@@ -44,8 +44,10 @@ public unsafe partial struct Chunk
         ChunkX = pos.X;
         ChunkY = pos.Y;
         ChunkZ = pos.Z;
+        
         _data = Utils.AllocT<BlockData>(ChunkVolume);
         Utils.ZeroMemoryT(_data, ChunkVolume);
+        
         _mesh = new(gl);
     }
 
@@ -117,21 +119,21 @@ public unsafe partial struct Chunk
         }
     }
 
-    private unsafe void OnModify(int x, int y, int z, BlockData prev, BlockData changed)
+    private void OnModify(int x, int y, int z, BlockData prev, BlockData changed)
     {
         _mesh.Dirty = true;
 
         if (prev.BlockId != changed.BlockId)
         {
             var wPos = CreatePosition(x, y, z).IntoWorld();
-            if (prev.BlockId.Block().CanEmitLight)
+            if (prev.BlockId.Block()->CanEmitLight)
                 Light.RemoveAllLight(World, wPos);
             var block = changed.BlockId.Block();
-            if (block.CanEmitLight)
-                Light.AddTorchLight(World, wPos, block.TorchLight);
+            if (block->CanEmitLight)
+                Light.AddTorchLight(World, wPos, block->TorchLight);
             if (!Generating)
             {
-                if (block.Transparent)
+                if (block->Transparent)
                 {
                     World.RecaculateHeightmap(wPos);
                     Light.UpdateAllLight(World, wPos);
@@ -186,12 +188,20 @@ public unsafe partial struct Chunk
 
     public void RenderTransparent(GL gl)
     {
+        if (Offset == new Vector3I(11, 1, 7))
+        {
+            
+        }
         if (!Empty)
             _mesh.RederTransparent(gl, ref this);
     }
 
     public void RenderSolid(GL gl)
     {
+        if (Offset == new Vector3I(11, 1, 7))
+        {
+            
+        }
         if (!Empty)
             _mesh.RenderSolid(gl, ref this);
     }
@@ -252,7 +262,7 @@ public unsafe partial struct Chunk
                 for (var y = ChunkSizeY - 1; y >= 0; y--)
                 {
                     var id = GetBlockId(x, y, z);
-                    if (!id.Block().Transparent)
+                    if (!id.Block()->Transparent)
                     {
                         var pos = CreatePosition(x, y, z).IntoWorld();
                         heightmap.SetHeight(pos);

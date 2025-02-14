@@ -61,4 +61,15 @@ public struct IboHandler
             null
         );
     }
+
+    public unsafe void DrawElements(GL gl, bool wireframe, int offset, uint count)
+    {
+        Bind(gl);
+        gl.DrawElements(
+            wireframe ? PrimitiveType.Lines : PrimitiveType.Triangles,
+            count,
+            DrawElementsType.UnsignedInt,
+            (void*)(offset * sizeof(uint))
+        );
+    }
 }

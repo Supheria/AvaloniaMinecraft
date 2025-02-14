@@ -6,7 +6,12 @@ namespace AvaMc.Blocks;
 
 public sealed class Rose : BlockGen
 {
-    public override Block Get()
+    public override Block GetBlock()
+    {
+        return Get();
+    }
+
+    public static Block Get()
     {
         return new()
         {

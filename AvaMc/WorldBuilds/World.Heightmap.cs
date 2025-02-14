@@ -48,7 +48,7 @@ partial class World
             heightmap.SetHeight(position);
     }
 
-    public void RecaculateHeightmap(BlockPosition position)
+    public unsafe void RecaculateHeightmap(BlockPosition position)
     {
         var offset = position.ToChunkOffset();
         if (!ChunkInBounds(offset))
@@ -59,7 +59,7 @@ partial class World
         {
             position.Y = y;
             var block = GetBlockId(position).Block();
-            if (block.Transparent)
+            if (block->Transparent)
                 continue;
             SetHeightmap(position);
             return;
