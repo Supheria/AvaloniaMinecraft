@@ -8,39 +8,54 @@ using AvaMc.Coordinates;
 using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
+using Hexa.NET.Utilities;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
 
-public sealed partial class Chunk
+public unsafe partial struct Chunk
 {
     public const int ChunkSizeX = 32;
     public const int ChunkSizeY = 32;
     public const int ChunkSizeZ = 32;
-    const int ChunkVolume = ChunkSizeX * ChunkSizeY * ChunkSizeZ;
+    public const int ChunkVolume = ChunkSizeX * ChunkSizeY * ChunkSizeZ;
     public static Vector2I ChunkSizeXz { get; } = new(ChunkSizeX, ChunkSizeZ);
     public static Vector3I ChunkSize { get; } = new(ChunkSizeX, ChunkSizeY, ChunkSizeZ);
-    public World World { get; set; }
+
+    public static World World => GlobalState.World;
+    public static Chunk Default => new();
     public Vector3I Offset { get; private set; }
-    Vector3I ChunckPosition { get; set; }
-    BlockData[] Data { get; } = new BlockData[ChunkVolume];
-    ChunkMesh Mesh { get; }
+    int ChunkX { get; }
+    int ChunkY { get; }
+    int ChunkZ { get; }
+    BlockData* _data;
+    ChunkMesh _mesh;
     int NoneAirCount { get; set; }
     bool Empty => NoneAirCount is 0;
-    public bool Generating { get; set; } = true;
+    public bool Generating { get; set; }
 
-    public Chunk(GL gl, World world, Vector3I offset)
+    // public bool Generated { get; set; }
+
+    public unsafe Chunk(GL gl, Vector3I offset)
     {
-        World = world;
+        // World = world;
         Offset = offset;
-        ChunckPosition = Vector3I.Multiply(offset, ChunkSize);
-        Mesh = new(gl, this);
+        var pos = Vector3I.Multiply(offset, ChunkSize);
+        ChunkX = pos.X;
+        ChunkY = pos.Y;
+        ChunkZ = pos.Z;
+        
+        _data = Utils.AllocT<BlockData>(ChunkVolume);
+        Utils.ZeroMemoryT(_data, ChunkVolume);
+        
+        _mesh = new(gl);
     }
 
     public void Delete(GL gl)
     {
         // Data = [];
-        Mesh.Delete(gl);
+        Utils.Free(_data);
+        _mesh.Delete(gl);
     }
 
     public long GetOffsetHashCode()
@@ -54,94 +69,71 @@ public sealed partial class Chunk
         return h;
     }
 
-    private BlockChunkPosition CreatePosition(Vector3I position)
+    private static int PositionToIndex(int x, int y, int z)
     {
-        return new(position, ChunckPosition);
+        var index = x * ChunkSizeX * ChunkSizeZ + z * ChunkSizeZ + y;
+        return index;
     }
 
     public BlockChunkPosition CreatePosition(int x, int y, int z)
     {
-        return CreatePosition(new Vector3I(x, y, z));
-    }
-
-    public BlockChunkPosition CreatePosition(BlockPosition position)
-    {
-        return CreatePosition(position.IntoChunk());
+        return new(x, y, z, ChunkX, ChunkY, ChunkZ);
     }
 
     public Matrix4x4 CreateModel()
     {
-        return Matrix4x4.CreateTranslation(ChunckPosition.ToNumerics());
+        return Matrix4x4.CreateTranslation(new(ChunkX, ChunkY, ChunkZ));
     }
 
-    public Vector3I[] GetBorderingChunkOffsets(Vector3I position)
+    private void GetBorderingChunkOffsets(int x, int y, int z, ref UnsafeList<Vector3I> offsets)
     {
-        var offsets = new List<Vector3I>(6);
-        if (position.X is 0)
+        if (x is 0)
         {
             var offset = Vector3I.Add(Offset, -Vector3I.UnitX);
             offsets.Add(offset);
         }
-        if (position.Y is 0)
+        if (y is 0)
         {
             var offset = Vector3I.Add(Offset, -Vector3I.UnitY);
             offsets.Add(offset);
         }
-        if (position.Z is 0)
+        if (z is 0)
         {
             var offset = Vector3I.Add(Offset, -Vector3I.UnitZ);
             offsets.Add(offset);
         }
-        if (position.X == ChunkSizeX - 1)
+        if (x == ChunkSizeX - 1)
         {
             var offset = Vector3I.Add(Offset, Vector3I.UnitX);
             offsets.Add(offset);
         }
-        if (position.Y == ChunkSizeY - 1)
+        if (y == ChunkSizeY - 1)
         {
             var offset = Vector3I.Add(Offset, Vector3I.UnitY);
             offsets.Add(offset);
         }
-        if (position.Z == ChunkSizeZ - 1)
+        if (z == ChunkSizeZ - 1)
         {
             var offset = Vector3I.Add(Offset, Vector3I.UnitZ);
             offsets.Add(offset);
         }
-        return offsets.ToArray();
     }
 
-    private List<Chunk> GetBorderingChunks(Vector3I position)
+    private void OnModify(int x, int y, int z, BlockData prev, BlockData changed)
     {
-        var offsets = GetBorderingChunkOffsets(position);
-        var chunks = new List<Chunk>(offsets.Length);
-        foreach (var offset in offsets)
-        {
-            var chunk = World.GetChunk(offset);
-            if (chunk is not null)
-                chunks.Add(chunk);
-        }
-        return chunks;
-    }
-
-    private void OnModify(Vector3I position, BlockData prev, BlockData changed)
-    {
-        if (!Generating)
-            Mesh.Dirty = true;
-        else
-            Mesh.Dirty = false;
+        _mesh.Dirty = true;
 
         if (prev.BlockId != changed.BlockId)
         {
-            var wPos = CreatePosition(position).IntoWorld();
-            if (prev.BlockId.Block().CanEmitLight)
+            var wPos = CreatePosition(x, y, z).IntoWorld();
+            if (prev.BlockId.Block()->CanEmitLight)
                 Light.RemoveAllLight(World, wPos);
             var block = changed.BlockId.Block();
-            var torchLight = block.GetTorchLight();
-            if (block.CanEmitLight)
-                Light.AddTorchLight(World, wPos, torchLight);
+            if (block->CanEmitLight)
+                Light.AddTorchLight(World, wPos, block->TorchLight);
             if (!Generating)
             {
-                if (block.Transparent)
+                if (block->Transparent)
                 {
                     World.RecaculateHeightmap(wPos);
                     Light.UpdateAllLight(World, wPos);
@@ -155,17 +147,20 @@ public sealed partial class Chunk
             NoneAirCount += changed.BlockId is BlockId.Air ? -1 : 1;
         }
 
-        if (Generating)
-            return;
         if (prev.BlockId != changed.BlockId || prev.AllLight != changed.AllLight)
         {
-            var neighbors = GetBorderingChunks(position);
-            foreach (var chunk in neighbors)
-                chunk.Mesh.Dirty = true;
+            var offsets = new UnsafeList<Vector3I>(6);
+            {
+                GetBorderingChunkOffsets(x, y, z, ref offsets);
+                for (var i = 0; i < offsets.Count; i++)
+                {
+                    if (World.GetChunk(offsets[i], out var pChunk))
+                        pChunk->_mesh.Dirty = true;
+                }
+            }
+            offsets.Release();
         }
     }
-
-    private void RefreshNeighbors() { }
 
     public int GetHighest(BlockChunkPosition position)
     {
@@ -188,19 +183,27 @@ public sealed partial class Chunk
     public void PrepareRender(GL gl)
     {
         if (!Empty)
-            Mesh.PrepareRender(gl);
+            _mesh.PrepareRender(gl, ref this);
     }
 
     public void RenderTransparent(GL gl)
     {
+        if (Offset == new Vector3I(11, 1, 7))
+        {
+            
+        }
         if (!Empty)
-            Mesh.RederTransparent(gl);
+            _mesh.RederTransparent(gl, ref this);
     }
 
     public void RenderSolid(GL gl)
     {
+        if (Offset == new Vector3I(11, 1, 7))
+        {
+            
+        }
         if (!Empty)
-            Mesh.RenderSolid(gl);
+            _mesh.RenderSolid(gl, ref this);
     }
 
     public void Update()
@@ -209,8 +212,8 @@ public sealed partial class Chunk
         var withinDistance = Vector3I.Distance(Offset, player.ChunkOffset) < 4;
         var blockchanged = Offset == player.ChunkOffset && player.BlockPositionChanged;
         var chunkChanged = player.ChunkOffsetChanged && withinDistance;
-        Mesh.DepthSort = blockchanged || chunkChanged;
-        Mesh.SetPersist(withinDistance);
+        _mesh.DepthSort = blockchanged || chunkChanged;
+        _mesh.SetPersist(withinDistance);
     }
 
     public void Tick() { }
@@ -218,33 +221,33 @@ public sealed partial class Chunk
     // MUST be run once a chunk has completed generating
     public void AfterGenerate()
     {
-        // RecaculateHeightmap();
-        // Light.ApplyAllLight(this);
-        Mesh.Dirty = true;
-        foreach (var chunk in GetAllBorderingChunks())
-            chunk.Mesh.Dirty = true;
+        RecaculateHeightmap();
+        Light.ApplyAllLight(this);
+        // Mesh.Dirty = true;
+        // foreach (var chunk in GetAllBorderingChunks())
+        //     chunk.Mesh.Dirty = true;
     }
 
-    public List<Chunk> GetAllBorderingChunks()
-    {
-        var offsets = new[]
-        {
-            Vector3I.Add(Offset, -Vector3I.UnitX),
-            Vector3I.Add(Offset, -Vector3I.UnitY),
-            Vector3I.Add(Offset, -Vector3I.UnitZ),
-            Vector3I.Add(Offset, Vector3I.UnitX),
-            Vector3I.Add(Offset, Vector3I.UnitY),
-            Vector3I.Add(Offset, Vector3I.UnitZ),
-        };
-        var chunks = new List<Chunk>(offsets.Length);
-        foreach (var offset in offsets)
-        {
-            var chunk = World.GetChunk(offset);
-            if (chunk is not null)
-                chunks.Add(chunk);
-        }
-        return chunks;
-    }
+    // public List<Chunk> GetAllBorderingChunks()
+    // {
+    //     var offsets = new[]
+    //     {
+    //         Vector3I.Add(Offset, -Vector3I.UnitX),
+    //         Vector3I.Add(Offset, -Vector3I.UnitY),
+    //         Vector3I.Add(Offset, -Vector3I.UnitZ),
+    //         Vector3I.Add(Offset, Vector3I.UnitX),
+    //         Vector3I.Add(Offset, Vector3I.UnitY),
+    //         Vector3I.Add(Offset, Vector3I.UnitZ),
+    //     };
+    //     var chunks = new List<Chunk>(offsets.Length);
+    //     foreach (var offset in offsets)
+    //     {
+    //         var chunk = World.GetChunk(offset);
+    //         if (chunk is not null)
+    //             chunks.Add(chunk);
+    //     }
+    //     return chunks;
+    // }
 
     private void RecaculateHeightmap()
     {
@@ -254,12 +257,12 @@ public sealed partial class Chunk
             for (var z = 0; z < ChunkSizeZ; z++)
             {
                 var h = heightmap.GetHeight(x, z);
-                if (h > ChunckPosition.Y + ChunkSizeY - 1)
+                if (h > ChunkY + ChunkSizeY - 1)
                     continue;
                 for (var y = ChunkSizeY - 1; y >= 0; y--)
                 {
-                    var id = GetBlockId(new Vector3I(x, y, z));
-                    if (!id.Block().Transparent)
+                    var id = GetBlockId(x, y, z);
+                    if (!id.Block()->Transparent)
                     {
                         var pos = CreatePosition(x, y, z).IntoWorld();
                         heightmap.SetHeight(pos);

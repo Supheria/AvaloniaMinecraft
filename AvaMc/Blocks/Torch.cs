@@ -1,23 +1,34 @@
+using System.Numerics;
 using AvaMc.Gfx;
 using AvaMc.Util;
 using AvaMc.WorldBuilds;
 
 namespace AvaMc.Blocks;
 
-public sealed class Torch : Block
+public sealed class Torch : BlockGen
 {
-    public override BlockId Id { get; } = BlockId.Torch;
-    public override bool Transparent { get; } = true;
-    public override bool CanEmitLight { get; } = true;
-    public override BlockMeshType MeshType { get; } = BlockMeshType.Torch;
-
-    public override Vector2I GetTextureLocation(Direction direction)
+    public override Block GetBlock()
     {
-        return new(0, 2);
+        return Get();
     }
-
-    public override TorchLight GetTorchLight()
+    public static Block Get()
     {
-        return new(15, 15, 15, 15);
+        return new()
+        {
+            Id = BlockId.Torch,
+            Transparent = true,
+            CanEmitLight = true,
+            MeshType = BlockMeshType.Torch,
+            TorchLight = new(15, 15, 15, 15),
+            TextureLocation = new()
+            {
+                [Direction.North] = new(0, 2),
+                [Direction.South] = new(0, 2),
+                [Direction.East] = new(0, 2),
+                [Direction.West] = new(0, 2),
+                [Direction.Up] = new(0, 2),
+                [Direction.Down] = new(0, 2),
+            },
+        };
     }
 }

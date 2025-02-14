@@ -57,9 +57,9 @@ public sealed class Renderer
     public BlockAtlas BlockAtlas { get; }
     public Vector4 ClearColor { get; set; }
 
-    VaoHandler Vao { get; }
-    VboHandler Vbo { get; }
-    IboHandler Ibo { get; }
+    readonly VaoHandler _vao;
+    VboHandler _vbo;
+    IboHandler _ibo;
     public bool Wireframe { get; set; }
 
     public Renderer(GL gl)
@@ -67,9 +67,9 @@ public sealed class Renderer
         Shaders = InitializeShaders(gl);
         BlockAtlas = BlockAtlas.Create(gl, "blocks", new(16, 16));
         Textures = InitializeTextures(gl);
-        Vao = VaoHandler.Create(gl);
-        Vbo = VboHandler.Create(gl, true);
-        Ibo = IboHandler.Create(gl, true);
+        _vao = VaoHandler.Create(gl);
+        _vbo = VboHandler.Create(gl, true);
+        _ibo = IboHandler.Create(gl, true);
         PerspectiveCamera.Initialize(75, true);
         OrthographicCamera.Initialize(Vector2.Zero, GlobalState.Game.WindowSize.ToVector2());
     }
@@ -108,9 +108,9 @@ public sealed class Renderer
         foreach (var texture in Textures.Values)
             texture.Delete(gl);
         BlockAtlas.Delete(gl);
-        Vao.Delete(gl);
-        Vbo.Delete(gl);
-        Ibo.Delete(gl);
+        _vao.Delete(gl);
+        _vbo.Delete(gl);
+        _ibo.Delete(gl);
     }
 
     public void Update()
@@ -229,19 +229,19 @@ public sealed class Renderer
             color.X, color.Y, color.Z, color.W
         ];
         uint[] indices = [3, 0, 1, 3, 1, 2];
-        Vbo.Buffer(gl, data);
-        Ibo.Buffer(gl, indices);
+        _vbo.Buffer<float>(gl, data);
+        _ibo.Buffer(gl, indices);
 
         // TODO: shit here, will use Vertex
         const uint stride = 9 * sizeof(float);
-        Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, stride, 0);
-        Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, stride, 3 * sizeof(float));
-        Vao.Link(gl, Vbo, 2, 4, VertexAttribPointerType.Float, stride, 5 * sizeof(float));
+        _vao.Link(gl, _vbo, 0, 3, VertexAttribPointerType.Float, stride, 0);
+        _vao.Link(gl, _vbo, 1, 2, VertexAttribPointerType.Float, stride, 3 * sizeof(float));
+        _vao.Link(gl, _vbo, 2, 4, VertexAttribPointerType.Float, stride, 5 * sizeof(float));
 
         // gl.DrawArrays(PrimitiveType.Triangles, 0, 4);
-        Ibo.Bind(gl);
+        _ibo.Bind(gl);
         // gl.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, null);
-        Ibo.DrawElements(gl, false);
+        _ibo.DrawElements(gl, false);
     }
 
     // public void RenderQuadColor(GL gl, Vector2 size, Vector4 color, Matrix4 model)

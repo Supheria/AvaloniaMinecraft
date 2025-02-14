@@ -8,11 +8,12 @@ using AvaMc.Coordinates;
 using AvaMc.Extensions;
 using AvaMc.Gfx;
 using AvaMc.Util;
+using Hexa.NET.Utilities;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.WorldBuilds;
 
-public sealed class ChunkMesh
+public unsafe struct ChunkMesh
 {
     public enum Part : byte
     {
@@ -20,11 +21,16 @@ public sealed class ChunkMesh
         Transparent,
     }
 
-    List<BlockVertex> _vertices = [];
-    List<Face> _transparentFaces = [];
-    List<Face> _solidFaces = [];
-    uint _vertexCount = 0;
-    Chunk Chunk { get; set; }
+    const int VerticesVolume = Chunk.ChunkVolume / 2 * 6 * 6;
+    const int IndicesVolume = VerticesVolume;
+    const int FacesVolume = Chunk.ChunkVolume / 2 * 6;
+
+    public UnsafeList<BlockVertex> Vertices;
+
+    public UnsafeList<uint> Indices;
+    public UnsafeList<Face> Faces;
+    public uint VertexCount = 0;
+
     bool HasTransparent { get; set; }
     bool HasSolid { get; set; }
 
@@ -34,100 +40,146 @@ public sealed class ChunkMesh
     public bool DepthSort { get; set; } = true;
     public bool Destroy { get; set; } = true;
     public bool Persist { get; set; } = true;
+    readonly VaoHandler _vao;
+    VboHandler* PVbo { get; }
+    IboHandler _ibo;
+    int SolidOffset { get; set; }
+    uint SolidCount { get; set; }
+    int TransparentOffset { get; set; }
+    uint TransparentCount { get; set; }
 
-    // List<Face> Faces { get; } = [];
-    // int IndexCount { get; set; }
-
-    // // if true, this mesh needs to be finalized (uploaded)
-    // public bool Finalize { get; set; } = true;
-    //
-    // // if true, this mesh will be rebuilt next time it is rendered
-    // public bool Dirty { get; set; } = true;
-    //
-    // // if true, this mesh will be depth sorted next time it is rendered
-    // public bool DepthSort { get; set; } = true;
-    //
-    // // if true, this mesh will be destroyed when its data is next accessible
-    // public bool Destroy { get; set; } = true;
-    //
-    // // if true, index and face buffers are kept in memory after building
-    // public bool Persist { get; set; } = true;
-    VaoHandler Vao { get; }
-    VboHandler Vbo { get; }
-    IboHandler IboTransparent { get; }
-    IboHandler IboSolid { get; }
-
-    public ChunkMesh(GL gl, Chunk chunk)
+    public ChunkMesh(GL gl)
     {
-        Chunk = chunk;
-        Vao = VaoHandler.Create(gl);
-        Vbo = VboHandler.Create(gl, false);
-        IboTransparent = IboHandler.Create(gl, false);
-        IboSolid = IboHandler.Create(gl, false);
+        Vertices = new(VerticesVolume);
+        Indices = new(IndicesVolume);
+        Faces = new(FacesVolume);
+
+        _vao = VaoHandler.Create(gl);
+        PVbo = VboHandler.CreatePointer(gl, false);
+        _ibo = IboHandler.Create(gl, false);
     }
 
     public void Delete(GL gl)
     {
-        Vao.Delete(gl);
-        Vbo.Delete(gl);
-        IboTransparent.Delete(gl);
-        IboSolid.Delete(gl);
+        Vertices.Release();
+        Indices.Release();
+        Faces.Release();
+
+        _vao.Delete(gl);
+        VboHandler.Release(gl, PVbo);
+        _ibo.Delete(gl);
     }
 
-    public void MeshPrepare()
+    private void MeshPrepare()
     {
-        _vertices = [];
-        _transparentFaces = [];
-        _solidFaces = [];
-        _vertexCount = 0;
+        Vertices.Release();
+        Indices.Release();
+        Faces.Release();
+        Vertices = new(VerticesVolume);
+        Indices = new(IndicesVolume);
+        Faces = new(FacesVolume);
+        VertexCount = 0;
     }
 
-    // MUST be called immediately after meshing (before rendering)
     private void FinalizeData(GL gl)
     {
-        if (_vertices.Count is 0)
+        if (Vertices.Count is 0)
             // throw new ArgumentNullException(nameof(Vertices));
             return;
-        Vbo.Buffer(gl, _vertices);
-        _vertices = [];
+        PVbo->Buffer<BlockVertex>(gl, Vertices.AsSpan());
+        Vertices.Release();
     }
 
-    // MUST be called immediately after meshing AND sorting (before rendering)
     private void FinalizeIndices(GL gl)
     {
-        HasTransparent = _transparentFaces.Count is not 0;
-        if (HasTransparent)
-        {
-            var indices = new List<uint>();
-            _transparentFaces.ForEach(f => indices.AddRange(f.Indices));
-            IboTransparent.Buffer(gl, indices);
-        }
-        HasSolid = _solidFaces.Count is not 0;
-        if (HasSolid)
-        {
-            var indices = new List<uint>();
-            _solidFaces.ForEach(f => indices.AddRange(f.Indices));
-            IboSolid.Buffer(gl, indices);
-        }
+        if (Indices.Count is 0)
+            return;
+        _ibo.Buffer(gl, Indices.AsSpan());
         if (Persist)
             return;
-        _transparentFaces = [];
-        _solidFaces = [];
+        Indices.Release();
+        Faces.Release();
     }
 
-    private void SortTransparentFaces()
+    private byte* NewBitmap(int size)
     {
-        if (_transparentFaces.Count is 0)
-            return;
-        // TODO: too complex
-        var center = Chunk.World.Player.Camera.Position;
-        foreach (var face in _transparentFaces)
-            face.SetDistance(center);
-        var comparer = new FaceDepthComparer(DepthOrder.Farther);
-        _transparentFaces.Sort(comparer);
+        var len = size / 8 + 1;
+        var p = Utils.AllocT<byte>(len);
+        Utils.ZeroMemoryT(p, len);
+        return p;
     }
 
-    public void Mesh(GL gl)
+    private static void SetBitmap(byte* bitmap, int n)
+    {
+        bitmap[n / 8] |= (byte)(1 << (n % 8));
+    }
+
+    private bool BitmapSetted(byte* bitmap, int n)
+    {
+        return (bitmap[n / 8] & (1 << (n % 8))) != 0;
+    }
+
+    private void SortTransparentFaces(bool full)
+    {
+        if (Indices.Count is 0)
+            return;
+        var center = Chunk.World.Player.Camera.Position;
+        var comparer = new FaceDepthComparer(center, DepthOrder.Farther);
+        Faces.AsSpan().Sort(comparer);
+
+        if (!full)
+        {
+            if (Faces.Count is 0)
+                return;
+            var oldIndices = Utils.AllocT<uint>(Indices.Count);
+            {
+                Utils.MemcpyT(Indices.Data, oldIndices, Indices.Count);
+                for (var i = 0; i < Faces.Count; i++)
+                {
+                    var pFace = Faces.GetPointer(i);
+                    if (pFace->IndicesBase != i * 6)
+                        Utils.MemcpyT(&oldIndices[pFace->IndicesBase], &Indices.Data[i * 6], 6);
+                    pFace->IndicesBase = i * 6;
+                }
+            }
+            Utils.Free(oldIndices);
+            return;
+        }
+
+        var moved = NewBitmap(Indices.Count / 6);
+        {
+            var oldIndices = Utils.AllocT<uint>(Indices.Count);
+            {
+                Utils.MemcpyT(Indices.Data, oldIndices, Indices.Count);
+                for (var i = 0; i < Faces.Count; i++)
+                {
+                    var pFace = Faces.GetPointer(i);
+                    if (pFace->IndicesBase != i * 6)
+                        Utils.MemcpyT(&oldIndices[pFace->IndicesBase], &Indices.Data[i * 6], 6);
+
+                    SetBitmap(moved, pFace->IndicesBase / 6);
+                    pFace->IndicesBase = i * 6;
+                }
+
+                TransparentOffset = 0;
+                SolidOffset = Faces.Count * 6;
+                TransparentCount = (uint)SolidOffset;
+                var solidCount = 0;
+                for (var i = 0; i < Indices.Count / 6; i++)
+                {
+                    if (BitmapSetted(moved, i))
+                        continue;
+                    Utils.MemcpyT(&oldIndices[i * 6], &Indices.Data[SolidOffset + solidCount], 6);
+                    solidCount += 6;
+                }
+                SolidCount = (uint)solidCount;
+            }
+            Utils.Free(oldIndices);
+        }
+        Utils.Free(moved);
+    }
+
+    private void Mesh(GL gl, ref Chunk chunk)
     {
         MeshPrepare();
         for (var x = 0; x < Chunk.ChunkSizeX; x++)
@@ -136,147 +188,126 @@ public sealed class ChunkMesh
             {
                 for (var y = 0; y < Chunk.ChunkSizeY; y++)
                 {
-                    var position = Chunk.CreatePosition(x, y, z);
-                    var data = Chunk.GetBlockData(position);
+                    var data = chunk.GetBlockData(x, y, z);
                     if (data.BlockId is BlockId.Air)
                         continue;
                     var block = data.BlockId.Block();
-                    switch (block.MeshType)
+                    switch (block->MeshType)
                     {
                         case BlockMeshType.Sprite:
                         case BlockMeshType.Torch:
                         {
-                            MeshSprite(position, block, data.AllLight);
+                            MeshSprite(x, y, z, block, data.AllLight);
                             break;
                         }
                         case BlockMeshType.Default:
                         case BlockMeshType.Liquid:
-                            MeshDefault(position, block);
+                            MeshDefault(ref chunk, x, y, z, block);
                             break;
                     }
                 }
             }
         }
+        if (chunk.Offset == new Vector3I(11, 2, 7)) { }
 
-        SortTransparentFaces();
+        SortTransparentFaces(true);
         FinalizeData(gl);
         FinalizeIndices(gl);
-
-        // GC.Collect();
     }
 
-    private void MeshSprite(BlockChunkPosition position, Block block, AllLight allLight)
+    private void MeshSprite(int x, int y, int z, Block* block, AllLight allLight)
     {
         GlobalState.Renderer.BlockAtlas.Atlas.GetUv(
-            block.GetTextureLocation(Direction.North),
+            block->TextureLocation[Direction.North],
             out var uvMin,
             out var uvMax
         );
-        BlockMesh.MeshSprite(
-            ref _vertices,
-            ref _transparentFaces,
-            ref _vertexCount,
-            position.ToNumerics(),
-            allLight,
-            uvMin,
-            uvMax
-        );
+        BlockMesh.MeshSprite(ref this, new(x, y, z), allLight, uvMin, uvMax);
     }
 
-    private void MeshDefault(BlockChunkPosition position, Block block)
+    private void MeshDefault(ref Chunk chunk, int x, int y, int z, Block* block)
     {
         foreach (var direction in Direction.AllDirections)
         {
-            var nPos = position.ToNeighbor(direction);
-            continue;
+            var nPos = chunk.CreatePosition(x, y, z).ToNeighbor(direction);
             var nData = Chunk.World.GetBlockData(nPos);
             var nBlock = nData.BlockId.Block();
             if (
-                (nBlock.Transparent && !block.Transparent)
-                || (block.Transparent && block.Id != nBlock.Id)
+                (nBlock->Transparent && !block->Transparent)
+                || (block->Transparent && block->Id != nBlock->Id)
             )
             {
                 GlobalState.Renderer.BlockAtlas.Atlas.GetUv(
-                    block.GetTextureLocation(direction),
+                    block->TextureLocation[direction],
                     out var uvMin,
                     out var uvMax
                 );
                 var allLight = nData.AllLight;
-                if (block.Transparent)
-                    BlockMesh.MeshFace(
-                        ref _vertices,
-                        ref _transparentFaces,
-                        ref _vertexCount,
-                        position.ToNumerics(),
-                        allLight,
-                        uvMin,
-                        uvMax,
-                        direction
-                    );
-                else
-                    BlockMesh.MeshFace(
-                        ref _vertices,
-                        ref _solidFaces,
-                        ref _vertexCount,
-                        position.ToNumerics(),
-                        allLight,
-                        uvMin,
-                        uvMax,
-                        direction
-                    );
+                BlockMesh.MeshFace(
+                    ref this,
+                    new(x, y, z),
+                    allLight,
+                    uvMin,
+                    uvMax,
+                    block->Transparent,
+                    direction
+                );
             }
         }
     }
 
-    public void PrepareRender(GL gl)
+    public void PrepareRender(GL gl, ref Chunk chunk)
     {
         if (!Chunk.World.Meshing.UnderThreshold())
             return;
         if (Dirty)
         {
-            Mesh(gl);
+            Mesh(gl, ref chunk);
             Dirty = false;
             DepthSort = false;
             Chunk.World.Meshing.AddOne();
         }
         else if (DepthSort)
         {
-            if (Persist && _transparentFaces.Count is not 0)
+            if (Persist && Indices.Count != 0 && Faces.Count != 0)
             {
-                SortTransparentFaces();
+                SortTransparentFaces(false);
                 FinalizeIndices(gl);
             }
             else
-                Mesh(gl);
+                Mesh(gl, ref chunk);
             DepthSort = false;
             Chunk.World.Meshing.AddOne();
         }
     }
 
-    public void RederTransparent(GL gl)
+    public void RederTransparent(GL gl, ref Chunk chunk)
     {
-        if (HasTransparent)
-            Render(gl, IboTransparent);
+        if (chunk.Offset == new Vector3I(11, 2, 7)) { }
+        if (TransparentCount != 0)
+            Render(gl, ref chunk, TransparentOffset, TransparentCount);
     }
 
-    public void RenderSolid(GL gl)
+    public void RenderSolid(GL gl, ref Chunk chunk)
     {
-        if (HasSolid)
-            Render(gl, IboSolid);
+        if (chunk.Offset == new Vector3I(11, 2, 7)) { }
+        if (SolidCount != 0)
+            Render(gl, ref chunk, SolidOffset, SolidCount);
     }
 
-    private void Render(GL gl, IboHandler ibo)
+    private void Render(GL gl, ref Chunk chunk, int offset, uint count)
     {
         // TODO: shit here
         var shader = GlobalState.Renderer.Shaders[Renderer.ShaderType.Chunk];
-        var model = Chunk.CreateModel();
+        var model = chunk.CreateModel();
         shader.UniformMatrix4(gl, "m", model);
 
-        Vao.Link(gl, Vbo, 0, 3, VertexAttribPointerType.Float, 0);
-        Vao.Link(gl, Vbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
-        Vao.Link(gl, Vbo, 2, 1, VertexAttribIType.UnsignedInt, sizeof(float) * 5);
+        _vao.Link(gl, PVbo, 0, 3, VertexAttribPointerType.Float, 0);
+        _vao.Link(gl, PVbo, 1, 2, VertexAttribPointerType.Float, sizeof(float) * 3);
+        _vao.Link(gl, PVbo, 2, 1, VertexAttribIType.UnsignedInt, sizeof(float) * 5);
 
-        ibo.DrawElements(gl, GlobalState.Renderer.Wireframe);
+        _ibo.DrawElements(gl, GlobalState.Renderer.Wireframe, offset, count);
+        // _ibo.DrawElements(gl, GlobalState.Renderer.Wireframe);
     }
 
     public void SetPersist(bool persist)
@@ -284,10 +315,9 @@ public sealed class ChunkMesh
         if (Persist == persist)
             return;
         Persist = persist;
-        if (!persist)
-        {
-            _transparentFaces = [];
-            _solidFaces = [];
-        }
+        if (persist)
+            return;
+        Indices.Release();
+        Faces.Release();
     }
 }

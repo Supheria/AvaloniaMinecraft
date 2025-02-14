@@ -2,26 +2,42 @@ using System.Numerics;
 using AvaMc.Gfx;
 using AvaMc.Util;
 using AvaMc.WorldBuilds;
+using Hexa.NET.Utilities;
 
 namespace AvaMc.Blocks;
 
-public sealed class Water : Block
+public sealed unsafe class Water : BlockGen
 {
-    public override BlockId Id { get; } = BlockId.Water;
-    public override bool Transparent { get; } = true;
-    public override bool Animated { get; } = true;
-    public override bool Liquid { get; } = true;
-    public override BlockMeshType MeshType { get; } = BlockMeshType.Liquid;
-
-    public override Vector2I GetTextureLocation(Direction direction)
+    public override Block GetBlock()
     {
-        return new(0, 15);
+        return Get();
+    }
+    public static Block Get()
+    {
+        return new()
+        {
+            Id = BlockId.Water,
+            Transparent = true,
+            Animated = true,
+            Liquid = true,
+            MeshType = BlockMeshType.Liquid,
+            TextureLocation = new()
+            {
+                [Direction.North] = new(0, 15),
+                [Direction.South] = new(0, 15),
+                [Direction.East] = new(0, 15),
+                [Direction.West] = new(0, 15),
+                [Direction.Up] = new(0, 15),
+                [Direction.Down] = new(0, 15),
+            },
+            FrameOffsets = GetFrameOffsets(),
+        };
     }
 
-    public override Vector2I[] GetAnimationFrameOffsets()
+    private static Vector2I* GetFrameOffsets()
     {
-        var offsets = new Vector2I[BlockAtlas.FrameCount];
-        for (var i = 0; i < offsets.Length; i++)
+        var offsets = Utils.AllocT<Vector2I>(BlockAtlas.FrameCount);
+        for (var i = 0; i < BlockAtlas.FrameCount; i++)
         {
             offsets[i] = new(i, 15);
         }

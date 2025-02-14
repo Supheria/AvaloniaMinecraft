@@ -1,16 +1,32 @@
+using System.Numerics;
 using AvaMc.Util;
 using AvaMc.WorldBuilds;
 
 namespace AvaMc.Blocks;
 
-public sealed class Rose : Block
+public sealed class Rose : BlockGen
 {
-    public override BlockId Id { get; } = BlockId.Rose;
-    public override bool Transparent { get; } = true;
-    public override BlockMeshType MeshType { get; } = BlockMeshType.Sprite;
-
-    public override Vector2I GetTextureLocation(Direction direction)
+    public override Block GetBlock()
     {
-        return new(0, 3);
+        return Get();
+    }
+
+    public static Block Get()
+    {
+        return new()
+        {
+            Id = BlockId.Rose,
+            Transparent = true,
+            MeshType = BlockMeshType.Sprite,
+            TextureLocation = new()
+            {
+                [Direction.North] = new(0, 3),
+                [Direction.South] = new(0, 3),
+                [Direction.East] = new(0, 3),
+                [Direction.West] = new(0, 3),
+                [Direction.Up] = new(0, 3),
+                [Direction.Down] = new(0, 3),
+            },
+        };
     }
 }

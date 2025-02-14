@@ -5,23 +5,26 @@ using AvaMc.WorldBuilds;
 
 namespace AvaMc.Comparers;
 
-public sealed class FaceDepthComparer : Comparer<Face>
+public sealed class FaceDepthComparer : IComparer<Face>
 {
+    Vector3 Center { get; }
     DepthOrder Order { get; }
 
-    public FaceDepthComparer(DepthOrder order)
+    public FaceDepthComparer(Vector3 center, DepthOrder order)
     {
+        Center = center;
         Order = order;
     }
 
-    public override int Compare(Face f1, Face f2)
+    public int Compare(Face f1, Face f2)
     {
-        var sign = Math.Sign(f1.DistanceSquared - f2.DistanceSquared);
+        var d1 = Vector3.DistanceSquared(Center, f1.Position);
+        var d2 = Vector3.DistanceSquared(Center, f2.Position);
         return Order switch
         {
-            DepthOrder.Nearer => sign,
-            DepthOrder.Farther => -sign,
-            _ => throw new ArgumentOutOfRangeException()
+            DepthOrder.Nearer => Math.Sign(d1 - d2),
+            DepthOrder.Farther => Math.Sign(d2 - d1),
+            _ => throw new ArgumentOutOfRangeException(),
         };
     }
 }

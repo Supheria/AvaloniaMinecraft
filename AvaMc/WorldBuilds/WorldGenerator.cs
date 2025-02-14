@@ -8,7 +8,7 @@ using AvaMc.Util;
 
 namespace AvaMc.WorldBuilds;
 
-public sealed class WorldGenerator
+public sealed unsafe class WorldGenerator
 {
     const int WaterLevel = 64;
     private delegate BlockId Get(Chunk chunk, int x, int y, int z);
@@ -32,9 +32,9 @@ public sealed class WorldGenerator
         return div.Length();
     }
 
-    private int GetChunkRandomSeed(Chunk chunk)
+    private unsafe int GetChunkRandomSeed(Chunk* chunk)
     {
-        var code = chunk.GetOffsetHashCode();
+        var code = chunk->GetOffsetHashCode();
         return (int)(Seed + code);
     }
 
@@ -174,7 +174,7 @@ public sealed class WorldGenerator
                     for (var j = -1; j <= 1; j++)
                     {
                         var id = get(chunk, xx + i, h, zz + j);
-                        if (id is BlockId.Lava || !id.Block().Transparent)
+                        if (id is BlockId.Lava || !id.Block()->Transparent)
                             continue;
                         allow = false;
                         break;
@@ -189,7 +189,7 @@ public sealed class WorldGenerator
         }
     }
 
-    public void Generate(Chunk chunk)
+    public unsafe void Generate(Chunk* pChunk)
     {
         // return;
         // for (var x = 0; x < Chunk.ChunkSizeX; x++)
@@ -226,9 +226,9 @@ public sealed class WorldGenerator
         //
         // return;
 
-        var seed = GetChunkRandomSeed(chunk);
+        var seed = GetChunkRandomSeed(pChunk);
         var random = new Random(seed);
-        var heightmap = chunk.GetHeightmap();
+        var heightmap = pChunk->GetHeightmap();
         if (!heightmap.Generated)
         {
             heightmap.Generated = true;
@@ -253,7 +253,7 @@ public sealed class WorldGenerator
             {
                 for (var z = 0; z < Chunk.ChunkSizeZ; z++)
                 {
-                    var w = chunk.CreatePosition(x, 0, z).IntoWorld();
+                    var w = pChunk->CreatePosition(x, 0, z).IntoWorld();
                     var wx = w.X;
                     var wz = w.Z;
 
@@ -336,7 +336,7 @@ public sealed class WorldGenerator
 
                 for (var y = 0; y < Chunk.ChunkSizeY; y++)
                 {
-                    var pos = chunk.CreatePosition(x, y, z);
+                    var pos = pChunk->CreatePosition(x, y, z);
                     var w = pos.IntoWorld();
                     var wY = w.Y;
 
@@ -357,7 +357,7 @@ public sealed class WorldGenerator
                     else if (wY <= h - d)
                         id = BlockId.Stone;
 
-                    chunk.SetBlockId(pos, id);
+                    pChunk->SetBlockId(pos, id);
                 }
             }
         }
@@ -425,7 +425,7 @@ public sealed class WorldGenerator
             {
                 for (var z = 0; z < 16; z++)
                 {
-                    var p = chunk.CreatePosition(x, 0, z);
+                    var p = pChunk->CreatePosition(x, 0, z);
                     var w = p.IntoWorld();
                     var wx = w.X;
                     var wz = w.Z;
@@ -506,29 +506,29 @@ public sealed class WorldGenerator
                         else
                             id = BlockId.Stone;
 
-                        chunk.SetBlockId(x, y, z, id);
+                        pChunk->SetBlockId(x, y, z, id);
                     }
 
                     for (var y = h; y < WaterLevel; y++)
                     {
-                        chunk.SetBlockId(x, y, z, BlockId.Water);
+                        pChunk->SetBlockId(x, y, z, BlockId.Water);
                     }
 
-                    if (MathHelper.RandomChance(random, 0.02))
-                        Orevein(random, chunk, GetBlockData, SetBlockData, x, h, z, BlockId.Coal);
-                    if (MathHelper.RandomChance(random, 0.02))
-                        Orevein(random, chunk, GetBlockData, SetBlockData, x, h, z, BlockId.Copper);
-                    if (
-                        biome is not Biome.Ocean
-                        && h < WaterLevel + 3
-                        && t < 0.1f
-                        && MathHelper.RandomChance(random, 0.001)
-                    )
-                        LavaPool(random, chunk, GetBlockData, SetBlockData, x, h, z);
-                    if (biome is Biome.Plains && MathHelper.RandomChance(random, 0.005))
-                        Tree(random, chunk, GetBlockData, SetBlockData, x, h, z);
-                    if (biome is Biome.Plains && MathHelper.RandomChance(random, 0.0085))
-                        Flowers(random, chunk, GetBlockData, SetBlockData, x, h, z);
+                    // if (MathHelper.RandomChance(random, 0.02))
+                    //     Orevein(random, chunk, GetBlockData, SetBlockData, x, h, z, BlockId.Coal);
+                    // if (MathHelper.RandomChance(random, 0.02))
+                    //     Orevein(random, chunk, GetBlockData, SetBlockData, x, h, z, BlockId.Copper);
+                    // if (
+                    //     biome is not Biome.Ocean
+                    //     && h < WaterLevel + 3
+                    //     && t < 0.1f
+                    //     && MathHelper.RandomChance(random, 0.001)
+                    // )
+                    //     LavaPool(random, chunk, GetBlockData, SetBlockData, x, h, z);
+                    // if (biome is Biome.Plains && MathHelper.RandomChance(random, 0.005))
+                    //     Tree(random, chunk, GetBlockData, SetBlockData, x, h, z);
+                    // if (biome is Biome.Plains && MathHelper.RandomChance(random, 0.0085))
+                    //     Flowers(random, chunk, GetBlockData, SetBlockData, x, h, z);
                 }
             }
         }

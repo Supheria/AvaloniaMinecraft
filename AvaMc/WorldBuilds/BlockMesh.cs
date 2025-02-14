@@ -3,30 +3,26 @@ using System.Numerics;
 using AvaMc.Blocks;
 using AvaMc.Gfx;
 using AvaMc.Util;
+using Hexa.NET.Utilities;
 
 namespace AvaMc.WorldBuilds;
 
 public sealed partial class BlockMesh
 {
-    // Block Block { get; set; }
-    // Block Neighbor { get; set; }
-    // public BlockData Block { get; set; }
-    // public BlockData Neighbor { get; set; }
-    // public Vector2 UvMin { get; set; }
-    // public Vector2 UvMax { get; set; }
-    // public Vector3 Position { get; set; }
-    // public Direction Direction { get; set; } = Direction.Up;
-
     public static void MeshSprite(
-        ref List<BlockVertex> vertices,
-        ref List<Face> faces,
-        ref uint vertexCount,
+        ref ChunkMesh mesh,
         Vector3 position,
         AllLight allLight,
         Vector2 uvMin,
         Vector2 uvMax
     )
     {
+        for (var i = 0; i < 4; i++)
+        {
+            var face = new Face(mesh.Indices.Count + i * 6, position);
+            mesh.Faces.Add(face);
+        }
+
         for (var i = 0; i < 8; i++)
         {
             var index = i * 3;
@@ -39,32 +35,32 @@ public sealed partial class BlockMesh
 
             var light = allLight.MakeFinal(Direction.Up);
             var vertex = new BlockVertex(new(x, y, z), new(u, v), light);
-            vertices.Add(vertex);
+            mesh.Vertices.Add(vertex);
         }
 
-        for (var i = 0; i < 4; i++)
-        {
-            var indices = new uint[6];
-            for (var j = 0; j < 6; j++)
-                indices[j] = SpriteIndices[i][j] + vertexCount;
-            var face = new Face(indices, position);
-            faces.Add(face);
-        }
+        for (var i = 0; i < 24; i++)
+            mesh.Indices.Add(SpriteIndices[i] + mesh.VertexCount);
 
-        vertexCount += 8;
+        mesh.VertexCount += 8;
     }
 
     public static void MeshFace(
-        ref List<BlockVertex> vertices,
-        ref List<Face> faces,
-        ref uint vertexCount,
+        ref ChunkMesh mesh,
         Vector3 position,
         AllLight allLight,
         Vector2 uvMin,
         Vector2 uvMax,
+        bool transparent,
         Direction direction
     )
     {
+        if (transparent)
+        {
+            var pos = Vector3.Add(FaceCenters[direction], position);
+            var face = new Face(mesh.Indices.Count, pos);
+            mesh.Faces.Add(face);
+        }
+
         // TODO: only shorten if blocks other neighbors are not liquid
         var yScale = 1f;
         for (var i = 0; i < 4; i++)
@@ -79,16 +75,12 @@ public sealed partial class BlockMesh
 
             var light = allLight.MakeFinal(Direction.Up);
             var vertex = new BlockVertex(new(x, y, z), new(u, v), light);
-            vertices.Add(vertex);
+            mesh.Vertices.Add(vertex);
         }
 
-        var indices = new uint[6];
         for (var i = 0; i < 6; i++)
-            indices[i] = vertexCount + FaceIndices[i];
-        var center = FaceCenters[direction];
-        var face = new Face(indices, Vector3.Add(center, position));
-        faces.Add(face);
+            mesh.Indices.Add(FaceIndices[i] + mesh.VertexCount);
 
-        vertexCount += 4;
+        mesh.VertexCount += 4;
     }
 }

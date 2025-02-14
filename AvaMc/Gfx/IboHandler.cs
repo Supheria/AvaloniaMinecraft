@@ -1,17 +1,19 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Silk.NET.OpenGLES;
 
 namespace AvaMc.Gfx;
 
-public sealed unsafe class IboHandler : Resource
+public struct IboHandler
 {
+    uint Handle { get; }
     bool Dynamic { get; }
     uint ElementCount { get; set; }
 
     private IboHandler(uint handle, bool dynamic)
-        : base(handle)
     {
+        Handle = handle;
         Dynamic = dynamic;
     }
 
@@ -22,15 +24,14 @@ public sealed unsafe class IboHandler : Resource
         return ibo;
     }
 
-    public void Buffer(GL gl, ICollection<uint> data)
+    public void Buffer(GL gl, ReadOnlySpan<uint> data)
     {
         Bind(gl);
-        var array = data.ToArray();
-        ElementCount = (uint)array.Length;
-        gl.BufferData<uint>(
+        ElementCount = (uint)data.Length;
+        gl.BufferData(
             BufferTargetARB.ElementArrayBuffer,
-            (uint)(sizeof(uint) * array.Length),
-            data.ToArray(),
+            (uint)(sizeof(uint) * data.Length),
+            data,
             Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StaticDraw
         );
     }
@@ -50,7 +51,7 @@ public sealed unsafe class IboHandler : Resource
         gl.DeleteBuffer(Handle);
     }
 
-    public void DrawElements(GL gl, bool wireframe)
+    public unsafe void DrawElements(GL gl, bool wireframe)
     {
         Bind(gl);
         gl.DrawElements(
@@ -58,6 +59,17 @@ public sealed unsafe class IboHandler : Resource
             ElementCount,
             DrawElementsType.UnsignedInt,
             null
+        );
+    }
+
+    public unsafe void DrawElements(GL gl, bool wireframe, int offset, uint count)
+    {
+        Bind(gl);
+        gl.DrawElements(
+            wireframe ? PrimitiveType.Lines : PrimitiveType.Triangles,
+            count,
+            DrawElementsType.UnsignedInt,
+            (void*)(offset * sizeof(uint))
         );
     }
 }

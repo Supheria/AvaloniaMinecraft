@@ -1,12 +1,14 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System.Numerics;
+using System.Runtime.InteropServices;
+using Hexa.NET.Utilities;
 
 public static class Program
 {
     static Dictionary<int, Dictionary<int, string>> Dics = [];
 
-    public static void Main()
+    public static unsafe void Main()
     {
         var v = Vector3.Zero;
         v = Vector3.Normalize(v);
@@ -20,15 +22,64 @@ public static class Program
         ss[0] = ss[0].SetValue(10);
         var s0 = ss[0];
         ss[0].SetFx(100);
-        
+
         var dic = GetDic(5);
         dic[0] = "hello";
-        
+
         dic = GetDic(5);
         dic[5] = "world";
-        
+
         var ints = new int[50];
 
+        var p1 = new UnsafeList<I2>() { new(1, 2), new(3, 4), new(5, 6) };
+        var p2 = new UnsafeList<I2>(p1.Count);
+
+        Utils.Memcpy(&p1.Data[1], &p2.Data[2], 1 * sizeof(I2));
+
+        var ia = p2[0];
+        var ib = p2[1];
+        var pIc = &p2.Data[2];
+        *pIc = new(7, 7);
+        pIc->Value1 = 9;
+        var ic = *pIc;
+
+        var s = new S();
+        s.SetFx(11);
+        var pS = &s;
+
+        var pSs = new UnsafeList<IntPtr>(5);
+        var p = Utils.AllocT<S>(1);
+        *p = new S().SetValue(10);
+        pSs[2] = (IntPtr)p;
+        var ts = (S*)(pSs[2]);
+        var zero = (S*)(pSs[0]);
+        if (zero == null) { }
+
+        var iS = Utils.AllocT<int>(3);
+        iS[1] = 2;
+        iS[2] = 3;
+        // iS.AsSpan().Sort();
+        // var ps1 = iS.GetPointer(2);
+        var ps2 = iS + 1;
+        var ps3 = iS + 2;
+        var m1 = (IntPtr)ps3 - (IntPtr)ps2;
+        var z1 = sizeof(int);
+        if (z1 == m1)
+        {
+            
+        }
+        
+        var pss = Utils.AllocT<I2>(3);
+        pss[1] = new(2, 22);
+        pss[2] = new(3, 33);
+        var pss2 = pss + 1;
+        var pss3 = pss + 2;
+        var m2 = (IntPtr)pss3 - (IntPtr)pss2;
+        var z2 = sizeof(I2);
+        if (m2 == z2)
+        {
+            
+        }
         Console.ReadLine();
     }
 
@@ -39,6 +90,8 @@ public static class Program
         Dics[index] = [];
         return Dics[index];
     }
+
+    private static unsafe void GetPointer(void* p) { }
 }
 
 class A
@@ -77,5 +130,17 @@ struct S
     public void SetFx(int value)
     {
         Value = value;
+    }
+}
+
+struct I2
+{
+    public int Value1 { get; set; } = -1;
+    public int Value2 { get; set; } = -2;
+
+    public I2(int value1, int value2)
+    {
+        Value1 = value1;
+        Value2 = value2;
     }
 }

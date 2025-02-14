@@ -6,7 +6,7 @@ using AvaMc.WorldBuilds;
 
 namespace AvaMc.Coordinates;
 
-public struct BlockPosition : IEquatable<BlockPosition>
+public struct BlockPosition
 {
     public int X { get; set; }
     public int Y { get; set; }
@@ -16,13 +16,6 @@ public struct BlockPosition : IEquatable<BlockPosition>
 
     public BlockPosition()
         : this(0, 0, 0) { }
-
-    public BlockPosition(Vector3I value)
-    {
-        X = value.X;
-        Y = value.Y;
-        Z = value.Z;
-    }
 
     public BlockPosition(int x, int y, int z)
     {
@@ -36,9 +29,6 @@ public struct BlockPosition : IEquatable<BlockPosition>
             (int)MathF.Floor(position.X),
             (int)MathF.Floor(position.Y),
             (int)MathF.Floor(position.Z)
-            // (int)(position.X),
-            // (int)(position.Y),
-            // (int)(position.Z)
         ) { }
 
     public Vector3I ToChunkOffset()
@@ -48,18 +38,13 @@ public struct BlockPosition : IEquatable<BlockPosition>
             (int)MathF.Floor(Y / (float)Chunk.ChunkSizeY),
             (int)MathF.Floor(Z / (float)Chunk.ChunkSizeZ)
         );
-        return new(
-            (int)(X / (float)Chunk.ChunkSizeX),
-            (int)(Y / (float)Chunk.ChunkSizeY),
-            (int)(Z / (float)Chunk.ChunkSizeZ)
-        );
     }
 
-    public Vector2I IntoHeightmap()
+    public (int X, int Z) IntoHeightmap()
     {
         var x = (X % Chunk.ChunkSizeX + Chunk.ChunkSizeX) % Chunk.ChunkSizeX;
         var z = (Z % Chunk.ChunkSizeZ + Chunk.ChunkSizeZ) % Chunk.ChunkSizeZ;
-        return new(x, z);
+        return (x, z);
     }
 
     public Vector3I IntoChunk()
@@ -76,20 +61,5 @@ public struct BlockPosition : IEquatable<BlockPosition>
         var y = Y + direction.Y;
         var z = Z + direction.Z;
         return new(x, y, z);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(X, Y, Z);
-    }
-
-    public bool Equals(BlockPosition other)
-    {
-        return X == other.X && Y == other.Y && Z == other.Z;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is BlockPosition other && Equals(other);
     }
 }

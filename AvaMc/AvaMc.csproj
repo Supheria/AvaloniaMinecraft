@@ -21,6 +21,7 @@
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
         <PackageReference Include="CommunityToolkit.Mvvm"/>
+        <PackageReference Include="Hexa.NET.Utilities" />
         <PackageReference Include="Silk.NET.OpenGLES" />
         <PackageReference Include="StbImageSharp" />
     </ItemGroup>
